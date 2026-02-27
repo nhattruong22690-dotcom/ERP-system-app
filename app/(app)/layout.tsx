@@ -355,248 +355,245 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </div>
                 )}
 
-                {/* Topbar — bell lives here, never overlaps page content */}
-                <div style={{
-                    height: 44,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    paddingRight: 16,
-                    background: 'var(--bg)',
-                    borderBottom: '1px solid var(--border)',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 50,
-                    flexShrink: 0,
+                {/* Floating Bell — no topbar, saves vertical space */}
+                <div ref={bellRef} style={{
+                    position: 'fixed',
+                    top: 12,
+                    right: 16,
+                    zIndex: 55,
                 }}>
-                    <div ref={bellRef} style={{ position: 'relative' }}>
-                        {/* Bell button */}
-                        <button
-                            onClick={() => setBellOpen(v => !v)}
-                            aria-label="Thông báo"
-                            style={{
-                                width: 36, height: 36, borderRadius: '10px', border: 'none', cursor: 'pointer',
-                                background: totalCount > 0 ? (exceededCount > 0 ? '#fee2e2' : '#fef3c7') : '#f3f4f6',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                position: 'relative', transition: 'all 0.15s',
-                            }}
-                        >
-                            <Bell size={17} color={exceededCount > 0 ? '#dc2626' : warningCount > 0 ? '#d97706' : '#6b7280'} />
-                            {totalCount > 0 && (
-                                <span style={{
-                                    position: 'absolute', top: -5, right: -5,
-                                    background: exceededCount > 0 ? '#dc2626' : '#d97706',
-                                    color: 'white', borderRadius: '99px',
-                                    fontSize: '0.65rem', fontWeight: 800,
-                                    padding: '1px 5px', lineHeight: 1.4,
-                                    border: '2px solid var(--bg)',
-                                }}>
-                                    {totalCount}
-                                </span>
-                            )}
-                        </button>
-
-                        {/* Dropdown */}
-                        {bellOpen && (
-                            <div style={{
-                                position: 'absolute', top: 42, right: 0,
-                                width: 360, maxHeight: 520, display: 'flex', flexDirection: 'column',
-                                background: 'white', borderRadius: '14px',
-                                boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-                                border: '1px solid var(--border)',
-                                zIndex: 110,
+                    {/* Bell button — 20% larger with glassmorphism */}
+                    <button
+                        onClick={() => setBellOpen(v => !v)}
+                        aria-label="Thông báo"
+                        style={{
+                            width: 44, height: 44, borderRadius: '14px', border: '1px solid rgba(0,0,0,0.08)', cursor: 'pointer',
+                            background: totalCount > 0
+                                ? (exceededCount > 0 ? 'rgba(254, 226, 226, 0.85)' : 'rgba(254, 243, 199, 0.85)')
+                                : 'rgba(255, 255, 255, 0.7)',
+                            backdropFilter: 'blur(12px)',
+                            WebkitBackdropFilter: 'blur(12px)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            position: 'relative', transition: 'all 0.2s ease',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+                        }}
+                    >
+                        <Bell size={20} color={exceededCount > 0 ? '#dc2626' : warningCount > 0 ? '#d97706' : '#6b7280'} />
+                        {totalCount > 0 && (
+                            <span style={{
+                                position: 'absolute', top: -5, right: -5,
+                                background: exceededCount > 0 ? '#dc2626' : '#d97706',
+                                color: 'white', borderRadius: '99px',
+                                fontSize: '0.65rem', fontWeight: 800,
+                                padding: '2px 6px', lineHeight: 1.4,
+                                border: '2px solid white',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                             }}>
-                                {/* Header / Tabs */}
-                                <div style={{ padding: '12px 16px 0', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <h1 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Bản tin hệ thống</h1>
-                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                            {activeTab === 'alerts' && alertsInTab.length > 0 && (
-                                                <button onClick={dismissAll}
-                                                    style={{ background: 'none', border: 'none', fontSize: '0.75rem', color: 'var(--muted)', cursor: 'pointer', textDecoration: 'underline' }}>
-                                                    Xóa tất cả
-                                                </button>
-                                            )}
-                                            <button onClick={() => setBellOpen(false)}
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', lineHeight: 0, padding: 2 }}>
-                                                <X size={16} />
+                                {totalCount}
+                            </span>
+                        )}
+                    </button>
+
+                    {/* Dropdown */}
+                    {bellOpen && (
+                        <div style={{
+                            position: 'absolute', top: 42, right: 0,
+                            width: 360, maxHeight: 520, display: 'flex', flexDirection: 'column',
+                            background: 'white', borderRadius: '14px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+                            border: '1px solid var(--border)',
+                            zIndex: 110,
+                        }}>
+                            {/* Header / Tabs */}
+                            <div style={{ padding: '12px 16px 0', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <h1 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Bản tin hệ thống</h1>
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        {activeTab === 'alerts' && alertsInTab.length > 0 && (
+                                            <button onClick={dismissAll}
+                                                style={{ background: 'none', border: 'none', fontSize: '0.75rem', color: 'var(--muted)', cursor: 'pointer', textDecoration: 'underline' }}>
+                                                Xóa tất cả
                                             </button>
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '20px' }}>
-                                        <button
-                                            onClick={() => setActiveTab('activity')}
-                                            style={{
-                                                background: 'none', border: 'none', borderBottom: `2px solid ${activeTab === 'activity' ? 'var(--primary)' : 'transparent'}`,
-                                                padding: '4px 0 10px', fontSize: '0.85rem', fontWeight: 600, color: activeTab === 'activity' ? 'var(--primary)' : 'var(--muted)',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Hoạt động
-                                        </button>
-                                        <button
-                                            onClick={() => setActiveTab('alerts')}
-                                            style={{
-                                                background: 'none', border: 'none', borderBottom: `2px solid ${activeTab === 'alerts' ? 'var(--primary)' : 'transparent'}`,
-                                                padding: '4px 0 10px', fontSize: '0.85rem', fontWeight: 600, color: activeTab === 'alerts' ? 'var(--primary)' : 'var(--muted)',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Cảnh báo {alertsInTab.length > 0 && `(${alertsInTab.length})`}
-                                        </button>
-                                        <button
-                                            onClick={() => setActiveTab('watchlist')}
-                                            style={{
-                                                background: 'none', border: 'none', borderBottom: `2px solid ${activeTab === 'watchlist' ? 'var(--primary)' : 'transparent'}`,
-                                                padding: '4px 0 10px', fontSize: '0.85rem', fontWeight: 600, color: activeTab === 'watchlist' ? 'var(--primary)' : 'var(--muted)',
-                                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
-                                            }}
-                                        >
-                                            Theo dõi {watchlistInTab.length > 0 && `(${watchlistInTab.length})`}
+                                        )}
+                                        <button onClick={() => setBellOpen(false)}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', lineHeight: 0, padding: 2 }}>
+                                            <X size={16} />
                                         </button>
                                     </div>
                                 </div>
-
-                                {/* Alert list */}
-                                <div style={{ overflowY: 'auto', flex: 1, padding: '8px 0' }}>
-                                    {activeTab === 'activity' ? (
-                                        (state.activityLogs || []).length === 0 ? (
-                                            <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: '0.875rem' }}>
-                                                Chưa có hoạt động nào
-                                            </div>
-                                        ) : (
-                                            [...(state.activityLogs || [])]
-                                                .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-                                                .filter(log => {
-                                                    // Filter activity logs by branch access
-                                                    // This is simplified: if log is for a specific entity, we might need to check its branch.
-                                                    // For now, if the user is restricted to a branch, we filter logs that have branch info in details or are linked to their branch.
-                                                    // However, activity logs don't have a branchId directly. 
-                                                    // Let's at least ensure they have general access to the entity type if possible.
-
-                                                    // For simplicity, admins see all. Staff see only what's likely theirs (simplified check)
-                                                    if (currentUser.role === 'admin') return true
-
-                                                    // If user is restricted to a branch, and the details mention another branch name, hide it.
-                                                    if (currentUser.branchId && !canViewAllBranches(currentUser)) {
-                                                        const userBranch = state.branches.find(b => b.id === currentUser.branchId)
-                                                        if (userBranch) {
-                                                            const otherBranches = state.branches.filter(b => b.id !== currentUser.branchId)
-                                                            if (otherBranches.some(b => log.details.includes(`[${b.name}]`) || log.details.includes(b.name))) return false
-                                                        }
-                                                    }
-                                                    return true
-                                                })
-                                                .slice(0, 50)
-                                                .map((log, i, arr) => {
-                                                    const u = state.users.find(user => user.id === log.userId)
-                                                    const time = new Date(log.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-                                                    const isIncome = log.details.includes('[THU]')
-                                                    const isExpense = log.details.includes('[CHI]')
-                                                    const semanticColor = isIncome ? 'var(--success)' : isExpense ? 'var(--danger)' : 'var(--foreground)'
-
-                                                    return (
-                                                        <div key={log.id} style={{
-                                                            padding: '10px 16px',
-                                                            borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)',
-                                                            display: 'flex', gap: 12, alignItems: 'center'
-                                                        }}>
-                                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                                <div style={{ fontSize: '0.8rem', color: semanticColor, lineHeight: 1.4, fontWeight: 600 }}>
-                                                                    {log.details}
-                                                                </div>
-                                                            </div>
-                                                            <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                                                                <div style={{ fontWeight: 700, fontSize: '0.65rem', color: 'var(--primary)' }}>
-                                                                    {u?.displayName || 'System'}
-                                                                </div>
-                                                                <div style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>
-                                                                    {time}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })
-                                        )
-                                    ) : displayList.length === 0 ? (
-                                        <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--muted)' }}>
-                                            {activeTab === 'watchlist' ? (
-                                                <>
-                                                    <Star size={28} color="#d1d5db" style={{ display: 'block', margin: '0 auto 8px' }} />
-                                                    <div style={{ fontSize: '0.875rem' }}>Chưa có khoản nào được đánh dấu theo dõi</div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <CheckCircle size={28} color="#10b981" style={{ display: 'block', margin: '0 auto 8px' }} />
-                                                    <div style={{ fontWeight: 600, color: '#065f46', fontSize: '0.875rem' }}>Mọi thứ trong tầm kiểm soát</div>
-                                                    <div style={{ fontSize: '0.78rem', marginTop: 4 }}>Tất cả dòng tiền đang trong kế hoạch ✓</div>
-                                                </>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        displayList.map(a => {
-                                            const key = getAlertKey(a)
-                                            const isExceeded = a.status === 'exceeded'
-                                            const isWarning = a.status === 'warning'
-                                            const isOK = a.status === 'ok'
-                                            const isStarred = starredKeys.has(key)
-
-                                            const cardBg = isExceeded ? '#fff1f2' : isWarning ? '#fffbeb' : '#f0fdf4'
-                                            const cardBorder = isExceeded ? '#dc2626' : isWarning ? '#d97706' : '#10b981'
-                                            const textColor = isExceeded ? '#dc2626' : isWarning ? '#92400e' : '#15803d'
-                                            return (
-                                                <div key={key} style={{
-                                                    display: 'flex', alignItems: 'flex-start', gap: 10,
-                                                    padding: '10px 16px',
-                                                    borderLeft: `3px solid ${cardBorder}`,
-                                                    margin: '0 8px 6px', borderRadius: '0 8px 8px 0',
-                                                    background: cardBg,
-                                                    position: 'relative'
-                                                }}>
-                                                    <button
-                                                        onClick={(e) => toggleStar(a, e)}
-                                                        style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', position: 'absolute', top: 10, right: 36, color: isStarred ? '#eab308' : '#d1d5db' }}
-                                                    >
-                                                        <Star size={14} fill={isStarred ? '#eab308' : 'none'} />
-                                                    </button>
-
-                                                    <div style={{ paddingTop: 2, flexShrink: 0 }}>
-                                                        {isOK ? <CheckCircle size={14} color="#10b981" /> : <AlertTriangle size={14} color={cardBorder} />}
-                                                    </div>
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <Link
-                                                            href={alertLink(a)}
-                                                            onClick={() => setBellOpen(false)}
-                                                            style={{ textDecoration: 'none' }}
-                                                        >
-                                                            <div style={{ fontWeight: 700, fontSize: '0.825rem', color: textColor, cursor: 'pointer', paddingRight: 40 }}>
-                                                                {a.categoryName}
-                                                            </div>
-                                                            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
-                                                                {a.branchName} · {MONTHS[a.month - 1]}/{a.year}
-                                                            </div>
-                                                            <div style={{ fontSize: '0.75rem', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                                <span style={{ color: 'var(--muted)' }}>KH: {fmtVND(a.planned)}</span>
-                                                                <ArrowRight size={10} color="var(--muted)" />
-                                                                <span style={{ color: textColor, fontWeight: 700 }}>{fmtVND(a.actual)} ({a.pct.toFixed(0)}%)</span>
-                                                            </div>
-                                                        </Link>
-                                                    </div>
-                                                    {activeTab === 'alerts' && (
-                                                        <button onClick={() => dismissAlert(a)}
-                                                            title="Tắt"
-                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 2, lineHeight: 0, flexShrink: 0 }}>
-                                                            <X size={13} />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )
-                                        })
-                                    )}
+                                <div style={{ display: 'flex', gap: '20px' }}>
+                                    <button
+                                        onClick={() => setActiveTab('activity')}
+                                        style={{
+                                            background: 'none', border: 'none', borderBottom: `2px solid ${activeTab === 'activity' ? 'var(--primary)' : 'transparent'}`,
+                                            padding: '4px 0 10px', fontSize: '0.85rem', fontWeight: 600, color: activeTab === 'activity' ? 'var(--primary)' : 'var(--muted)',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Hoạt động
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('alerts')}
+                                        style={{
+                                            background: 'none', border: 'none', borderBottom: `2px solid ${activeTab === 'alerts' ? 'var(--primary)' : 'transparent'}`,
+                                            padding: '4px 0 10px', fontSize: '0.85rem', fontWeight: 600, color: activeTab === 'alerts' ? 'var(--primary)' : 'var(--muted)',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Cảnh báo {alertsInTab.length > 0 && `(${alertsInTab.length})`}
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('watchlist')}
+                                        style={{
+                                            background: 'none', border: 'none', borderBottom: `2px solid ${activeTab === 'watchlist' ? 'var(--primary)' : 'transparent'}`,
+                                            padding: '4px 0 10px', fontSize: '0.85rem', fontWeight: 600, color: activeTab === 'watchlist' ? 'var(--primary)' : 'var(--muted)',
+                                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                                        }}
+                                    >
+                                        Theo dõi {watchlistInTab.length > 0 && `(${watchlistInTab.length})`}
+                                    </button>
                                 </div>
                             </div>
-                        )}
-                    </div>
+
+                            {/* Alert list */}
+                            <div style={{ overflowY: 'auto', flex: 1, padding: '8px 0' }}>
+                                {activeTab === 'activity' ? (
+                                    (state.activityLogs || []).length === 0 ? (
+                                        <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: '0.875rem' }}>
+                                            Chưa có hoạt động nào
+                                        </div>
+                                    ) : (
+                                        [...(state.activityLogs || [])]
+                                            .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                                            .filter(log => {
+                                                // Filter activity logs by branch access
+                                                // This is simplified: if log is for a specific entity, we might need to check its branch.
+                                                // For now, if the user is restricted to a branch, we filter logs that have branch info in details or are linked to their branch.
+                                                // However, activity logs don't have a branchId directly. 
+                                                // Let's at least ensure they have general access to the entity type if possible.
+
+                                                // For simplicity, admins see all. Staff see only what's likely theirs (simplified check)
+                                                if (currentUser.role === 'admin') return true
+
+                                                // If user is restricted to a branch, and the details mention another branch name, hide it.
+                                                if (currentUser.branchId && !canViewAllBranches(currentUser)) {
+                                                    const userBranch = state.branches.find(b => b.id === currentUser.branchId)
+                                                    if (userBranch) {
+                                                        const otherBranches = state.branches.filter(b => b.id !== currentUser.branchId)
+                                                        if (otherBranches.some(b => log.details.includes(`[${b.name}]`) || log.details.includes(b.name))) return false
+                                                    }
+                                                }
+                                                return true
+                                            })
+                                            .slice(0, 50)
+                                            .map((log, i, arr) => {
+                                                const u = state.users.find(user => user.id === log.userId)
+                                                const time = new Date(log.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                                                const isIncome = log.details.includes('[THU]')
+                                                const isExpense = log.details.includes('[CHI]')
+                                                const semanticColor = isIncome ? 'var(--success)' : isExpense ? 'var(--danger)' : 'var(--foreground)'
+
+                                                return (
+                                                    <div key={log.id} style={{
+                                                        padding: '10px 16px',
+                                                        borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)',
+                                                        display: 'flex', gap: 12, alignItems: 'center'
+                                                    }}>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ fontSize: '0.8rem', color: semanticColor, lineHeight: 1.4, fontWeight: 600 }}>
+                                                                {log.details}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                                                            <div style={{ fontWeight: 700, fontSize: '0.65rem', color: 'var(--primary)' }}>
+                                                                {u?.displayName || 'System'}
+                                                            </div>
+                                                            <div style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>
+                                                                {time}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })
+                                    )
+                                ) : displayList.length === 0 ? (
+                                    <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--muted)' }}>
+                                        {activeTab === 'watchlist' ? (
+                                            <>
+                                                <Star size={28} color="#d1d5db" style={{ display: 'block', margin: '0 auto 8px' }} />
+                                                <div style={{ fontSize: '0.875rem' }}>Chưa có khoản nào được đánh dấu theo dõi</div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle size={28} color="#10b981" style={{ display: 'block', margin: '0 auto 8px' }} />
+                                                <div style={{ fontWeight: 600, color: '#065f46', fontSize: '0.875rem' }}>Mọi thứ trong tầm kiểm soát</div>
+                                                <div style={{ fontSize: '0.78rem', marginTop: 4 }}>Tất cả dòng tiền đang trong kế hoạch ✓</div>
+                                            </>
+                                        )}
+                                    </div>
+                                ) : (
+                                    displayList.map(a => {
+                                        const key = getAlertKey(a)
+                                        const isExceeded = a.status === 'exceeded'
+                                        const isWarning = a.status === 'warning'
+                                        const isOK = a.status === 'ok'
+                                        const isStarred = starredKeys.has(key)
+
+                                        const cardBg = isExceeded ? '#fff1f2' : isWarning ? '#fffbeb' : '#f0fdf4'
+                                        const cardBorder = isExceeded ? '#dc2626' : isWarning ? '#d97706' : '#10b981'
+                                        const textColor = isExceeded ? '#dc2626' : isWarning ? '#92400e' : '#15803d'
+                                        return (
+                                            <div key={key} style={{
+                                                display: 'flex', alignItems: 'flex-start', gap: 10,
+                                                padding: '10px 16px',
+                                                borderLeft: `3px solid ${cardBorder}`,
+                                                margin: '0 8px 6px', borderRadius: '0 8px 8px 0',
+                                                background: cardBg,
+                                                position: 'relative'
+                                            }}>
+                                                <button
+                                                    onClick={(e) => toggleStar(a, e)}
+                                                    style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', position: 'absolute', top: 10, right: 36, color: isStarred ? '#eab308' : '#d1d5db' }}
+                                                >
+                                                    <Star size={14} fill={isStarred ? '#eab308' : 'none'} />
+                                                </button>
+
+                                                <div style={{ paddingTop: 2, flexShrink: 0 }}>
+                                                    {isOK ? <CheckCircle size={14} color="#10b981" /> : <AlertTriangle size={14} color={cardBorder} />}
+                                                </div>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <Link
+                                                        href={alertLink(a)}
+                                                        onClick={() => setBellOpen(false)}
+                                                        style={{ textDecoration: 'none' }}
+                                                    >
+                                                        <div style={{ fontWeight: 700, fontSize: '0.825rem', color: textColor, cursor: 'pointer', paddingRight: 40 }}>
+                                                            {a.categoryName}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
+                                                            {a.branchName} · {MONTHS[a.month - 1]}/{a.year}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.75rem', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                            <span style={{ color: 'var(--muted)' }}>KH: {fmtVND(a.planned)}</span>
+                                                            <ArrowRight size={10} color="var(--muted)" />
+                                                            <span style={{ color: textColor, fontWeight: 700 }}>{fmtVND(a.actual)} ({a.pct.toFixed(0)}%)</span>
+                                                        </div>
+                                                    </Link>
+                                                </div>
+                                                {activeTab === 'alerts' && (
+                                                    <button onClick={() => dismissAlert(a)}
+                                                        title="Tắt"
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 2, lineHeight: 0, flexShrink: 0 }}>
+                                                        <X size={13} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )
+                                    })
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Page content */}
@@ -616,6 +613,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onCloseChat={handleCloseChat}
                 chatSidebarOpen={chatSidebarOpen}
             />
-        </div >
+        </div>
     )
 }
