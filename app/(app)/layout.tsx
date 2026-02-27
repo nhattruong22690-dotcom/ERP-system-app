@@ -343,17 +343,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     marginRight: 0
                 }}>
 
-                {/* Session Marquee Notification */}
-                {showMarquee && totalCount > 0 && (
-                    <div className="marquee-container">
-                        <div className="marquee-text">
-                            🔔 Có {exceededCount > 0 ? `${exceededCount} khoản vượt kế hoạch` : ''}
-                            {exceededCount > 0 && warningCount > 0 ? ' · ' : ''}
-                            {warningCount > 0 ? `${warningCount} khoản cảnh báo` : ''}
-                            — Nhấn biểu tượng 🔔 để xem chi tiết
-                        </div>
-                    </div>
-                )}
 
                 {/* Floating Bell — no topbar, saves vertical space */}
                 <div ref={bellRef} style={{
