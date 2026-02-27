@@ -1,0 +1,38 @@
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Luxurious Gold Gradient Definitions -->
+  <defs>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FADCA0;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#C5A059;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#965000;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="15" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Glow -->
+  <circle cx="250" cy="230" r="150" fill="url(#goldGradient)" opacity="0.2" filter="url(#glow)"/>
+
+  <!-- Main Shield/Circle -->
+  <circle cx="250" cy="230" r="100" fill="#1A1A1A" stroke="url(#goldGradient)" stroke-width="8" />
+  <circle cx="250" cy="230" r="90" fill="none" stroke="url(#goldGradient)" stroke-width="2" opacity="0.5" />
+
+  <!-- Crown -->
+  <path d="M220 130L235 150L250 120L265 150L280 130L275 165H225L220 130Z" fill="url(#goldGradient)" filter="url(#glow)"/>
+  <circle cx="250" cy="115" r="5" fill="url(#goldGradient)"/>
+  <circle cx="218" cy="125" r="4" fill="url(#goldGradient)"/>
+  <circle cx="282" cy="125" r="4" fill="url(#goldGradient)"/>
+
+  <!-- VIP Text -->
+  <text x="250" y="260" font-family="Serif" font-size="70" font-weight="900" fill="url(#goldGradient)" text-anchor="middle" style="letter-spacing: 5px;">VIP</text>
+
+  <!-- Ribbon -->
+  <path d="M100 280C100 280 150 250 250 250C350 250 400 280 400 280V320C400 320 350 290 250 290C150 290 100 320 100 320V280Z" fill="url(#goldGradient)" />
+  <path d="M100 280L80 300L100 320V280Z" fill="#7A4A1F" />
+  <path d="M400 280L420 300L400 320V280Z" fill="#7A4A1F" />
+
+  <!-- Stars -->
+  <path d="M250 305L253 311L259 311L254 315L256 321L250 317L244 321L246 315L241 311L247 311L250 305Z" fill="white" />
+</svg>

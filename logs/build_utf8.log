@@ -1,0 +1,50 @@
+﻿
+> taichinh-app@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 2.1s
+  Running TypeScript ...
+node.exe : Failed to compile.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed t 
+   o compile.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./lib/supabaseFetch.ts:68:9
+Type error: Type '{ branches: { id: any; name: any; 
+code: any; isHeadquarter: any; createdAt: any; }[]; 
+users: { id: any; username: any; displayName: any; 
+password: any; email: any; avatarUrl: any; role: any; 
+allowedPages: any; permissions: any; branchId: any; 
+title: any; isActive: boolean; createdAt: any; }[]; 
+... 10 more ...; starr...' is missing the following 
+properties from type 'AppState': treatmentCards, 
+commissionSettings, leads, commissionLogs, 
+userMissions
+
+[0m [90m 66 |[39m         }))
+ [90m 67 |[39m
+[31m[1m>[22m[39m[90m 68 |[39m         
+[36mreturn[39m {
+ [90m    |[39m         [31m[1m^[22m[39m
+ [90m 69 |[39m             branches[33m:[39m 
+resBranches[33m.[39mmap((b[33m:[39m any) 
+[33m=>[39m ({
+ [90m 70 |[39m                 id[33m:[39m 
+b[33m.[39mid[33m,[39m name[33m:[39m 
+b[33m.[39mname[33m,[39m code[33m:[39m 
+b[33m.[39mcode[33m,[39m isHeadquarter[33m:[39m 
+b[33m.[39mis_headquarter[33m,[39m 
+createdAt[33m:[39m b[33m.[39mcreated_at
+ [90m 71 |[39m             }))[33m,[39m[0m
+Next.js build worker exited with code: 1 and signal: 
+null
