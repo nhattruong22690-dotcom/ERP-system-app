@@ -98,6 +98,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     const closeSidebar = useCallback(() => setSidebarOpen(false), [])
 
+    // Build alerts (memoized — must be before any conditional returns per Rules of Hooks)
+    const allAlerts = useMemo(() => buildAlerts(state.plans, state.categories, state.transactions, state.branches), [state.plans, state.categories, state.transactions, state.branches])
+    const allItemsForWatchlist = useMemo(() => buildAlerts(state.plans, state.categories, state.transactions, state.branches, true), [state.plans, state.categories, state.transactions, state.branches])
+
     useEffect(() => { closeSidebar(); setBellOpen(false) }, [pathname, closeSidebar])
 
     useEffect(() => {
@@ -161,9 +165,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     if (!currentUser) return null
 
-    // Build alerts (memoized to avoid recalculating on every render)
-    const allAlerts = useMemo(() => buildAlerts(state.plans, state.categories, state.transactions, state.branches), [state.plans, state.categories, state.transactions, state.branches])
-    const allItemsForWatchlist = useMemo(() => buildAlerts(state.plans, state.categories, state.transactions, state.branches, true), [state.plans, state.categories, state.transactions, state.branches])
+    // allAlerts and allItemsForWatchlist are memoized above (before conditional returns)
 
     // Alert context keys: "userId:branchId|month|year|categoryId"
     const getAlertKey = (a: any) => `${currentUser?.id}:${a.branchId}|${a.month}|${a.year}|${a.categoryId}`
