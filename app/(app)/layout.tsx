@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useApp, canManageUsers, isPageAllowed, canViewAllBranches } from '@/lib/auth'
@@ -161,9 +161,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     if (!currentUser) return null
 
-    // Build alerts
-    const allAlerts = buildAlerts(state.plans, state.categories, state.transactions, state.branches)
-    const allItemsForWatchlist = buildAlerts(state.plans, state.categories, state.transactions, state.branches, true)
+    // Build alerts (memoized to avoid recalculating on every render)
+    const allAlerts = useMemo(() => buildAlerts(state.plans, state.categories, state.transactions, state.branches), [state.plans, state.categories, state.transactions, state.branches])
+    const allItemsForWatchlist = useMemo(() => buildAlerts(state.plans, state.categories, state.transactions, state.branches, true), [state.plans, state.categories, state.transactions, state.branches])
 
     // Alert context keys: "userId:branchId|month|year|categoryId"
     const getAlertKey = (a: any) => `${currentUser?.id}:${a.branchId}|${a.month}|${a.year}|${a.categoryId}`

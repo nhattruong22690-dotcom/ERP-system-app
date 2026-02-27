@@ -16,7 +16,7 @@ async function fetchAllRows(table: string, columns: string = '*') {
             return allData
         }
         if (!data || data.length === 0) break
-        allData = [...allData, ...data]
+        allData.push(...data)
         if (data.length < step) break
         from += step
     }

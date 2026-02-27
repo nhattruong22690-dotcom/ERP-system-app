@@ -98,20 +98,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }, [state.currentUserId, state.dismissedAlerts, state.starredAlerts])
 
     // Real-time subscriptions to keep data in sync across clients
+    // Debounced to avoid re-fetching ALL data on every single change
     useEffect(() => {
         if (!mounted) return
+
+        let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
         const channel = supabase
             .channel('db-changes')
             .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-                console.log('Real-time update received:', payload)
-                refresh()
+                // Skip messages table — ChatWindow handles its own real-time
+                if (payload.table === 'messages' || payload.table === 'presence') return
+
+                console.log('Real-time update received:', payload.table)
+
+                // Debounce: batch rapid changes within 2 seconds
+                if (debounceTimer) clearTimeout(debounceTimer)
+                debounceTimer = setTimeout(() => {
+                    refresh()
+                }, 2000)
             })
             .subscribe((status) => {
                 console.log('Real-time subscription status:', status)
             })
 
         return () => {
+            if (debounceTimer) clearTimeout(debounceTimer)
             supabase.removeChannel(channel)
         }
     }, [refresh, mounted])
