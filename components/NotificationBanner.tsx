@@ -168,28 +168,28 @@ export default function NotificationBanner({ userId }: Props) {
             ref={bannerRef}
             style={{
                 position: 'fixed',
-                top: isVisible ? '0' : '-60px',
+                top: isVisible ? '0' : '-80px',
                 left: '0',
                 right: '0',
-                height: '36px',
+                height: '72px',
                 zIndex: 3000,
                 display: 'flex',
                 alignItems: 'center',
                 transition: 'top 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
                 background: notification.type === 'warning'
-                    ? 'rgba(254, 242, 242, 0.9)'
-                    : 'rgba(255, 255, 255, 0.9)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                borderBottom: `1px solid ${notification.type === 'warning' ? '#fecaca' : '#e5e7eb'}`,
+                    ? 'rgba(254, 242, 242, 0.95)'
+                    : 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderBottom: `2px solid ${notification.type === 'warning' ? '#fecaca' : '#e5e7eb'}`,
                 color: notification.type === 'warning' ? '#991b1b' : '#374151',
                 overflow: 'hidden',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                boxShadow: '0 8px 32px rgba(0,0,0,0.08)'
             }}
         >
             {/* Left Icon/Label */}
             <div style={{
-                padding: '0 12px',
+                padding: '0 24px',
                 height: '100%',
                 display: 'flex',
                 alignItems: 'center',
@@ -198,10 +198,15 @@ export default function NotificationBanner({ userId }: Props) {
                 zIndex: 2,
                 flexShrink: 0
             }}>
-                {notification.type === 'warning' ? <AlertTriangle size={14} /> : <Info size={14} />}
-                <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    {notification.type === 'event' ? 'Sự kiện' : notification.type === 'warning' ? 'Cảnh báo' : 'Thông báo'}
-                </span>
+                {notification.type === 'warning' ? <AlertTriangle size={24} /> : <Info size={24} />}
+                <div style={{ marginLeft: '12px', display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8 }}>
+                        {notification.type === 'event' ? 'Event' : notification.type === 'warning' ? 'Alert' : 'Notice'}
+                    </span>
+                    <span style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        SYSTEM
+                    </span>
+                </div>
             </div>
 
             {/* Marquee Content */}
@@ -214,14 +219,16 @@ export default function NotificationBanner({ userId }: Props) {
                 alignItems: 'center'
             }}>
                 {/* Gradient Masks */}
-                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '20px', background: 'linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0))', zIndex: 1 }} />
-                <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '20px', background: 'linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0))', zIndex: 1 }} />
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0))', zIndex: 1 }} />
+                <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0))', zIndex: 1 }} />
 
                 <div className="marquee-text-flow" style={{
                     whiteSpace: 'nowrap',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    paddingLeft: '20px'
+                    fontSize: '24px',
+                    fontWeight: 700,
+                    paddingLeft: '40px',
+                    letterSpacing: '-0.02em',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.02)'
                 }}>
                     {notification.content}
                 </div>
@@ -231,7 +238,7 @@ export default function NotificationBanner({ userId }: Props) {
             <button
                 onClick={handleDismiss}
                 style={{
-                    padding: '0 12px',
+                    padding: '0 24px',
                     height: '100%',
                     background: 'none',
                     border: 'none',
@@ -246,7 +253,7 @@ export default function NotificationBanner({ userId }: Props) {
                 onMouseOver={(e) => e.currentTarget.style.color = '#374151'}
                 onMouseOut={(e) => e.currentTarget.style.color = '#9ca3af'}
             >
-                <X size={14} />
+                <X size={24} />
             </button>
 
             <style jsx>{`
