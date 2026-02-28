@@ -114,7 +114,7 @@ export default function NotificationBanner({ userId }: Props) {
         const channel = supabase
             .channel('global_notifications_changes')
             .on(
-                'postgres_changes',
+                'postgres_changes' as any,
                 { event: '*', schema: 'public', table: 'global_notifications' },
                 () => {
                     fetchNotification()
