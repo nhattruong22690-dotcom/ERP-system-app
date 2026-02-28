@@ -23,6 +23,9 @@ export default function NotificationBanner({ userId }: Props) {
         if (!userId) return
 
         const fetchNotification = async () => {
+            // Avoid re-fetching if banner is already visible
+            if (isVisible) return
+
             // 1. Get ALL active notifications
             const { data: activeNotifs, error: fetchError } = await supabase
                 .from('global_notifications')
@@ -46,19 +49,27 @@ export default function NotificationBanner({ userId }: Props) {
             const eligible = activeNotifs.filter(n => {
                 const status = statusMap.get(n.id)
 
+                // Mode: Interval (SYNCED GLOBAL TRIGGER)
+                // This mode bypasses other "already seen" checks if the global trigger is fresh
+                if (n.show_interval && n.last_triggered_at) {
+                    const triggerTime = new Date(n.last_triggered_at).getTime()
+                    const lastShownLocal = status?.last_shown_at ? new Date(status.last_shown_at).getTime() : 0
+
+                    // If the global trigger is NEWER than the last time this specific user saw it
+                    // Then it's time to show it again!
+                    if (triggerTime > lastShownLocal) {
+                        return true
+                    }
+                }
+
                 // If it's a "Once only" and ALREADY SEEN, skip
-                // We assume "Once" is when show_on_login=true, show_on_day=false, show_interval=false
                 const isOnceOnly = n.show_on_login && !n.show_on_day && !n.show_interval
                 if (isOnceOnly && status?.is_seen) return false
 
                 // Mode: Per Session (Login/Reload)
                 if (n.show_on_login) {
                     const sessionKey = `notif_shown_${n.id}`
-                    if (sessionStorage.getItem(sessionKey)) {
-                        // Already shown this session, but maybe we need to check interval if that's also enabled
-                        if (!n.show_interval) return false
-                    } else {
-                        // First time this session - eligible
+                    if (!sessionStorage.getItem(sessionKey)) {
                         return true
                     }
                 }
@@ -67,27 +78,10 @@ export default function NotificationBanner({ userId }: Props) {
                 if (n.show_on_day) {
                     if (status?.last_shown_at) {
                         const lastDate = new Date(status.last_shown_at).toDateString()
-                        if (lastDate === now.toDateString()) {
-                            // Shown today, but check interval if enabled
-                            if (!n.show_interval) return false
-                        } else {
-                            // First time today
+                        if (lastDate !== now.toDateString()) {
                             return true
                         }
                     } else {
-                        // Never shown - eligible
-                        return true
-                    }
-                }
-
-                // Mode: Interval
-                if (n.show_interval && n.interval_minutes) {
-                    if (status?.last_shown_at) {
-                        const lastTime = new Date(status.last_shown_at).getTime()
-                        const diffMinutes = (now.getTime() - lastTime) / (1000 * 60)
-                        if (diffMinutes >= n.interval_minutes) return true
-                    } else {
-                        // Never shown - eligible
                         return true
                     }
                 }
@@ -96,21 +90,46 @@ export default function NotificationBanner({ userId }: Props) {
             })
 
             if (eligible.length > 0) {
-                const best = eligible[0] // Priority order by query
+                const best = eligible[0]
                 setNotification(best)
                 setTimeout(() => setIsVisible(true), 500)
 
-                // Track in session if show_on_login is true
                 if (best.show_on_login) {
                     sessionStorage.setItem(`notif_shown_${best.id}`, 'true')
                 }
+
+                // Optimistically update last_shown_at so we don't trigger again immediately
+                await supabase.from('user_notifications_status').upsert({
+                    user_id: userId,
+                    notification_id: best.id,
+                    is_seen: true,
+                    last_shown_at: new Date().toISOString()
+                }, { onConflict: 'user_id,notification_id' })
             }
         }
 
         fetchNotification()
-        const interval = setInterval(fetchNotification, 30000) // Check every 30s for intervals
-        return () => clearInterval(interval)
-    }, [userId])
+
+        // REALTIME SUBSCRIPTION
+        const channel = supabase
+            .channel('global_notifications_changes')
+            .on(
+                'postgres_changes',
+                { event: '*', theme: 'public', table: 'global_notifications' },
+                () => {
+                    fetchNotification()
+                }
+            )
+            .subscribe()
+
+        // Also keep a slow poll as backup for time-based triggers
+        const interval = setInterval(fetchNotification, 60000)
+
+        return () => {
+            supabase.removeChannel(channel)
+            clearInterval(interval)
+        }
+    }, [userId, isVisible])
 
     useEffect(() => {
         if (isVisible && notification) {

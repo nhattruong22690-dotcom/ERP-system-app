@@ -190,14 +190,14 @@ export default function NotificationSettingsPage() {
                                 <div className="flex items-center justify-between gap-6">
                                     <div className="flex items-center gap-5 flex-1 min-w-0">
                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${n.type === 'warning' ? 'bg-rose-50 text-rose-500' :
-                                                n.type === 'event' ? 'bg-indigo-50 text-indigo-500' : 'bg-gold-light/20 text-gold-muted'
+                                            n.type === 'event' ? 'bg-indigo-50 text-indigo-500' : 'bg-gold-light/20 text-gold-muted'
                                             }`}>
                                             {n.type === 'warning' ? <AlertTriangle size={24} strokeWidth={1.5} /> : <Info size={24} strokeWidth={1.5} />}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-3 mb-1">
                                                 <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${n.type === 'warning' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                                                        n.type === 'event' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-gold-light/30 text-gold-muted border-gold-light/50'
+                                                    n.type === 'event' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-gold-light/30 text-gold-muted border-gold-light/50'
                                                     }`}>
                                                     {n.type}
                                                 </span>
@@ -223,6 +223,21 @@ export default function NotificationSettingsPage() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={async () => {
+                                                    const { error } = await supabase
+                                                        .from('global_notifications')
+                                                        .update({ last_triggered_at: new Date().toISOString() })
+                                                        .eq('id', n.id)
+
+                                                    if (error) showToast('Lỗi', 'Không thể bắn tin', 'error' as any)
+                                                    else showToast('Thành công', 'Đã bắn tin tới tất cả user!')
+                                                }}
+                                                className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2"
+                                                title="Bắn tin ngay lập tức cho tất cả User"
+                                            >
+                                                <Zap size={14} fill="currentColor" /> Bắn tin
+                                            </button>
                                             <button
                                                 onClick={() => handleOpenEdit(n)}
                                                 className="p-3 rounded-xl bg-beige-soft text-gold-muted hover:bg-gold-light transition-all"
