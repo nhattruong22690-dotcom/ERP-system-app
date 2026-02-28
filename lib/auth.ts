@@ -129,13 +129,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }, [refresh, mounted])
 
     const saveState = useCallback((updater: (s: AppState) => AppState) => {
-        // Run synchronously to ensure it completes before any router.push
-        const currentState = getState()
-        const nextState = updater(currentState)
-        setState(nextState) // Save to localStorage IMMEDIATELY
-
-        // Let React update the UI in its own time
-        setLocalState(nextState)
+        setLocalState(prev => {
+            const nextState = updater(prev)
+            setState(nextState) // Save to localStorage (clears heavy keys internally)
+            return nextState
+        })
     }, [])
 
     const login = useCallback((username: string, password: string) => {
