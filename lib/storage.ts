@@ -71,7 +71,6 @@ export function setState(state: AppState): void {
             'bonuses',
             'deductions',
             'salaryAdvances',
-            'payrollRosters',
             'salaryHistory'
         ]
 

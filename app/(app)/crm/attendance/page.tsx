@@ -230,7 +230,9 @@ export default function AttendancePage() {
             if (u.workStatus === 'resigned') return false
 
             // KIỂM TRA MỚI: Chỉ lấy NV có trong danh sách lương (Roster) của tháng này
-            if (!currentRosterUserIds.includes(u.id)) return false
+            // Nếu tháng này chưa có dữ liệu Roster thì hiển thị tất cả
+            const monthHasRoster = state.payrollRosters?.some(r => r.period === monthStr)
+            if (monthHasRoster && !currentRosterUserIds.includes(u.id)) return false
 
             // Quyết định hiển thị dựa trên phân cấp (User > JobTitle > Default)
             const jt = state.jobTitles?.find(j => j.id === u.jobTitleId)
