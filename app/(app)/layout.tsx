@@ -39,6 +39,7 @@ const SETTINGS_NAV = [
     { href: '/settings/branches', label: 'Quản lý chi nhánh', icon: Building2, restricted: true },
     { href: '/settings/accounts', label: 'Quản lý tài khoản', icon: CreditCard, restricted: true },
     { href: '/settings/categories', label: 'Danh mục thu chi', icon: Tag, restricted: true },
+    { href: '/settings/notifications', label: 'Cấu hình thông báo', icon: Bell, restricted: true },
     { href: '/settings/users', label: 'Quản trị nhân sự', icon: Users, adminOnly: true },
 ]
 const ROLE_LABELS: Record<string, string> = {

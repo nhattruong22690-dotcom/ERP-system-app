@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function NotificationBanner({ userId }: Props) {
-    const [notification, setNotification] = useState<Notification | null>(null)
+    const [notification, setNotification] = useState<Notification | any>(null)
     const [isVisible, setIsVisible] = useState(false)
     const bannerRef = useRef<HTMLDivElement>(null)
 
@@ -23,47 +23,100 @@ export default function NotificationBanner({ userId }: Props) {
         if (!userId) return
 
         const fetchNotification = async () => {
-            // Get one active notification that the user hasn't seen yet
+            // 1. Get ALL active notifications
             const { data: activeNotifs, error: fetchError } = await supabase
                 .from('global_notifications')
                 .select('*')
                 .eq('is_active', true)
                 .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
                 .order('priority', { ascending: false })
-                .limit(5)
 
             if (fetchError || !activeNotifs || activeNotifs.length === 0) return
 
-            // Check which ones the user hasn't seen
-            const { data: seenStatuses } = await supabase
+            // 2. Get user status for these notifications
+            const { data: userStatuses } = await supabase
                 .from('user_notifications_status')
-                .select('notification_id')
+                .select('*')
                 .eq('user_id', userId)
 
-            const seenIds = new Set(seenStatuses?.map(s => s.notification_id) || [])
-            const unseen = activeNotifs.find(n => !seenIds.has(n.id))
+            const statusMap = new Map(userStatuses?.map(s => [s.notification_id, s]) || [])
+            const now = new Date()
 
-            if (unseen) {
-                setNotification(unseen)
-                // Small delay to ensure smooth entrance
+            // 3. Filter notifications based on multi-mode logic
+            const eligible = activeNotifs.filter(n => {
+                const status = statusMap.get(n.id)
+
+                // If it's a "Once only" and ALREADY SEEN, skip
+                // We assume "Once" is when show_on_login=true, show_on_day=false, show_interval=false
+                const isOnceOnly = n.show_on_login && !n.show_on_day && !n.show_interval
+                if (isOnceOnly && status?.is_seen) return false
+
+                // Mode: Per Session (Login/Reload)
+                if (n.show_on_login) {
+                    const sessionKey = `notif_shown_${n.id}`
+                    if (sessionStorage.getItem(sessionKey)) {
+                        // Already shown this session, but maybe we need to check interval if that's also enabled
+                        if (!n.show_interval) return false
+                    } else {
+                        // First time this session - eligible
+                        return true
+                    }
+                }
+
+                // Mode: Per Day
+                if (n.show_on_day) {
+                    if (status?.last_shown_at) {
+                        const lastDate = new Date(status.last_shown_at).toDateString()
+                        if (lastDate === now.toDateString()) {
+                            // Shown today, but check interval if enabled
+                            if (!n.show_interval) return false
+                        } else {
+                            // First time today
+                            return true
+                        }
+                    } else {
+                        // Never shown - eligible
+                        return true
+                    }
+                }
+
+                // Mode: Interval
+                if (n.show_interval && n.interval_minutes) {
+                    if (status?.last_shown_at) {
+                        const lastTime = new Date(status.last_shown_at).getTime()
+                        const diffMinutes = (now.getTime() - lastTime) / (1000 * 60)
+                        if (diffMinutes >= n.interval_minutes) return true
+                    } else {
+                        // Never shown - eligible
+                        return true
+                    }
+                }
+
+                return false
+            })
+
+            if (eligible.length > 0) {
+                const best = eligible[0] // Priority order by query
+                setNotification(best)
                 setTimeout(() => setIsVisible(true), 500)
+
+                // Track in session if show_on_login is true
+                if (best.show_on_login) {
+                    sessionStorage.setItem(`notif_shown_${best.id}`, 'true')
+                }
             }
         }
 
         fetchNotification()
-
-        // Set up interval to re-check for new notifications every minute
-        const interval = setInterval(fetchNotification, 60000)
+        const interval = setInterval(fetchNotification, 30000) // Check every 30s for intervals
         return () => clearInterval(interval)
     }, [userId])
 
     useEffect(() => {
         if (isVisible && notification) {
-            // Auto-hide after 15 seconds or after marquee would have finished (approx)
             const timer = setTimeout(async () => {
                 handleDismiss()
-            }, 20000) // 20s to be safe for long text
-
+            }, 20000)
             return () => clearTimeout(timer)
         }
     }, [isVisible, notification])
@@ -73,19 +126,19 @@ export default function NotificationBanner({ userId }: Props) {
 
         setIsVisible(false)
 
-        // Mark as seen in database
+        // Mark as seen & update timestamp
         try {
             await supabase.from('user_notifications_status').upsert({
                 user_id: userId,
                 notification_id: notification.id,
                 is_seen: true,
-                dismissed_at: new Date().toISOString()
-            })
+                last_shown_at: new Date().toISOString(),
+                // Incremental show_count would be nice but requires another query or status record
+            }, { onConflict: 'user_id,notification_id' })
         } catch (err) {
-            console.error('Error marking notification as seen:', err)
+            console.error('Error updating notification status:', err)
         }
 
-        // Remove from state after animation
         setTimeout(() => setNotification(null), 500)
     }
 
