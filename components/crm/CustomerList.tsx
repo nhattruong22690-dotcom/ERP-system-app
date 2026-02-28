@@ -74,16 +74,24 @@ const CustomerList: React.FC<CustomerListProps> = ({
     const canViewAll = canViewAllBranches(currentUser);
 
     const fetchRemoteData = useCallback(async () => {
+        // Skip fetching all customers if no filter/search is active
+        const isSearchActive = searchTerm.trim().length >= 2;
+        const isTabActive = selectedTab !== 'all';
+        const isRankActive = filterRank !== 'all';
+        const isBranchFilterActive = selectedBranchFilter !== 'all' || (!canViewAll && currentUser.branchId);
+
+        if (!isSearchActive && !isTabActive && !isRankActive && !isBranchFilterActive && selectedTab === 'all') {
+            setSearchResults([]);
+            setSearchCount(0);
+            return;
+        }
+
         setIsSearching(true);
         try {
-            // 1. Determine target branch for stats & filtering
             const targetBranch = (selectedBranchFilter === 'all' && canViewAll) ? 'all' : (selectedBranchFilter === 'all' ? currentUser.branchId : selectedBranchFilter);
-
-            // 2. Get accurate counts from Engine (FAST)
             const cached = await getCachedStats(targetBranch || 'all');
             if (cached) setLocalStats(cached);
 
-            // 3. Build Query
             let query = supabase
                 .from('crm_customers')
                 .select('*', { count: 'exact' });
@@ -94,8 +102,7 @@ const CustomerList: React.FC<CustomerListProps> = ({
                 query = query.eq('branch_id', currentUser.branchId);
             }
 
-            // 4. Tab Specific Filters
-            if (searchTerm.trim().length >= 2) {
+            if (isSearchActive) {
                 const lowerTerm = searchTerm.trim();
                 query = query.or(`full_name.ilike.%${lowerTerm}%,phone.ilike.%${lowerTerm}%,email.ilike.%${lowerTerm}%`);
             } else if (selectedTab === 'vip') {
@@ -113,30 +120,6 @@ const CustomerList: React.FC<CustomerListProps> = ({
 
             if (filterRank !== 'all') query = query.eq('rank', filterRank);
 
-            // 4. Update Stats for Cards (Real-time counts for ALL or Specific Branch)
-            const statsPromises = [
-                supabase.from('crm_customers').select('*', { count: 'exact', head: true }),
-                supabase.from('crm_customers').select('*', { count: 'exact', head: true }).eq('is_vip', true)
-            ];
-
-            if (selectedBranchFilter !== 'all') {
-                statsPromises[0] = (statsPromises[0] as any).eq('branch_id', selectedBranchFilter);
-                statsPromises[1] = (statsPromises[1] as any).eq('branch_id', selectedBranchFilter);
-            } else if (!canViewAll && currentUser.branchId) {
-                statsPromises[0] = (statsPromises[0] as any).eq('branch_id', currentUser.branchId);
-                statsPromises[1] = (statsPromises[1] as any).eq('branch_id', currentUser.branchId);
-            }
-
-            const [totRes, vipRes] = await Promise.all(statsPromises);
-
-            setLocalStats({
-                total: totRes.count || 0,
-                vip: vipRes.count || 0,
-                birthdays: cached?.birthdays || 0,
-                birthdayIds: cached?.birthdayIds || []
-            });
-
-            // 5. Fetch the Page
             const start = (currentPage - 1) * ITEMS_PER_PAGE;
             const end = start + ITEMS_PER_PAGE - 1;
 
@@ -195,45 +178,9 @@ const CustomerList: React.FC<CustomerListProps> = ({
     }, [fetchRemoteData]);
 
     const currentMonth = new Date().getMonth();
-    const isFiltering = (searchTerm.trim().length >= 2 || (selectedTab as string) !== 'all' || (selectedBranchFilter as string) !== 'all' || (filterRank as string) !== 'all');
-    const currentCustomers = isFiltering ? searchResults : (customers || []);
+    const paginatedCustomers = searchResults;
 
-    const filteredCustomers = useMemo(() => {
-        // If server already filtered (isFiltering is true), we just return currentCustomers as is
-        // because pagination and filtering happened in Supabase
-        if (isFiltering) return currentCustomers;
-
-        // Fallback local filtering for initial state (customers prop)
-        return currentCustomers.filter(customer => {
-            if (!canViewAll && customer.branchId && customer.branchId !== currentUser.branchId) return false;
-            if (selectedBranchFilter !== 'all' && customer.branchId && customer.branchId !== selectedBranchFilter) return false;
-
-            if (selectedTab === 'vip' && !customer.isVip) return false;
-            if (selectedTab === 'birthdays') {
-                if (!customer.birthday) return false;
-                let bMonth = -1;
-                if (customer.birthday.includes('-')) {
-                    const parts = customer.birthday.split('-');
-                    bMonth = parseInt(parts[1]) - 1;
-                } else {
-                    bMonth = new Date(customer.birthday).getMonth();
-                }
-                if (bMonth !== currentMonth) return false;
-            }
-            if (filterRank !== 'all' && customer.rank !== filterRank) return false;
-            return true;
-        });
-    }, [currentCustomers, isFiltering, canViewAll, currentUser.branchId, selectedBranchFilter, selectedTab, currentMonth, filterRank]);
-
-    const paginatedCustomers = useMemo(() => {
-        // If filtering, Supabase already gave us exactly the page we need
-        if (isFiltering) return currentCustomers;
-
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredCustomers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [filteredCustomers, currentCustomers, isFiltering, currentPage]);
-
-    const effectiveTotal = isFiltering ? (searchCount ?? 0) : filteredCustomers.length;
+    const effectiveTotal = searchCount ?? 0;
     const totalPages = Math.ceil(effectiveTotal / ITEMS_PER_PAGE);
     const startRange = effectiveTotal > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0;
     const endRange = Math.min(currentPage * ITEMS_PER_PAGE, effectiveTotal);
@@ -482,9 +429,11 @@ const CustomerList: React.FC<CustomerListProps> = ({
                 </table>
 
                 {!isSearching && effectiveTotal === 0 && (
-                    <div className="py-32 flex flex-col items-center justify-center text-text-soft/20">
-                        <Users size={64} strokeWidth={1} className="mb-4" />
-                        <p className="text-sm font-black uppercase tracking-widest text-text-soft/40">Không tìm thấy khách hàng nào</p>
+                    <div className="py-32 flex flex-col items-center justify-center text-text-soft/20 text-center">
+                        <Search size={64} strokeWidth={1} className="mb-4 opacity-20" />
+                        <p className="text-sm font-black uppercase tracking-widest text-text-soft/40 max-w-xs">
+                            {searchTerm.trim().length > 0 ? 'Không tìm thấy kết quả' : 'Nhập tìm kiếm hoặc chọn thẻ ở trên để xem dữ liệu'}
+                        </p>
                     </div>
                 )}
 

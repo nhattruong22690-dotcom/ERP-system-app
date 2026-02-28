@@ -69,66 +69,70 @@ export default function ServiceOrdersPage() {
                     </button>
                 }
             >
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="relative w-64">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+                    <div className="relative w-full sm:w-64">
                         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
-                        <input className="w-full pl-11 pr-5 py-3 bg-gray-50/50 border border-gray-100 rounded-[15px] text-[11px] font-black uppercase tracking-widest outline-none"
+                        <input className="w-full pl-11 pr-5 py-3 bg-gray-50/50 border border-gray-100 rounded-[15px] text-[11px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                             placeholder="Tìm kiếm..." value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
-                    <input type="date" className="px-4 py-3 bg-gray-50/50 border border-gray-100 rounded-[15px] text-[11px] font-black uppercase tracking-widest outline-none"
-                        value={dateFilter} onChange={e => setDateFilter(e.target.value)} />
-                    <select className="px-4 py-3 bg-gray-50/50 border border-gray-100 rounded-[15px] text-[11px] font-black uppercase tracking-widest outline-none"
-                        value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
-                        <option value="">Tất cả chi nhánh</option>
-                        {spaBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <input type="date" className="flex-1 sm:flex-none px-4 py-3 bg-gray-50/50 border border-gray-100 rounded-[15px] text-[11px] font-black uppercase tracking-widest outline-none"
+                            value={dateFilter} onChange={e => setDateFilter(e.target.value)} />
+                        <select className="flex-1 sm:flex-none px-4 py-3 bg-gray-50/50 border border-gray-100 rounded-[15px] text-[11px] font-black uppercase tracking-widest outline-none"
+                            value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
+                            <option value="">Tất cả chi nhánh</option>
+                            {spaBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                    </div>
                 </div>
             </PageHeader>
 
             <div className="content-wrapper">
                 <div className="bg-white rounded-[2rem] border border-gray-100 shadow-2xl overflow-hidden">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-gray-50/50">
-                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Mã/Ngày</th>
-                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Khách hàng</th>
-                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Tổng tiền</th>
-                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Trạng thái</th>
-                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {filteredOrders.map(order => {
-                                const customer = customers.find(c => c.id === order.customerId)
-                                const status = STATUS_MAP[order.status]
-                                return (
-                                    <tr key={order.id} className="hover:bg-gray-50/30 transition-colors group">
-                                        <td className="px-6 py-4">
-                                            <p className="font-black text-gray-900">{order.code}</p>
-                                            <p className="text-[10px] text-gray-400 font-bold">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</p>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <p className="font-bold text-gray-900">{customer?.fullName || '—'}</p>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{customer?.phone || ''}</p>
-                                        </td>
-                                        <td className="px-6 py-4 text-right font-black text-primary">
-                                            {formatCurrency(order.totalAmount)}đ
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${status.bg} ${status.text}`}>
-                                                {status.label}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button onClick={() => openEdit(order)} className="p-2 text-gray-400 hover:text-primary transition-all">
-                                                <Edit2 size={18} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-gray-50/50">
+                                    <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Mã/Ngày</th>
+                                    <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Khách hàng</th>
+                                    <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">Tổng tiền</th>
+                                    <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Trạng thái</th>
+                                    <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {filteredOrders.map(order => {
+                                    const customer = customers.find(c => c.id === order.customerId)
+                                    const status = STATUS_MAP[order.status]
+                                    return (
+                                        <tr key={order.id} onClick={() => openEdit(order)} className="hover:bg-gray-50/30 transition-colors group cursor-pointer">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <p className="font-black text-gray-900">{order.code}</p>
+                                                <p className="text-[10px] text-gray-400 font-bold">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</p>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <p className="font-bold text-gray-900">{customer?.fullName || '—'}</p>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{customer?.phone || ''}</p>
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-black text-primary whitespace-nowrap">
+                                                {formatCurrency(order.totalAmount)}đ
+                                            </td>
+                                            <td className="px-6 py-4 text-center whitespace-nowrap">
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${status.bg} ${status.text}`}>
+                                                    {status.label}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right whitespace-nowrap">
+                                                <button onClick={e => { e.stopPropagation(); openEdit(order) }} className="p-2 text-gray-400 hover:text-primary transition-all">
+                                                    <Edit2 size={18} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

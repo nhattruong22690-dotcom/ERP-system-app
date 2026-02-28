@@ -38,14 +38,11 @@ export async function fetchAllData(): Promise<AppState | null> {
             supabase.from('category_plans').select('*'),
             fetchAllRows('transactions'),
             fetchAllRows('activity_logs'),
-            fetchAllRows('crm_customers'),
-            fetchAllRows('crm_appointments'),
-            fetchAllRows('crm_treatment_cards'),
-            supabase.from('crm_services').select('*'),
-            // Grand totals for customers
-            supabase.from('crm_customers').select('*', { count: 'exact', head: true }),
+            // Only fetching counts and minimal birthday bits for cached stats, NOT all 31k+ records
+            supabase.from('crm_customers').select('id, birthday', { count: 'exact' }),
             supabase.from('crm_customers').select('*', { count: 'exact', head: true }).eq('is_vip', true),
-            fetchAllRows('crm_customers', 'id, birthday'),
+            supabase.from('crm_appointments').select('*, crm_customers(full_name, phone, avatar, rank, professional_notes, medical_notes)'),
+            supabase.from('crm_services').select('*'),
         ])
 
         const batch2 = await Promise.all([
@@ -73,13 +70,10 @@ export async function fetchAllData(): Promise<AppState | null> {
             resCategoryPlansRaw,
             resTransactions,
             resActivityLogs,
-            resCustomers,
-            resAppointments,
-            resTreatmentCards,
-            resServicesRaw,
-            resTotalCustomers,
+            resCustomersAllCount, // This now contains ID/Birthday for stats calculation
             resTotalVips,
-            resTotalBirthdaysRaw
+            resAppointmentsRaw,
+            resServicesRaw,
         ] = batch1 as any;
 
         const [
@@ -99,16 +93,36 @@ export async function fetchAllData(): Promise<AppState | null> {
         ] = batch2 as any;
 
         const rawQueries = [
-            resBranchesRaw, resUsersRaw, resCategoriesRaw, resAccountsRaw, resPlansRaw, resCategoryPlansRaw,
-            resServicesRaw, resTiersRaw, resCommissionSettingsRaw, resLeadsRaw, resCommissionLogsRaw,
-            resUserMissionsRaw, resJobTitlesRaw, resAttendanceRaw, resSalaryHistoryRaw, resBonusesRaw,
-            resDeductionsRaw, resSalaryAdvancesRaw, resPayrollRostersRaw, resServiceOrdersRaw
+            { id: 'branches', res: resBranchesRaw },
+            { id: 'users', res: resUsersRaw },
+            { id: 'categories', res: resCategoriesRaw },
+            { id: 'accounts', res: resAccountsRaw },
+            { id: 'plans', res: resPlansRaw },
+            { id: 'category_plans', res: resCategoryPlansRaw },
+            { id: 'services', res: resServicesRaw },
+            { id: 'tiers', res: resTiersRaw },
+            { id: 'commission_settings', res: resCommissionSettingsRaw },
+            { id: 'leads', res: resLeadsRaw },
+            { id: 'commission_logs', res: resCommissionLogsRaw },
+            { id: 'user_missions', res: resUserMissionsRaw },
+            { id: 'job_titles', res: resJobTitlesRaw },
+            { id: 'attendance', res: resAttendanceRaw },
+            { id: 'salary_history', res: resSalaryHistoryRaw },
+            { id: 'bonuses', res: resBonusesRaw },
+            { id: 'deductions', res: resDeductionsRaw },
+            { id: 'salary_advances', res: resSalaryAdvancesRaw },
+            { id: 'payroll_rosters', res: resPayrollRostersRaw },
+            { id: 'service_orders', res: resServiceOrdersRaw },
+            { id: 'appointments', res: resAppointmentsRaw },
+            { id: 'customer_counts', res: resCustomersAllCount },
+            { id: 'vip_counts', res: resTotalVips }
         ];
 
-        const errors = rawQueries.filter(q => q.error).map(q => q.error);
-        if (errors.length > 0) {
-            errors.forEach(err => console.error(`Supabase Query failed:`, err));
-        }
+        rawQueries.forEach(q => {
+            if (q.res?.error) {
+                console.error(`Supabase Query failed for [${q.id}]:`, JSON.stringify(q.res.error, null, 2));
+            }
+        });
 
         const resBranches = resBranchesRaw.data || [];
         const resUsers = resUsersRaw.data || [];
@@ -117,6 +131,7 @@ export async function fetchAllData(): Promise<AppState | null> {
         const resPlans = resPlansRaw.data || [];
         const resCategoryPlans = resCategoryPlansRaw.data || [];
         const resServices = resServicesRaw.data || [];
+        const resAppointments = resAppointmentsRaw.data || [];
         const resTiers = resTiersRaw.data || [];
         const resCommissionSettings = resCommissionSettingsRaw.data || [];
         const resLeads = resLeadsRaw.data || [];
@@ -203,21 +218,7 @@ export async function fetchAllData(): Promise<AppState | null> {
                 entityType: l.entity_type as any, entityId: l.entity_id,
                 details: l.details, createdAt: l.created_at
             })),
-            customers: (resCustomers || []).map((c: any) => ({
-                id: c.id, fullName: c.full_name, avatar: c.avatar, phone: c.phone, phone2: c.phone2,
-                email: c.email, gender: c.gender, facebook: c.facebook, zalo: c.zalo,
-                address: c.address, birthday: c.birthday, rank: c.rank as any,
-                isVip: c.is_vip || false,
-                points: c.points || 0, totalSpent: Number(c.total_spent || 0),
-                lastVisit: c.last_visit || 'Chưa có', branchId: c.branch_id,
-                medicalNotes: c.medical_notes, professionalNotes: c.professional_notes,
-                treatmentCards: resTreatmentCards.filter((tc: any) => tc.customer_id === c.id).map((tc: any) => ({
-                    id: tc.id, name: tc.name, type: tc.type as any, total: tc.total,
-                    used: tc.used, remaining: tc.remaining, expiryDate: tc.expiry_date,
-                    status: tc.status as any, purchaseDate: tc.purchase_date, createdAt: tc.created_at
-                })),
-                createdAt: c.created_at, updatedAt: c.updated_at
-            })),
+            customers: [], // Do NOT load all customers here anymore
             appointments: resAppointments.map((a: any) => ({
                 id: a.id, customerId: a.customer_id, branchId: a.branch_id, staffId: a.staff_id,
                 appointmentDate: a.appointment_date, appointmentTime: a.appointment_time,
@@ -225,6 +226,11 @@ export async function fetchAllData(): Promise<AppState | null> {
                 price: Number(a.price || 0), notes: a.notes,
                 logs: a.logs || [], redFlags: a.red_flags || [],
                 serviceEntries: a.service_entries || [],
+                customerName: a.crm_customers?.full_name || 'Khách vãng lai',
+                customerPhone: a.crm_customers?.phone || 'N/A',
+                customerAvatar: a.crm_customers?.avatar,
+                customerRank: a.crm_customers?.rank,
+                customerRedFlags: (a.crm_customers?.medical_notes || a.crm_customers?.professional_notes) ? [{ details: 'Lưu ý y tế' }] : [],
                 saleTeleId: a.sale_tele_id,
                 saleTeleName: a.sale_tele_name,
                 salePageId: a.sale_page_id,
@@ -358,9 +364,9 @@ export async function fetchAllData(): Promise<AppState | null> {
                 updatedAt: o.updated_at
             })),
             customerStats: {
-                total: resTotalCustomers.count || 0,
+                total: resCustomersAllCount.count || 0,
                 vip: resTotalVips.count || 0,
-                birthdays: (resTotalBirthdaysRaw || []).filter((c: any) => {
+                birthdays: (resCustomersAllCount.data || []).filter((c: any) => {
                     if (!c.birthday) return false;
                     const m = new Date().getMonth();
                     let bMonth = -1;
@@ -377,4 +383,30 @@ export async function fetchAllData(): Promise<AppState | null> {
         console.error('Failed to fetch from supabase', e)
         return null
     }
+}
+
+export async function searchCustomers(query: string) {
+    if (!query.trim()) return [];
+
+    const lowerQuery = query.toLowerCase().trim();
+    const { data, error } = await supabase
+        .from('crm_customers')
+        .select('*')
+        .or(`full_name.ilike.%${lowerQuery}%,phone.ilike.%${lowerQuery}%,email.ilike.%${lowerQuery}%`)
+        .limit(20);
+
+    if (error) {
+        console.error('searchCustomers Error:', error);
+        return [];
+    }
+
+    return (data || []).map((c: any) => ({
+        id: c.id, fullName: c.full_name, avatar: c.avatar, phone: c.phone, phone2: c.phone2,
+        email: c.email, gender: c.gender, facebook: c.facebook, zalo: c.zalo,
+        address: c.address, birthday: c.birthday, rank: c.rank as any,
+        points: c.points || 0, totalSpent: c.total_spent || 0,
+        lastVisit: c.last_visit || 'Chưa có', branchId: c.branch_id,
+        isVip: c.is_vip, professionalNotes: c.professional_notes,
+        createdAt: c.created_at, updatedAt: c.updated_at
+    }));
 }

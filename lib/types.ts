@@ -318,6 +318,11 @@ export interface Appointment {
   logs?: AppointmentLog[]
   redFlags?: any[]
   serviceEntries?: any[]
+  customerName?: string // Joined from crm_customers
+  customerPhone?: string // Joined from crm_customers
+  customerAvatar?: string // Joined
+  customerRank?: CustomerRank // Joined
+  customerRedFlags?: any[] // Joined
   saleTeleId?: string // Sale chốt lịch
   saleTeleName?: string // NEW: record string name
   salePageId?: string  // NEW: record Sale Page source

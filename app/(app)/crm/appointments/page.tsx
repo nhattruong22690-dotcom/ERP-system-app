@@ -6,10 +6,11 @@ import { Appointment, Customer, AppointmentStatus, CustomerRank, AppointmentLog,
 import { saveAppointment, syncAppointment, saveCommissionLog, syncCommissionLog, saveLead, syncLead, getState, syncDeleteAppointment } from '@/lib/storage'
 import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
-import { CalendarDays, Search, Store, ChevronLeft, ChevronRight, PlusCircle, Receipt } from 'lucide-react'
+import { CalendarDays, Search, Store, ChevronLeft, ChevronRight, PlusCircle, Receipt, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/PageHeader'
 import ServiceOrderModal from '@/components/crm/ServiceOrderModal'
+import { searchCustomers } from '@/lib/supabaseFetch'
 
 const STATUS_CONFIG: Record<AppointmentStatus, { label: string; color: string; icon: string; bg: string }> = {
     pending: { label: 'Chờ đến', color: '#f59e0b', icon: 'schedule', bg: 'bg-amber-50 text-amber-600 border-amber-200' },
@@ -76,14 +77,13 @@ export default function AppointmentsPage() {
         if (globalSearch.trim()) {
             const term = globalSearch.toLowerCase().trim()
             list = list.filter(a => {
-                const customer = state.customers.find(c => c.id === a.customerId)
-                return customer?.fullName.toLowerCase().includes(term) ||
-                    customer?.phone.includes(term) ||
+                return a.customerName?.toLowerCase().includes(term) ||
+                    a.customerPhone?.includes(term) ||
                     a.notes?.toLowerCase().includes(term)
             })
         }
         return list
-    }, [state.appointments, branchFilter, globalSearch, state.customers, canViewAll, currentUser])
+    }, [state.appointments, branchFilter, globalSearch])
 
     // Current view range appointments
     const viewAppointments = useMemo(() => {
@@ -123,17 +123,33 @@ export default function AppointmentsPage() {
         return { total, arrived, cancelled, noShow, pending }
     }, [viewAppointments])
 
-    const filteredCustomers = useMemo(() => {
-        const term = customerSearch.toLowerCase().trim()
-        if (!term || editing) return []
-        // Nếu term khớp hoàn toàn với khách hàng đã chọn thì ẩn danh sách (đóng dropdown)
-        const selectedCustomer = state.customers.find(c => c.id === form.customerId)
-        if (selectedCustomer && selectedCustomer.fullName.toLowerCase() === term) return []
+    const [isSearchingCustomers, setIsSearchingCustomers] = useState(false)
+    const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([])
 
-        return (state.customers || []).filter(c =>
-            c.fullName.toLowerCase().includes(term) || c.phone.includes(term)
-        ).slice(0, 6)
-    }, [state.customers, customerSearch, editing, form.customerId])
+    useEffect(() => {
+        const fetchSuggestions = async () => {
+            const term = customerSearch.toLowerCase().trim()
+            if (!term || term.length < 2 || editing) {
+                setCustomerSuggestions([])
+                return
+            }
+
+            // Check if term matches already selected customer (don't show list)
+            const selectedMatch = customerSuggestions.find(c => c.id === form.customerId)
+            if (selectedMatch && selectedMatch.fullName.toLowerCase() === term) {
+                setCustomerSuggestions([])
+                return
+            }
+
+            setIsSearchingCustomers(true)
+            const results = await searchCustomers(term)
+            setCustomerSuggestions(results)
+            setIsSearchingCustomers(false)
+        }
+
+        const timer = setTimeout(fetchSuggestions, 500)
+        return () => clearTimeout(timer)
+    }, [customerSearch, editing, form.customerId])
 
     function changeDate(days: number) {
         const d = new Date(selectedDate)
@@ -154,9 +170,8 @@ export default function AppointmentsPage() {
     }
 
     function openEdit(a: Appointment) {
-        const customer = state.customers.find(c => c.id === a.customerId)
         setForm({ ...a })
-        setCustomerSearch(customer?.fullName || '')
+        setCustomerSearch(a.customerName || '')
         setEditing(a)
         setShowForm(true)
     }
@@ -332,6 +347,11 @@ export default function AppointmentsPage() {
         const appointment: Appointment = {
             id: editing?.id || crypto.randomUUID(),
             customerId: form.customerId,
+            customerName: form.customerName || editing?.customerName || customerSearch,
+            customerPhone: form.customerPhone || editing?.customerPhone,
+            customerRank: form.customerRank || editing?.customerRank,
+            customerAvatar: form.customerAvatar || editing?.customerAvatar,
+            customerRedFlags: form.customerRedFlags || editing?.customerRedFlags || [],
             branchId: form.branchId,
             staffId: currentUser?.id,
             appointmentDate: form.appointmentDate,
@@ -497,10 +517,9 @@ export default function AppointmentsPage() {
                                             <div className="absolute top-4 left-0 right-0 border-t border-dashed border-gray-200 -z-10"></div>
                                             {appointments.length > 0 ? (
                                                 appointments.map((a: Appointment) => {
-                                                    const customer = state.customers.find(c => c.id === a.customerId)
                                                     const config = STATUS_CONFIG[a.status as AppointmentStatus] || STATUS_CONFIG.pending
-                                                    const isVip = customer?.rank === CustomerRank.PLATINUM || customer?.rank === CustomerRank.GOLD
-                                                    const hasRedFlag = (customer as any)?.redFlags?.length > 0 || customer?.professionalNotes?.toLowerCase().includes('dị ứng')
+                                                    const isVip = a.customerRank === CustomerRank.PLATINUM || a.customerRank === CustomerRank.GOLD
+                                                    const hasRedFlag = (a.customerRedFlags && a.customerRedFlags.length > 0)
 
                                                     const isMenuOpen = actionMenuId === a.id
 
@@ -529,7 +548,7 @@ export default function AppointmentsPage() {
                                                                     </div>
 
                                                                     <img
-                                                                        src={customer?.avatar || `https://ui-avatars.com/api/?name=${customer?.fullName}&background=random`}
+                                                                        src={a.customerAvatar || `https://ui-avatars.com/api/?name=${a.customerName}&background=random`}
                                                                         className={`w-14 h-14 rounded-2xl object-cover ring-4 ring-white shadow-md ${isVip ? 'ring-amber-200' : 'ring-gray-100'}`}
                                                                         alt=""
                                                                     />
@@ -540,11 +559,11 @@ export default function AppointmentsPage() {
                                                                     )}
                                                                 </div>
                                                                 <div>
-                                                                    <p className="text-lg font-black text-gray-900">{customer?.fullName || 'Khách vãng lai'}</p>
+                                                                    <p className="text-lg font-black text-gray-900">{a.customerName || 'Khách vãng lai'}</p>
                                                                     <div className="flex items-center gap-2 mt-0.5">
                                                                         <span className="text-[10px] bg-white px-2 py-0.5 rounded-md font-black text-gray-900 uppercase tracking-widest border border-gray-200">{a.appointmentTime}</span>
                                                                         <span className="text-[9px] bg-gray-100 px-2 py-0.5 rounded-md font-black text-gray-500 uppercase tracking-widest">LH-{a.appointmentDate.replace(/-/g, '').slice(2)}</span>
-                                                                        <span className="text-xs text-gray-600 font-bold">{customer?.phone}</span>
+                                                                        <span className="text-xs text-gray-600 font-bold">{a.customerPhone}</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -748,7 +767,7 @@ export default function AppointmentsPage() {
                                                             {dayAppointments.slice(0, 3).map(a => (
                                                                 <div key={a.id} className="px-2 py-1 rounded-md bg-gray-50 border border-gray-200 flex items-center gap-1.5 opacity-90 overflow-hidden">
                                                                     <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_CONFIG[a.status as AppointmentStatus]?.color || '#ccc' }}></div>
-                                                                    <span className="text-[9px] font-black text-gray-900 truncate">{state.customers.find(c => c.id === a.customerId)?.fullName || 'Khách'}</span>
+                                                                    <span className="text-[9px] font-black text-gray-900 truncate">{a.customerName || 'Khách'}</span>
                                                                 </div>
                                                             ))}
                                                             {dayAppointments.length > 3 && (
@@ -790,25 +809,35 @@ export default function AppointmentsPage() {
                                     <div className="relative">
                                         <span className="material-icons-round absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">person</span>
                                         <input
-                                            className="w-full pl-12 pr-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold"
+                                            className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold"
                                             placeholder="Nhập tên hoặc số điện thoại..."
                                             value={customerSearch}
                                             onChange={e => setCustomerSearch(e.target.value)}
                                             disabled={!!editing}
                                         />
+                                        {isSearchingCustomers && (
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                                <Loader2 size={18} className="animate-spin text-primary" />
+                                            </div>
+                                        )}
                                     </div>
-                                    {filteredCustomers.length > 0 && (
+                                    {customerSuggestions.length > 0 && (
                                         <div className="absolute top-full left-0 right-0 z-20 mt-2 bg-white rounded-3xl border border-gray-100 shadow-2xl overflow-hidden divide-y divide-gray-50">
-                                            {filteredCustomers.map(c => (
+                                            {customerSuggestions.map((c: Customer) => (
                                                 <div key={c.id}
                                                     className="p-4 hover:bg-gray-50 flex items-center gap-4 cursor-pointer transition-colors"
                                                     onClick={() => {
                                                         setForm(f => ({
                                                             ...f,
                                                             customerId: c.id,
-                                                            branchId: c.branchId || f.branchId
+                                                            branchId: c.branchId || f.branchId,
+                                                            customerName: c.fullName,
+                                                            customerPhone: c.phone,
+                                                            customerRank: c.rank,
+                                                            customerAvatar: c.avatar
                                                         }))
                                                         setCustomerSearch(c.fullName)
+                                                        setCustomerSuggestions([])
                                                     }}
                                                 >
                                                     <div className="relative">
@@ -830,7 +859,7 @@ export default function AppointmentsPage() {
                                     {form.customerId && (
                                         <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-black">
                                             <span className="material-icons-round text-sm">check_circle</span>
-                                            Khách hàng: {state.customers.find(c => c.id === form.customerId)?.fullName}
+                                            Khách hàng: {customerSearch}
                                         </div>
                                     )}
                                 </div>

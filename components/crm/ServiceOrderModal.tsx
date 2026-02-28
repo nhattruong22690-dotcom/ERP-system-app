@@ -6,7 +6,8 @@ import { ServiceOrder, ServiceLineItem, StaffSplit, Customer, Appointment } from
 import { saveServiceOrder, syncServiceOrder } from '@/lib/storage'
 import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
-import { Receipt, Search, PlusCircle, Trash2, Plus, ChevronDown, Users, Calendar, X, Eye, Edit2, Package, CreditCard, Wrench, MessageSquare, PlusSquare } from 'lucide-react'
+import { searchCustomers } from '@/lib/supabaseFetch'
+import { X, Plus, Receipt, Trash2, Edit2, Search, Loader2, Wrench, Package, CreditCard, MessageSquare, PlusSquare, Calendar, Users, ChevronDown, Eye, PlusCircle } from 'lucide-react'
 
 const SERVICE_TYPES = [
     { value: 'single', label: 'Dịch vụ lẻ', icon: Wrench, color: 'bg-blue-50 text-blue-600 border-blue-100' },
@@ -101,6 +102,8 @@ export default function ServiceOrderModal({
     const [staffSearchText, setStaffSearchText] = useState('')
     const [serviceSearchIndex, setServiceSearchIndex] = useState<number | null>(null)
     const [serviceSearchText, setServiceSearchText] = useState('')
+    const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([])
+    const [isSearchingCustomers, setIsSearchingCustomers] = useState(false)
 
     const orders = state.serviceOrders || []
     const customers = state.customers || []
@@ -124,8 +127,13 @@ export default function ServiceOrderModal({
                 setFormAppointmentId(editingOrder.appointmentId || '')
                 setFormLineItems([...editingOrder.lineItems])
                 setFormStatus(editingOrder.status)
+                // When editing, we should have the customer in our suggestions list initially if possible
+                // or at least show their name in the search box
                 const cust = customers.find(c => c.id === editingOrder.customerId)
-                setCustomerSearch(cust?.fullName || '')
+                if (cust) {
+                    setCustomerSearch(cust.fullName)
+                    setCustomerSuggestions([cust])
+                }
             } else {
                 setFormCustomerId(initialCustomerId)
                 setFormBranchId(initialBranchId || currentUser?.branchId || '')
@@ -136,26 +144,44 @@ export default function ServiceOrderModal({
                 setFormStatus('draft')
 
                 const cust = customers.find(c => c.id === initialCustomerId)
-                setCustomerSearch(cust?.fullName || '')
+                if (cust) {
+                    setCustomerSearch(cust.fullName)
+                    setCustomerSuggestions([cust])
+                }
             }
         }
     }, [isOpen, editingOrder, initialCustomerId, initialBranchId, initialAppointmentId, currentUser?.branchId, customers, isCustomerNewAtBranch])
 
-    const selectedCustomer = customers.find(c => c.id === formCustomerId)
+    // Server-side customer search
+    useEffect(() => {
+        if (!isOpen) return;
 
-    const customerSuggestions = useMemo(() => {
-        if (!customerSearch.trim()) return customers.slice(0, 10)
-        const t = customerSearch.toLowerCase().trim()
-        const digitOnlySearch = t.replace(/\D/g, '')
+        const term = customerSearch.trim();
+        // If term is short and not initial values, don't search
+        if (term.length < 2) {
+            // But if it's empty, show initial empty state or recent? 
+            // The user requested only load when search.
+            if (term.length === 0) setCustomerSuggestions([]);
+            return;
+        }
 
-        return customers.filter(c => {
-            const nameMatch = c.fullName.toLowerCase().includes(t)
-            const phoneStr = (c.phone || '')
-            const phoneDigitOnly = phoneStr.replace(/\D/g, '')
-            const phoneMatch = phoneStr.includes(t) || (digitOnlySearch && phoneDigitOnly.includes(digitOnlySearch))
-            return nameMatch || phoneMatch
-        }).slice(0, 30)
-    }, [customerSearch, customers])
+        const delayDebounceFn = setTimeout(async () => {
+            setIsSearchingCustomers(true);
+            try {
+                const results = await searchCustomers(term);
+                setCustomerSuggestions(results);
+            } finally {
+                setIsSearchingCustomers(false);
+            }
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [customerSearch, isOpen]);
+
+    const selectedCustomer = useMemo(() => {
+        // Since state.customers might be empty, we look in our suggestions first
+        return customerSuggestions.find(c => c.id === formCustomerId) || customers.find(c => c.id === formCustomerId)
+    }, [formCustomerId, customerSuggestions, customers])
 
     const customerAppointments = useMemo(() => {
         if (!formCustomerId) return []
@@ -287,33 +313,40 @@ export default function ServiceOrderModal({
 
     return (
         <>
-            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={e => e.target === e.currentTarget && handleCloseInternal()}>
-                <div className="bg-white w-full max-w-6xl max-h-[90vh] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-scale-up border border-white/20">
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={e => e.target === e.currentTarget && handleCloseInternal()}>
+                <div className="bg-white w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-scale-up border border-white/20">
                     {/* Modal Header */}
-                    <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
-                        <div>
-                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">{editingOrder ? 'Sửa phiếu dịch vụ' : 'Tạo phiếu dịch vụ'}</h2>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1 opacity-60">{editingOrder?.code || 'Phiếu mới'}</p>
+                    <div className="px-5 py-4 sm:px-8 sm:py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+                        <div className="min-w-0">
+                            <h2 className="text-base sm:text-xl font-black text-gray-900 uppercase tracking-tight truncate">{editingOrder ? 'Sửa phiếu dịch vụ' : 'Tạo phiếu dịch vụ'}</h2>
+                            <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5 sm:mt-1 opacity-60">{editingOrder?.code || 'Phiếu mới'}</p>
                         </div>
-                        <button onClick={handleCloseInternal} className="w-10 h-10 rounded-xl bg-white border border-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-all group">
-                            <X size={20} className="group-hover:rotate-90 transition-transform" />
+                        <button onClick={handleCloseInternal} className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white border border-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-all group shrink-0 ml-4">
+                            <X size={18} className="group-hover:rotate-90 transition-transform sm:w-5 sm:h-5" />
                         </button>
                     </div>
 
                     {/* Modal Body */}
-                    <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-8 sm:space-y-10 custom-scrollbar">
                         {/* Section 1: Customer & Branch */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-6">
                                 <div className="relative">
                                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Khách hàng *</label>
-                                    <input
-                                        className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary/10 transition-all"
-                                        placeholder="Tìm tên hoặc số điện thoại..."
-                                        value={customerSearch}
-                                        onChange={e => { setCustomerSearch(e.target.value); setShowCustomerDropdown(true) }}
-                                        onFocus={() => setShowCustomerDropdown(true)}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary/10 transition-all pr-12"
+                                            placeholder="Tìm tên hoặc số điện thoại..."
+                                            value={customerSearch}
+                                            onChange={e => { setCustomerSearch(e.target.value); setShowCustomerDropdown(true) }}
+                                            onFocus={() => setShowCustomerDropdown(true)}
+                                        />
+                                        {isSearchingCustomers && (
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                                <Loader2 className="animate-spin text-primary/40" size={18} />
+                                            </div>
+                                        )}
+                                    </div>
                                     {selectedCustomer && (
                                         <div className="mt-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-[11px] font-bold text-emerald-700 flex items-center justify-between">
                                             <span>{selectedCustomer.fullName} — {selectedCustomer.phone}</span>
@@ -365,10 +398,10 @@ export default function ServiceOrderModal({
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Trạng thái phiếu</label>
-                                    <div className="grid grid-cols-4 gap-2 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
                                         {Object.entries(STATUS_MAP).map(([k, v]) => (
                                             <button key={k} onClick={() => setFormStatus(k as any)}
-                                                className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all ${formStatus === k ? v.bg + ' ' + v.text + ' shadow-sm border' : 'text-gray-400 hover:text-gray-600'}`}>
+                                                className={`py-2 sm:py-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-tighter transition-all ${formStatus === k ? v.bg + ' ' + v.text + ' shadow-sm border' : 'text-gray-400 hover:text-gray-600'}`}>
                                                 {v.label}
                                             </button>
                                         ))}
@@ -390,13 +423,13 @@ export default function ServiceOrderModal({
 
                             <div className="space-y-6">
                                 {formLineItems.map((li, idx) => (
-                                    <div key={li.id} className="p-6 bg-gray-50/50 border border-gray-100 rounded-[2rem] space-y-6 relative group border-l-[6px] border-l-primary/10">
+                                    <div key={li.id} className="p-4 sm:p-6 bg-gray-50/50 border border-gray-100 rounded-[1.5rem] sm:rounded-[2rem] space-y-5 sm:space-y-6 relative group border-l-[6px] border-l-primary/10">
                                         {/* Line Header */}
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-[11px] font-black text-primary">{idx + 1}</span>
-                                                <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${CUSTOMER_TYPE_LABELS[li.customerType]?.bg || 'bg-gray-100'}`}>{CUSTOMER_TYPE_LABELS[li.customerType]?.label || 'TVT'}</span>
-                                                <button onClick={() => setEditingNoteIdx(idx)} className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${li.note ? 'bg-amber-100 text-amber-600' : 'bg-white border border-gray-100 text-gray-400 hover:text-gray-600'}`}>
+                                            <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar-hide whitespace-nowrap pb-1">
+                                                <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-[11px] font-black text-primary shrink-0">{idx + 1}</span>
+                                                <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shrink-0 ${CUSTOMER_TYPE_LABELS[li.customerType]?.bg || 'bg-gray-100'}`}>{CUSTOMER_TYPE_LABELS[li.customerType]?.label || 'TVT'}</span>
+                                                <button onClick={() => setEditingNoteIdx(idx)} className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shrink-0 ${li.note ? 'bg-amber-100 text-amber-600' : 'bg-white border border-gray-100 text-gray-400 hover:text-gray-600'}`}>
                                                     {li.note ? 'GHI CHÚ ✓' : '+ GHI CHÚ'}
                                                 </button>
                                             </div>
@@ -437,10 +470,10 @@ export default function ServiceOrderModal({
                                                 </div>
                                                 <div>
                                                     <label className="block text-[9px] font-black text-gray-400 uppercase mb-2">Loại dịch vụ</label>
-                                                    <div className="flex gap-1 p-1 bg-white border border-gray-100 rounded-xl">
+                                                    <div className="flex gap-1 p-1 bg-white border border-gray-100 rounded-xl overflow-x-auto custom-scrollbar-hide">
                                                         {SERVICE_TYPES.map(st => (
                                                             <button key={st.value} onClick={() => updateLineItem(idx, { serviceType: st.value })}
-                                                                className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter flex items-center justify-center gap-1.5 transition-all ${li.serviceType === st.value ? st.color + ' shadow-sm' : 'text-gray-400'}`}>
+                                                                className={`flex-1 min-w-fit whitespace-nowrap px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter flex items-center justify-center gap-1.5 transition-all ${li.serviceType === st.value ? st.color + ' shadow-sm' : 'text-gray-400'}`}>
                                                                 <st.icon size={14} /> {st.label}
                                                             </button>
                                                         ))}
@@ -548,14 +581,14 @@ export default function ServiceOrderModal({
                     </div>
 
                     {/* Modal Footer */}
-                    <div className="px-8 py-6 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between shrink-0">
-                        <div>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase">Tổng dự kiến</p>
-                            <p className="text-2xl font-black text-primary">{formatCurrency(formLineItems.reduce((s, li) => s + li.price, 0))}đ</p>
+                    <div className="px-5 py-4 sm:px-8 sm:py-6 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0 shrink-0">
+                        <div className="text-center sm:text-left">
+                            <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase">Tổng dự kiến</p>
+                            <p className="text-xl sm:text-2xl font-black text-primary">{formatCurrency(formLineItems.reduce((s, li) => s + li.price, 0))}đ</p>
                         </div>
-                        <div className="flex gap-3">
-                            <button onClick={handleCloseInternal} className="px-8 py-4 bg-white border border-gray-200 rounded-2xl font-black text-[11px] text-gray-400 uppercase tracking-widest hover:bg-gray-50 hover:text-gray-600 transition-all">Hủy bỏ</button>
-                            <button onClick={handleSave} className="px-10 py-4 bg-text-main text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl hover:bg-gold-muted transition-all active:scale-95">Lưu phiếu dịch vụ</button>
+                        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+                            <button onClick={handleCloseInternal} className="flex-1 sm:flex-none sm:px-8 py-3.5 sm:py-4 bg-white border border-gray-200 rounded-2xl font-black text-[10px] sm:text-[11px] text-gray-400 uppercase tracking-widest hover:bg-gray-50 hover:text-gray-600 transition-all">Hủy bỏ</button>
+                            <button onClick={handleSave} className="flex-[2] sm:flex-none sm:px-10 py-3.5 sm:py-4 bg-text-main text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-xl hover:bg-gold-muted transition-all active:scale-95">Lưu phiếu</button>
                         </div>
                     </div>
                 </div>

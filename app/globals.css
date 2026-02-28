@@ -161,6 +161,18 @@ body {
   background: rgba(197, 160, 89, 0.4);
 }
 
+/* Hide scrollbar but keep functionality */
+.custom-scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.custom-scrollbar-hide {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
 /* Luxury Table Layout Fixes */
 .luxury-table th,
 .luxury-table td {
