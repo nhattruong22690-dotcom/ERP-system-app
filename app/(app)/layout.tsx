@@ -8,7 +8,7 @@ import {
     LayoutDashboard, ClipboardList, ArrowLeftRight,
     BarChart3, LogOut, Users, Building2, CreditCard, Tag, X,
     Bell, AlertTriangle, CheckCircle, ArrowRight, Star, TrendingUp, TrendingDown,
-    UserCircle, Coins, Calendar, Target, Percent, Award, Settings2
+    UserCircle, Coins, Calendar, Target, Percent, Award, Settings2, Receipt
 } from 'lucide-react'
 import UserAvatar from '@/components/UserAvatar'
 import PresenceSidebar from '@/components/PresenceSidebar'
@@ -27,6 +27,7 @@ const CRM_NAV = [
     { href: '/crm/customers', label: 'Khách hàng', icon: Users },
     { href: '/crm/leads', label: 'Quản lý Lead', icon: ClipboardList },
     { href: '/crm/appointments', label: 'Lịch hẹn & CSKH', icon: Calendar },
+    { href: '/crm/service-orders', label: 'Phiếu dịch vụ', icon: Receipt },
     { href: '/crm/services', label: 'Danh mục dịch vụ', icon: ClipboardList },
     { href: '/crm/sale-settings', label: 'Cấu hình Sale', icon: Settings2 },
 ]
@@ -213,6 +214,90 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return `/cashflow?branchId=${a.branchId}&month=${a.month}&year=${a.year}&highlight=${a.categoryId}`
     }
 
+    // Sub-component for User Profile Card
+    const UserProfileCard = () => {
+        if (!currentUser) return null
+
+        const role = currentUser.role || 'staff'
+        const fullName = currentUser.displayName || ''
+        const nameParts = fullName.trim().split(/\s+/)
+        const firstName = nameParts[nameParts.length - 1] // Given name in VN context
+        const roleLabel = ROLE_LABELS[role]
+
+        // Truncate logic if the single name is somehow still very long
+        const displayName = firstName.length > 12 ? `${firstName.substring(0, 10)}..` : firstName
+
+        const roleStyles: Record<string, string> = {
+            admin: 'from-amber-400/20 to-orange-500/10 text-amber-300 border-amber-400/30 shadow-[0_0_15px_rgba(251,191,36,0.15)]',
+            director: 'from-purple-400/20 to-indigo-500/10 text-purple-300 border-purple-400/30 shadow-[0_0_15px_rgba(167,139,250,0.15)]',
+            manager: 'from-blue-400/20 to-cyan-500/10 text-blue-300 border-blue-400/30 shadow-[0_0_15px_rgba(96,165,250,0.15)]',
+            accountant: 'from-emerald-400/20 to-teal-500/10 text-emerald-300 border-emerald-400/30 shadow-[0_0_15px_rgba(52,211,153,0.15)]',
+            staff: 'from-slate-400/10 to-gray-500/10 text-slate-300 border-white/10 shadow-sm'
+        }
+
+        const currentRoleStyle = roleStyles[role] || roleStyles.staff
+
+        return (
+            <div className="p-5 w-full">
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    background: 'rgba(15, 23, 42, 0.9)',
+                    backdropFilter: 'blur(25px)',
+                    WebkitBackdropFilter: 'blur(25px)',
+                    borderRadius: '24px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    padding: '14px',
+                    boxShadow: '0 25px 60px -15px rgba(0,0,0,0.6)',
+                }} className="group hover:bg-white/5 transition-all duration-300 active:scale-[0.97]">
+                    <Link href="/profile" onClick={closeSidebar} className="flex items-center gap-4 flex-1 min-w-0">
+                        <div className="relative flex-shrink-0">
+                            <div className="scale-[1] origin-center hover:scale-[1] transition-transform duration-300">
+                                <UserAvatar user={currentUser} size="xl" />
+                            </div>
+                            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-[#111827] rounded-full shadow-lg">
+                                <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-75"></div>
+                            </div>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <p style={{
+                                fontSize: '17.5px',
+                                fontWeight: '800',
+                                color: 'white',
+                                margin: 0,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                letterSpacing: '-0.02em',
+                                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                            }} className="group-hover:text-gold-muted transition-colors leading-tight">
+                                {displayName}
+                            </p>
+                            <div className={`inline-flex items-center text-[12px] font-black uppercase tracking-[0.1em] px-3 py-1 rounded-lg border bg-gradient-to-br w-fit ${currentRoleStyle}`}>
+                                {roleLabel}
+                            </div>
+                        </div>
+                    </Link>
+                    <button
+                        onClick={logout}
+                        style={{
+                            padding: '12px',
+                            background: 'rgba(255,255,255,0.04)',
+                            borderRadius: '16px',
+                            color: 'rgba(255,255,255,0.25)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                        }}
+                        className="hover:bg-rose-500/20 hover:text-rose-500 hover:border-rose-500/30 transition-all duration-300"
+                        title="Đăng xuất"
+                    >
+                        <LogOut size={20} strokeWidth={2.5} />
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
     const branch = currentUser.branchId ? state.branches.find(b => b.id === currentUser.branchId) : null
 
     // Determine alerts to show in dropdown
@@ -248,6 +333,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </div>
                 </div>
 
+                {/* Navigation */}
                 <nav className="sidebar-nav luxury-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
                     <div className="sidebar-section" style={{ fontSize: '0.75rem', padding: '28px 16px 12px' }}>Tài chính</div>
                     {FINANCE_NAV.filter(item => isPageAllowed(currentUser, item.href)).map(item => {
@@ -295,22 +381,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     })}
                 </nav>
 
-                <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.04)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', padding: '8px' }}>
-                        <Link href="/profile" className="flex items-center gap-3 flex-1 min-w-0 hover:bg-white/5 p-1 rounded-xl transition-all group">
-                            <div className="relative group flex-shrink-0">
-                                <UserAvatar user={currentUser} size="sm" />
-                                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-[#111827] rounded-full"></div>
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ fontSize: '13px', fontWeight: '700', color: 'white', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} className="group-hover:text-gold-muted transition-colors">{currentUser?.displayName}</p>
-                                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', margin: 0 }}>{ROLE_LABELS[currentUser?.role || 'staff']}</p>
-                            </div>
-                        </Link>
-                        <button onClick={logout} className="p-2 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 text-white/20 transition-all" title="Đăng xuất">
-                            <LogOut size={16} strokeWidth={1.5} />
-                        </button>
-                    </div>
+                {/* User Profile Card (Always at bottom of sidebar) */}
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+                    <UserProfileCard />
                 </div>
             </aside>
 

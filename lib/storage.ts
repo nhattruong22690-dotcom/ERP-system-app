@@ -140,7 +140,8 @@ export async function syncUser(user: User, currentUserId: string | undefined) {
         email: user.email, avatar_url: user.avatarUrl, is_active: user.isActive !== false,
         work_status: user.workStatus,
         has_attendance: user.hasAttendance,
-        salary_config: user.salaryConfig
+        salary_config: user.salaryConfig,
+        view_all_branches: user.viewAllBranches || false
     })
     if (error) {
         console.error('Supabase Error (User):', error)
@@ -1106,6 +1107,37 @@ export function saveService(service: any) {
             ? (s as any).services.map((ser: any) => ser.id === service.id ? service : ser)
             : [...(s as any).services, service]
     })
+}
+
+export function saveServiceOrder(order: any) {
+    return (s: AppState): AppState => ({
+        ...s,
+        serviceOrders: (s.serviceOrders || []).some((o: any) => o.id === order.id)
+            ? (s.serviceOrders || []).map((o: any) => o.id === order.id ? order : o)
+            : [...(s.serviceOrders || []), order]
+    })
+}
+
+export async function syncServiceOrder(order: any) {
+    try {
+        const { error } = await supabase.from('crm_service_orders').upsert({
+            id: order.id,
+            code: order.code,
+            customer_id: order.customerId,
+            branch_id: order.branchId,
+            appointment_id: order.appointmentId,
+            line_items: order.lineItems,
+            total_amount: order.totalAmount,
+            status: order.status,
+            created_by: order.createdBy,
+            created_at: order.createdAt,
+            updated_at: order.updatedAt
+        })
+        if (error) console.error('Supabase Error (ServiceOrder):', error)
+    } catch (e) {
+        console.error('syncServiceOrder failed (table may not exist yet):', e)
+    }
+    return null
 }
 
 export function setCurrentUser(userId: string | undefined) {

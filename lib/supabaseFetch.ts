@@ -38,7 +38,7 @@ export async function fetchAllData(): Promise<AppState | null> {
             supabase.from('category_plans').select('*'),
             fetchAllRows('transactions'),
             fetchAllRows('activity_logs'),
-            supabase.from('crm_customers').select('*').order('created_at', { ascending: false }).range(0, 99),
+            fetchAllRows('crm_customers'),
             fetchAllRows('crm_appointments'),
             fetchAllRows('crm_treatment_cards'),
             supabase.from('crm_services').select('*'),
@@ -60,7 +60,8 @@ export async function fetchAllData(): Promise<AppState | null> {
             supabase.from('crm_bonuses').select('*'),
             supabase.from('crm_deductions').select('*'),
             supabase.from('crm_salary_advances').select('*'),
-            supabase.from('crm_payroll_rosters').select('*')
+            supabase.from('crm_payroll_rosters').select('*'),
+            supabase.from('crm_service_orders').select('*')
         ])
 
         const [
@@ -93,14 +94,15 @@ export async function fetchAllData(): Promise<AppState | null> {
             resBonusesRaw,
             resDeductionsRaw,
             resSalaryAdvancesRaw,
-            resPayrollRostersRaw
+            resPayrollRostersRaw,
+            resServiceOrdersRaw
         ] = batch2 as any;
 
         const rawQueries = [
             resBranchesRaw, resUsersRaw, resCategoriesRaw, resAccountsRaw, resPlansRaw, resCategoryPlansRaw,
             resServicesRaw, resTiersRaw, resCommissionSettingsRaw, resLeadsRaw, resCommissionLogsRaw,
             resUserMissionsRaw, resJobTitlesRaw, resAttendanceRaw, resSalaryHistoryRaw, resBonusesRaw,
-            resDeductionsRaw, resSalaryAdvancesRaw, resPayrollRostersRaw
+            resDeductionsRaw, resSalaryAdvancesRaw, resPayrollRostersRaw, resServiceOrdersRaw
         ];
 
         const errors = rawQueries.filter(q => q.error).map(q => q.error);
@@ -127,6 +129,7 @@ export async function fetchAllData(): Promise<AppState | null> {
         const resDeductions = resDeductionsRaw.data || [];
         const resSalaryAdvances = resSalaryAdvancesRaw.data || [];
         const resPayrollRosters = resPayrollRostersRaw.data || [];
+        const resServiceOrders = resServiceOrdersRaw.data || [];
 
         if (resUsers.length === 0) {
             console.warn('fetchAllData: Critical - No users found on server or RLS blocked. Sync aborted.')
@@ -171,6 +174,7 @@ export async function fetchAllData(): Promise<AppState | null> {
                     workStatus: u.work_status,
                     hasAttendance: u.has_attendance,
                     salaryConfig: u.salary_config,
+                    viewAllBranches: u.view_all_branches || false,
                     isActive: u.is_active !== false,
                     createdAt: u.created_at
                 }
@@ -199,7 +203,7 @@ export async function fetchAllData(): Promise<AppState | null> {
                 entityType: l.entity_type as any, entityId: l.entity_id,
                 details: l.details, createdAt: l.created_at
             })),
-            customers: (resCustomers.data || []).map((c: any) => ({
+            customers: (resCustomers || []).map((c: any) => ({
                 id: c.id, fullName: c.full_name, avatar: c.avatar, phone: c.phone, phone2: c.phone2,
                 email: c.email, gender: c.gender, facebook: c.facebook, zalo: c.zalo,
                 address: c.address, birthday: c.birthday, rank: c.rank as any,
@@ -339,6 +343,19 @@ export async function fetchAllData(): Promise<AppState | null> {
             payrollRosters: resPayrollRosters.map((r: any) => ({
                 id: r.id, period: r.period, userId: r.user_id,
                 createdBy: r.created_by, createdAt: r.created_at
+            })),
+            serviceOrders: resServiceOrders.map((o: any) => ({
+                id: o.id,
+                code: o.code,
+                customerId: o.customer_id,
+                branchId: o.branch_id,
+                appointmentId: o.appointment_id,
+                lineItems: o.line_items || [],
+                totalAmount: Number(o.total_amount || 0),
+                status: o.status,
+                createdBy: o.created_by,
+                createdAt: o.created_at,
+                updatedAt: o.updated_at
             })),
             customerStats: {
                 total: resTotalCustomers.count || 0,

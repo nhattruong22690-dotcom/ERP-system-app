@@ -20,6 +20,7 @@ export interface User {
   allowedPages?: string[]
   permissions?: string[]
   branchId?: string   // null/undefined = toàn chuỗi
+  viewAllBranches?: boolean // true = xem toàn bộ chi nhánh
   title?: string      // Text tự do (Sắp bỏ dần)
   jobTitleId?: string // Link đến Bảng Chức vụ Động
   departmentType?: DepartmentType
@@ -470,6 +471,46 @@ export interface Attendance {
 }
 
 // ============================================================
+// SERVICE ORDERS (Phiếu Dịch Vụ)
+// ============================================================
+export interface ServiceOrder {
+  id: string
+  code: string                    // Mã phiếu: SO-YYMMDD-XXX
+  customerId: string
+  branchId: string
+  appointmentId?: string          // Liên kết lịch hẹn → lấy leadId, salePageId, saleTeleId
+  lineItems: ServiceLineItem[]
+  totalAmount: number
+  status: 'draft' | 'confirmed' | 'completed' | 'cancelled'
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ServiceLineItem {
+  id: string
+  customerType: 'new' | 'old' | 'tvt' // Mới (chưa từng làm DV tại CN) | Cũ | TVT (dòng tiếp theo)
+  serviceId?: string
+  serviceName: string
+  serviceType: 'single' | 'package' | 'card'
+  description?: string
+  price: number
+  cardWalletValue?: number        // Giá trị ví (khi type = 'card')
+  packageType?: 'sessions' | 'duration' | 'warranty'
+  totalSessions?: number
+  expiryDate?: string
+  warrantyExpiryDate?: string
+  note?: string
+  staffSplits: StaffSplit[]
+}
+
+export interface StaffSplit {
+  staffId: string
+  staffName: string
+  amount: number
+}
+
+// ============================================================
 // APP STATE
 // ============================================================
 export interface AppState {
@@ -495,6 +536,7 @@ export interface AppState {
   deductions: Deduction[]
   salaryAdvances: SalaryAdvance[]
   payrollRosters: PayrollRoster[]
+  serviceOrders: ServiceOrder[]
   currentUserId?: string
   dismissedAlerts: string[]
   starredAlerts: string[]

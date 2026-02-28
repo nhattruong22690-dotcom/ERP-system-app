@@ -6,8 +6,10 @@ import { Appointment, Customer, AppointmentStatus, CustomerRank, AppointmentLog,
 import { saveAppointment, syncAppointment, saveCommissionLog, syncCommissionLog, saveLead, syncLead, getState, syncDeleteAppointment } from '@/lib/storage'
 import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
-import { CalendarDays, Search, Store, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react'
+import { CalendarDays, Search, Store, ChevronLeft, ChevronRight, PlusCircle, Receipt } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/PageHeader'
+import ServiceOrderModal from '@/components/crm/ServiceOrderModal'
 
 const STATUS_CONFIG: Record<AppointmentStatus, { label: string; color: string; icon: string; bg: string }> = {
     pending: { label: 'Chờ đến', color: '#f59e0b', icon: 'schedule', bg: 'bg-amber-50 text-amber-600 border-amber-200' },
@@ -43,6 +45,14 @@ export default function AppointmentsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [deleteReason, setDeleteReason] = useState('')
     const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null)
+
+    // Service Order Modal state
+    const [showServiceOrderForm, setShowServiceOrderForm] = useState(false)
+    const [serviceOrderInitialData, setServiceOrderInitialData] = useState<{
+        branchId?: string,
+        customerId?: string,
+        appointmentId?: string
+    }>({})
 
     useEffect(() => {
         if (!canViewAll && currentUser?.branchId) {
@@ -533,6 +543,7 @@ export default function AppointmentsPage() {
                                                                     <p className="text-lg font-black text-gray-900">{customer?.fullName || 'Khách vãng lai'}</p>
                                                                     <div className="flex items-center gap-2 mt-0.5">
                                                                         <span className="text-[10px] bg-white px-2 py-0.5 rounded-md font-black text-gray-900 uppercase tracking-widest border border-gray-200">{a.appointmentTime}</span>
+                                                                        <span className="text-[9px] bg-gray-100 px-2 py-0.5 rounded-md font-black text-gray-500 uppercase tracking-widest">LH-{a.appointmentDate.replace(/-/g, '').slice(2)}</span>
                                                                         <span className="text-xs text-gray-600 font-bold">{customer?.phone}</span>
                                                                     </div>
                                                                 </div>
@@ -604,6 +615,22 @@ export default function AppointmentsPage() {
                                                                             >
                                                                                 <span className="material-icons-round text-base transition-transform group-hover/delbtn:rotate-12 group-hover/delbtn:scale-125">delete</span>
                                                                                 <span className="text-[11px] uppercase tracking-wider">Xóa lịch hẹn</span>
+                                                                            </button>
+                                                                            <div className="h-px bg-gray-100 my-1"></div>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setActionMenuId(null)
+                                                                                    setServiceOrderInitialData({
+                                                                                        appointmentId: a.id,
+                                                                                        customerId: a.customerId,
+                                                                                        branchId: a.branchId || ''
+                                                                                    })
+                                                                                    setShowServiceOrderForm(true)
+                                                                                }}
+                                                                                className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-primary/10 text-primary transition-all font-black hover:pl-5 active:scale-95 group/sobtn"
+                                                                            >
+                                                                                <Receipt size={16} className="transition-transform group-hover/sobtn:scale-125" />
+                                                                                <span className="text-[11px] uppercase tracking-wider">Tạo phiếu DV</span>
                                                                             </button>
                                                                         </div>
                                                                     </div>
@@ -743,7 +770,7 @@ export default function AppointmentsPage() {
             {/* Modal Form */}
             {
                 showForm && (
-                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
                         <div className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-scale-up">
                             <div className="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                                 <div>
@@ -929,7 +956,7 @@ export default function AppointmentsPage() {
             {/* Delete Confirmation Modal with Reason (V21.9) */}
             {
                 showDeleteModal && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[1010] flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowDeleteModal(false)}></div>
                         <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-up">
                             <div className="p-8 pb-0">
@@ -969,6 +996,14 @@ export default function AppointmentsPage() {
                     </div>
                 )
             }
-        </div >
+            {/* Service Order Modal (Direct creation) */}
+            <ServiceOrderModal
+                isOpen={showServiceOrderForm}
+                onClose={() => setShowServiceOrderForm(false)}
+                initialAppointmentId={serviceOrderInitialData.appointmentId}
+                initialCustomerId={serviceOrderInitialData.customerId}
+                initialBranchId={serviceOrderInitialData.branchId}
+            />
+        </div>
     )
 }

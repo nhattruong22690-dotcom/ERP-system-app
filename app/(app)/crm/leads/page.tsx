@@ -1,7 +1,7 @@
 'use client'
 export const dynamic = 'force-dynamic'
 import { useState, useMemo } from 'react'
-import { useApp, canViewAllBranches } from '@/lib/auth'
+import { useApp, canViewAllBranches, hasPermission } from '@/lib/auth'
 import { Lead, User, LeadCareLog, Appointment } from '@/lib/types'
 import { saveLead, syncLead, saveAppointment, syncAppointment, saveCustomer, syncCustomer } from '@/lib/storage'
 import { useModal } from '@/components/ModalProvider'
@@ -441,9 +441,11 @@ export default function LeadsPage() {
                 subtitle="Hiệu suất & Chuyển đổi"
                 description="CRM Module • Tối ưu quy trình chăm sóc khách hàng"
                 actions={
-                    <button onClick={openNew} className="bg-text-main text-white px-10 py-4 rounded-[20px] font-black text-[11px] uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-muted hover:shadow-gold-muted/20 transition-all duration-300 flex items-center gap-3 active:scale-95 group">
-                        <Plus size={18} strokeWidth={2.5} className="group-hover:rotate-90 transition-transform duration-500" /> Thêm Lead mới
-                    </button>
+                    hasPermission(currentUser, 'crm_lead_create') && (
+                        <button onClick={openNew} className="bg-text-main text-white px-10 py-4 rounded-[20px] font-black text-[11px] uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-muted hover:shadow-gold-muted/20 transition-all duration-300 flex items-center gap-3 active:scale-95 group">
+                            <Plus size={18} strokeWidth={2.5} className="group-hover:rotate-90 transition-transform duration-500" /> Thêm Lead mới
+                        </button>
+                    )
                 }
             />
 

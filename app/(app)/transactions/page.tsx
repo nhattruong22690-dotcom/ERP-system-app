@@ -1,6 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { useApp, canEditTransaction, canViewAllBranches, canLockTransaction } from '@/lib/auth'
+import { useApp, canEditTransaction, canViewAllBranches, canLockTransaction, hasPermission } from '@/lib/auth'
 import { fmtVND } from '@/lib/calculations'
 import { saveTransaction, deleteTransaction } from '@/lib/storage'
 import { Transaction } from '@/lib/types'
@@ -233,13 +233,15 @@ export default function TransactionsPage() {
                         >
                             <LayoutGrid size={18} strokeWidth={1.5} className="group-hover:rotate-90 transition-transform duration-500" /> Nhập nhanh
                         </button>
-                        <button
-                            className="flex items-center gap-3 bg-text-main text-white px-10 py-5 rounded-[22px] font-black text-[11px] uppercase tracking-widest shadow-luxury hover:bg-gold-muted transition-all active:scale-95 group relative overflow-hidden"
-                            onClick={openNew}
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                            <Plus size={18} strokeWidth={2.5} /> Thêm giao dịch
-                        </button>
+                        {hasPermission(currentUser, 'transaction_create') && (
+                            <button
+                                className="flex items-center gap-3 bg-text-main text-white px-10 py-5 rounded-[22px] font-black text-[11px] uppercase tracking-widest shadow-luxury hover:bg-gold-muted transition-all active:scale-95 group relative overflow-hidden"
+                                onClick={openNew}
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                <Plus size={18} strokeWidth={2.5} /> Thêm giao dịch
+                            </button>
+                        )}
                     </div>
                 }
             />
@@ -428,29 +430,29 @@ export default function TransactionsPage() {
                                                 <td className="px-10 py-10 text-right" onClick={e => e.stopPropagation()}>
                                                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
                                                         <button
-                                                            className="w-10 h-10 rounded-[14px] bg-white text-text-soft/40 hover:text-gold-muted shadow-sm border border-gold-light/20 flex items-center justify-center transition-all hover:scale-110 hover:shadow-md"
+                                                            className="w-10 h-10 rounded-[14px] bg-white text-text-soft/40 hover:text-emerald-600 shadow-sm border border-gold-light/20 flex items-center justify-center transition-all hover:scale-110 hover:shadow-md"
                                                             onClick={() => setSelectedTxId(tx.id)}
                                                             title="Xem chi tiết"
                                                         >
                                                             <Eye size={18} strokeWidth={2} />
                                                         </button>
-                                                        {canEdit_ && (
-                                                            <>
-                                                                <button
-                                                                    className="w-10 h-10 rounded-[14px] bg-white text-text-soft/40 hover:text-emerald-600 shadow-sm border border-gold-light/20 flex items-center justify-center transition-all hover:scale-110 hover:shadow-md"
-                                                                    onClick={() => openEdit(tx)}
-                                                                    title="Sửa"
-                                                                >
-                                                                    <Edit2 size={18} strokeWidth={2} />
-                                                                </button>
-                                                                <button
-                                                                    className="w-10 h-10 rounded-[14px] bg-white text-text-soft/40 hover:text-rose-600 shadow-sm border border-gold-light/20 flex items-center justify-center transition-all hover:scale-110 hover:shadow-md"
-                                                                    onClick={() => handleDelete(tx.id)}
-                                                                    title="Xóa"
-                                                                >
-                                                                    <Trash2 size={18} strokeWidth={2} />
-                                                                </button>
-                                                            </>
+                                                        {hasPermission(currentUser, 'transaction_update') && canEdit_ && (
+                                                            <button
+                                                                className="w-10 h-10 rounded-[14px] bg-white text-text-soft/40 hover:text-emerald-600 shadow-sm border border-gold-light/20 flex items-center justify-center transition-all hover:scale-110 hover:shadow-md"
+                                                                onClick={() => openEdit(tx)}
+                                                                title="Sửa"
+                                                            >
+                                                                <Edit2 size={18} strokeWidth={2} />
+                                                            </button>
+                                                        )}
+                                                        {hasPermission(currentUser, 'transaction_delete') && (
+                                                            <button
+                                                                className="w-10 h-10 rounded-[14px] bg-white text-text-soft/40 hover:text-rose-600 shadow-sm border border-gold-light/20 flex items-center justify-center transition-all hover:scale-110 hover:shadow-md"
+                                                                onClick={() => handleDelete(tx.id)}
+                                                                title="Xóa"
+                                                            >
+                                                                <Trash2 size={18} strokeWidth={2} />
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </td>

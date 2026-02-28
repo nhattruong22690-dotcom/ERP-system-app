@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useApp, canManageUsers } from '@/lib/auth'
+import { useApp, canManageBranches, hasPermission } from '@/lib/auth'
 import { Branch, BranchType } from '@/lib/types'
 import { saveBranch } from '@/lib/storage'
 import { useModal } from '@/components/ModalProvider'
@@ -43,7 +43,12 @@ export default function BranchesPage() {
     const [showForm, setShowForm] = useState(false)
     const [editing, setEditing] = useState<Branch | null>(null)
     const [form, setForm] = useState<Partial<Branch>>({})
-    const canEdit = canManageUsers(currentUser)
+    const canEdit = hasPermission(currentUser, 'branch_update')
+    const canCreate = hasPermission(currentUser, 'branch_create')
+
+    if (!canManageBranches(currentUser)) {
+        return null // Or redirect
+    }
 
     function openNew() { setForm({ type: 'spa' }); setEditing(null); setShowForm(true) }
     function openEdit(b: Branch) { setForm({ ...b, type: b.type || (b.isHeadquarter ? 'hq' : 'spa') }); setEditing(b); setShowForm(true) }
@@ -78,7 +83,7 @@ export default function BranchesPage() {
                 title="Hệ thống Quản lý"
                 subtitle="Phòng Ban"
                 description="Quản lý Chi nhánh & Team Nội bộ"
-                actions={canEdit && (
+                actions={canCreate && (
                     <button
                         onClick={openNew}
                         className="px-6 py-3 bg-text-main text-white rounded-[15px] text-[11px] font-black uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-muted hover:shadow-gold-muted/20 transition-all duration-300 flex items-center gap-2 active:scale-95 group"

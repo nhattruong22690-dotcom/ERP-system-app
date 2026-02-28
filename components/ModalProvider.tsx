@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react'
-import { AlertCircle, Info, CheckCircle2, HelpCircle } from 'lucide-react'
+import { AlertCircle, Info, CheckCircle2, HelpCircle, X } from 'lucide-react'
 
 type ModalType = 'alert' | 'confirm'
 
@@ -64,59 +64,48 @@ export function ModalProvider({ children }: { children: ReactNode }) {
             {children}
             {modal && (
                 <div
-                    className="fixed inset-0 z-[2000] flex justify-center items-start p-4 sm:p-6 bg-gray-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto"
+                    className="fixed inset-0 z-[9999] flex justify-center items-center p-4 bg-black/60 backdrop-blur-md animate-fade-in"
                     onClick={() => modal.type === 'alert' ? handleClose(true) : handleClose(false)}
                 >
                     <div
-                        className="modal"
-                        style={{
-                            maxWidth: '400px',
-                            borderRadius: '16px',
-                            padding: '24px',
-                            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-                            animation: 'modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-                        }}
+                        className="w-full max-w-[400px] bg-white rounded-[2rem] p-8 shadow-2xl border border-gray-100"
+                        style={{ animation: 'modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '16px' }}>
+                        <div className="flex flex-col items-center text-center gap-5">
                             {modal.type === 'confirm' ? (
-                                <div style={{ background: '#fef2f2', padding: '16px', borderRadius: '50%', color: '#dc2626' }}>
+                                <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100">
                                     <HelpCircle size={32} />
                                 </div>
                             ) : (
-                                <div style={{ background: '#eff6ff', padding: '16px', borderRadius: '50%', color: '#2563eb' }}>
+                                <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500 border border-blue-100">
                                     <Info size={32} />
                                 </div>
                             )}
 
                             <div>
-                                <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>
+                                <h3 className="text-lg font-black text-gray-900 uppercase tracking-wide">
                                     {modal.title}
                                 </h3>
-                                <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                                <p className="mt-2 text-sm text-gray-500 font-bold leading-relaxed">
                                     {modal.message}
                                 </p>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
+                            <div className="flex gap-3 w-full mt-2">
                                 {modal.type === 'confirm' && (
                                     <button
-                                        className="btn btn-ghost"
-                                        style={{ flex: 1, padding: '12px', background: '#f1f5f9', color: '#475569', fontWeight: 600 }}
+                                        className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-gray-200 transition-all active:scale-95"
                                         onClick={() => handleClose(false)}
                                     >
                                         Hủy
                                     </button>
                                 )}
                                 <button
-                                    className="btn btn-primary"
-                                    style={{
-                                        flex: 1,
-                                        padding: '12px',
-                                        fontWeight: 600,
-                                        background: modal.type === 'confirm' ? '#dc2626' : undefined,
-                                        borderColor: modal.type === 'confirm' ? '#dc2626' : undefined
-                                    }}
+                                    className={`flex-1 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95 shadow-lg ${modal.type === 'confirm'
+                                            ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-200'
+                                            : 'bg-text-main text-white hover:bg-gold-muted shadow-gray-200'
+                                        }`}
                                     onClick={() => handleClose(true)}
                                 >
                                     {modal.type === 'confirm' ? 'Xác nhận' : 'Đồng ý'}

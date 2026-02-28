@@ -158,6 +158,7 @@ export function seedData(): AppState {
         deductions: [],
         salaryAdvances: [],
         payrollRosters: [],
+        serviceOrders: [],
         currentUserId: undefined,
         dismissedAlerts: [],
         starredAlerts: [],

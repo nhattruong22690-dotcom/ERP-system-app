@@ -46,6 +46,7 @@ const EMPTY_STATE: AppState = {
     deductions: [],
     salaryAdvances: [],
     payrollRosters: [],
+    serviceOrders: [],
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -259,7 +260,7 @@ export function hasPermission(user: User | undefined, perm: string) {
 
     // Legacy fallback for old roles until updated:
     if (user.role === 'director' || user.role === 'accountant') {
-        const legacyPerms = ['plan_edit', 'transaction_edit_all', 'branch_view_all'];
+        const legacyPerms = ['plan_edit', 'transaction_edit_all', 'branch_view_all', 'user_manage', 'branch_manage', 'category_manage', 'account_manage', 'crm_lead_manage', 'crm_customer_manage', 'crm_appointment_manage', 'crm_payroll_manage'];
         if (legacyPerms.includes(perm)) return true;
     }
 
@@ -304,23 +305,23 @@ export function isPageAllowed(user: User | undefined, href: string) {
 }
 
 export function canEditPlan(user?: User) {
-    return hasPermission(user, 'plan_edit')
+    return hasPermission(user, 'plan_update') || hasPermission(user, 'plan_create') || hasPermission(user, 'plan_edit')
 }
 
 export function canManageCategories(user?: User) {
-    return hasPermission(user, 'category_manage')
+    return hasPermission(user, 'category_create') || hasPermission(user, 'category_update') || hasPermission(user, 'category_delete') || hasPermission(user, 'category_manage')
 }
 
 export function canManageUsers(user?: User) {
-    return hasPermission(user, 'user_manage')
+    return hasPermission(user, 'user_create') || hasPermission(user, 'user_update') || hasPermission(user, 'user_delete') || hasPermission(user, 'user_manage')
 }
 
 export function canManageBranches(user?: User) {
-    return hasPermission(user, 'branch_manage')
+    return hasPermission(user, 'branch_create') || hasPermission(user, 'branch_update') || hasPermission(user, 'branch_delete') || hasPermission(user, 'branch_manage')
 }
 
 export function canManageAccounts(user?: User) {
-    return hasPermission(user, 'account_manage')
+    return hasPermission(user, 'account_create') || hasPermission(user, 'account_update') || hasPermission(user, 'account_delete') || hasPermission(user, 'account_manage')
 }
 
 export function canViewAllBranches(user?: User) {
@@ -337,7 +338,7 @@ export function canViewAllBranches(user?: User) {
 export function canEditTransaction(user: User | undefined, tx: any) {
     if (!user) return false
 
-    if (hasPermission(user, 'transaction_edit_all')) return true;
+    if (hasPermission(user, 'transaction_update') || hasPermission(user, 'transaction_edit_all')) return true;
 
     // Staff can only edit if it's THEIR transaction AND it's not locked
     if (user.id === tx.createdBy && tx.status !== 'locked') return true

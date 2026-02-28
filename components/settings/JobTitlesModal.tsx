@@ -426,8 +426,8 @@ export default function JobTitlesModal({ onClose }: { onClose: () => void }) {
                                                                 </button>
                                                             </div>
 
-                                                            {pageActive && group.actions.length > 0 && (
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-9">
+                                                            {group.actions.length > 0 && (
+                                                                <div className={`grid grid-cols-1 md:grid-cols-2 gap-2 pl-9 transition-all ${pageActive ? '' : 'opacity-40'}`}>
                                                                     {group.actions.map(action => {
                                                                         const actionActive = (form.permissions || []).includes(action.value)
                                                                         return (
@@ -437,7 +437,12 @@ export default function JobTitlesModal({ onClose }: { onClose: () => void }) {
                                                                                 onClick={() => {
                                                                                     const current = form.permissions || []
                                                                                     const next = actionActive ? current.filter(v => v !== action.value) : [...current, action.value]
-                                                                                    setForm({ ...form, permissions: next })
+                                                                                    const newForm = { ...form, permissions: next }
+                                                                                    // Auto-enable page if an action is enabled
+                                                                                    if (!actionActive && !pageActive) {
+                                                                                        newForm.allowedPages = [...(form.allowedPages || []), group.page.value]
+                                                                                    }
+                                                                                    setForm(newForm)
                                                                                 }}
                                                                                 className={`flex items-center gap-2.5 p-2 px-3 rounded-xl border text-left transition-all ${actionActive ? 'bg-indigo-50 border-indigo-100 text-indigo-700 shadow-sm' : 'bg-transparent border-transparent text-text-soft/40 hover:bg-white hover:border-gold-light/20'}`}
                                                                             >

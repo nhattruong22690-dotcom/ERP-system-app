@@ -1,12 +1,12 @@
 'use client'
 import { useState, useMemo, useEffect } from 'react'
-import { useApp, canManageUsers } from '@/lib/auth'
+import { useApp, canManageUsers, hasPermission } from '@/lib/auth'
 import { saveUser } from '@/lib/storage'
 import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
 import JobTitlesModal from '@/components/settings/JobTitlesModal'
 import UserAvatar from '@/components/UserAvatar'
-import { Plus, Edit2, X, Shield, Eye, EyeOff, Search, Power, Settings, BadgeCheck, Phone, CheckCircle2, UserCircle, Building, Store, Award, Check, ChevronDown, Landmark, MapPin, Tag, Smartphone, Globe, Star, Heart, Zap, Coffee, MessageSquare, Scissors, DollarSign, Clock, Sparkles, Trash2, History, ArrowRight, PlusCircle } from 'lucide-react'
+import { Plus, Edit2, X, Shield, Eye, EyeOff, Search, Power, Settings, BadgeCheck, Phone, CheckCircle2, UserCircle, Building, Store, Award, Check, ChevronDown, Landmark, MapPin, Tag, Smartphone, Globe, Star, Heart, Zap, Coffee, MessageSquare, Scissors, DollarSign, Clock, Sparkles, Trash2, History, ArrowRight, PlusCircle, Lock, KeyRound } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import PageHeader from '@/components/PageHeader'
@@ -30,6 +30,8 @@ export default function UsersPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [showJobModal, setShowJobModal] = useState(false)
     const [showSalaryModal, setShowSalaryModal] = useState(false)
+    const [modalTab, setModalTab] = useState<'info' | 'permissions' | 'account'>('info')
+    const [showPasswordChange, setShowPasswordChange] = useState(false)
     const searchParams = useSearchParams()
 
     // Auto-open user by ID if provided in URL
@@ -96,10 +98,10 @@ export default function UsersPage() {
     }
 
     function openNew() {
-        setForm({ role: 'staff', allowedPages: [], permissions: [], isActive: true, workStatus: 'working' }); setEditing(null); setShowForm(true)
+        setForm({ role: 'staff', allowedPages: [], permissions: [], isActive: true, workStatus: 'working' }); setEditing(null); setShowForm(true); setModalTab('info'); setShowPasswordChange(false)
     }
     function openEdit(u: User) {
-        setForm({ ...u, password: '', isActive: u.isActive !== false, workStatus: u.workStatus || 'working' }); setEditing(u); setShowForm(true)
+        setForm({ ...u, password: '', isActive: u.isActive !== false, workStatus: u.workStatus || 'working' }); setEditing(u); setShowForm(true); setModalTab('info'); setShowPasswordChange(false)
     }
     async function handleSave() {
         if (!form.username || !form.displayName || !form.role) { await showAlert('Điền đầy đủ thông tin'); return }
@@ -121,6 +123,7 @@ export default function UsersPage() {
             workStatus: form.workStatus as any || 'working',
             hasAttendance: form.hasAttendance,
             salaryConfig: form.salaryConfig,
+            viewAllBranches: form.viewAllBranches || false,
             isActive: isResigning ? false : (form.isActive !== false),
             createdAt: editing?.createdAt ?? new Date().toISOString(),
         }
@@ -191,18 +194,20 @@ export default function UsersPage() {
                 actions={
                     <div className="flex items-center gap-4">
                         <button
-                            className="px-6 py-3 bg-white border border-gold-light text-gold-muted rounded-[15px] text-[10px] font-black uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-light transition-all duration-300 flex items-center gap-2 active:scale-95"
+                            className="flex items-center gap-3 bg-white text-text-soft/60 px-6 py-4 rounded-[20px] font-black text-[10px] uppercase tracking-widest border border-gold-light/30 shadow-sm hover:text-gold-muted hover:border-gold-muted/30 transition-all group"
                             onClick={() => setShowJobModal(true)}
                         >
-                            <Settings size={16} strokeWidth={1.5} /> Thiết lập Chức vụ
+                            <Award size={18} strokeWidth={1.5} className="group-hover:rotate-12 transition-transform duration-500" /> Thiết lập chức vụ
                         </button>
-                        <button
-                            onClick={openNew}
-                            className="px-6 py-3 bg-text-main text-white rounded-[15px] text-[11px] font-black uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-muted hover:shadow-gold-muted/20 transition-all duration-300 flex items-center gap-2 active:scale-95 group"
-                        >
-                            <PlusCircle size={18} strokeWidth={2.5} className="group-hover:rotate-90 transition-transform duration-500" />
-                            Thêm nhân sự mới
-                        </button>
+                        {hasPermission(currentUser, 'user_create') && (
+                            <button
+                                className="flex items-center gap-3 bg-text-main text-white px-10 py-5 rounded-[22px] font-black text-[11px] uppercase tracking-widest shadow-luxury hover:bg-gold-muted transition-all active:scale-95 group relative overflow-hidden"
+                                onClick={openNew}
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                <Plus size={18} strokeWidth={2.5} /> Thêm nhân sự
+                            </button>
+                        )}
                     </div>
                 }
             />
@@ -419,23 +424,22 @@ export default function UsersPage() {
                                                             </div>
                                                         </td>
                                                         <td className="px-10 py-6 text-right" onClick={e => e.stopPropagation()}>
-                                                            <div className="flex items-center justify-end gap-3">
-                                                                <div className="flex items-center gap-3 px-4 py-2 bg-beige-soft/50 border border-gold-light/20 rounded-xl group/pw relative overflow-hidden transition-all hover:bg-white hover:border-gold-muted/30">
-                                                                    <span className={`text-xs font-mono font-bold text-text-main transition-all ${showPw[u.id] ? '' : 'blur-[6px] select-none text-[8px]'}`}>
-                                                                        {u.password || '******'}
-                                                                    </span>
+                                                            <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
+                                                                {hasPermission(currentUser, 'user_update') && (
                                                                     <button
-                                                                        onClick={() => setShowPw(prev => ({ ...prev, [u.id]: !prev[u.id] }))}
-                                                                        className="text-gold-muted/40 hover:text-gold-muted transition-colors"
+                                                                        className="w-10 h-10 rounded-[14px] bg-white text-text-soft/40 hover:text-gold-muted shadow-sm border border-gold-light/20 flex items-center justify-center transition-all hover:scale-110 hover:shadow-md"
+                                                                        onClick={() => openEdit(u)}
+                                                                        title="Chỉnh sửa"
                                                                     >
-                                                                        {showPw[u.id] ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
+                                                                        <Edit2 size={18} strokeWidth={2} />
                                                                     </button>
-                                                                </div>
+                                                                )}
                                                                 <button
-                                                                    onClick={() => openEdit(u)}
-                                                                    className="p-3 bg-white text-gold-muted/40 hover:text-gold-muted hover:bg-gold-light/50 border border-transparent hover:border-gold-light/40 rounded-xl transition-all shadow-sm active:scale-90"
+                                                                    className="w-10 h-10 rounded-[14px] bg-white text-text-soft/40 hover:text-emerald-600 shadow-sm border border-gold-light/20 flex items-center justify-center transition-all hover:scale-110 hover:shadow-md"
+                                                                    onClick={() => openEdit(u)} // Assuming detailed view is part of edit for now
+                                                                    title="Xem chi tiết"
                                                                 >
-                                                                    <Settings size={18} strokeWidth={1.5} />
+                                                                    <Eye size={18} strokeWidth={2} />
                                                                 </button>
                                                             </div>
                                                         </td>
@@ -455,10 +459,10 @@ export default function UsersPage() {
 
             {showForm && (
                 <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={async e => { if (e.target === e.currentTarget && await showConfirm('Bạn có chắc chắn muốn đóng? Dữ liệu đang nhập sẽ bị mất.')) setShowForm(false) }}>
-                    <div className="bg-white w-full max-w-5xl h-fit rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white w-full max-w-5xl h-[90vh] max-h-[900px] min-h-[600px] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
 
                         {/* Left Side: Branding & Profile Sidebar */}
-                        <div className="w-full md:w-[240px] bg-text-main relative overflow-hidden flex flex-col p-8 text-white shrink-0 items-center justify-between border-b md:border-b-0 md:border-r border-white/5">
+                        <div className="w-full md:w-[240px] bg-text-main relative overflow-hidden flex flex-col p-8 text-white shrink-0 items-center justify-between border-b md:border-b-0 md:border-r border-white/5 h-full">
                             <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 20% 150%, #C5A059, transparent), radial-gradient(circle at 80% -50%, #F2EBE1, transparent)' }}></div>
 
                             <div className="relative z-10 flex flex-col items-center w-full">
@@ -512,16 +516,16 @@ export default function UsersPage() {
                             </div>
                         </div>
 
-                        {/* Right Side: Form Content */}
+                        {/* Right Side: Tabbed Content */}
                         <div className="flex-1 bg-white flex flex-col relative min-w-0">
-                            {/* Header Text & Close */}
-                            <div className="px-8 pt-10 md:px-12 md:pt-12 flex justify-between items-start shrink-0">
+                            {/* Header + Close */}
+                            <div className="px-8 pt-8 md:px-10 md:pt-10 flex justify-between items-start shrink-0">
                                 <div>
                                     <div className="flex items-center gap-2 mb-2">
                                         <Shield size={14} className="text-gold-muted" />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-soft/60 italic">Cài đặt phân quyền nhân sự</span>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-soft/60 italic">Quản trị nhân sự</span>
                                     </div>
-                                    <h3 className="text-4xl font-serif font-black text-text-main tracking-tighter uppercase leading-none italic">
+                                    <h3 className="text-3xl font-serif font-black text-text-main tracking-tighter uppercase leading-none italic">
                                         {editing ? 'Hiệu chỉnh' : 'Khởi tạo'} <span className="text-gold-muted">Hồ Sơ</span>
                                     </h3>
                                 </div>
@@ -530,120 +534,59 @@ export default function UsersPage() {
                                 </button>
                             </div>
 
-                            {/* Body Split Scrollable */}
-                            <div className="flex-1 overflow-y-auto luxury-scrollbar p-8 md:p-12">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                                    {/* Left Column: ID & Login */}
-                                    <div className="space-y-10">
-                                        <section className="space-y-6">
+                            {/* Tab Bar */}
+                            <div className="px-8 md:px-10 pt-6 shrink-0">
+                                <div className="flex gap-1 p-1 bg-beige-soft/50 rounded-2xl">
+                                    {([
+                                        { key: 'info' as const, label: 'Thông tin', icon: UserCircle },
+                                        { key: 'permissions' as const, label: 'Phân quyền', icon: Shield },
+                                        { key: 'account' as const, label: 'Tài khoản', icon: KeyRound },
+                                    ]).map(tab => (
+                                        <button
+                                            key={tab.key}
+                                            onClick={() => setModalTab(tab.key)}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${modalTab === tab.key ? 'bg-text-main text-white shadow-luxury' : 'text-text-soft/50 hover:text-gold-muted hover:bg-white'}`}
+                                        >
+                                            <tab.icon size={14} strokeWidth={2} />
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Tab Content — Scrollable */}
+                            <div className="flex-1 overflow-y-auto luxury-scrollbar p-8 md:p-10">
+
+                                {/* ═══ TAB 1: THÔNG TIN CƠ BẢN ═══ */}
+                                {modalTab === 'info' && (
+                                    <div className="space-y-8 animate-fade-in">
+                                        <section className="space-y-5">
                                             <div className="flex items-center gap-3 border-b border-gold-light/10 pb-3">
                                                 <UserCircle size={16} className="text-gold-muted" />
-                                                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Định danh hệ thống</span>
+                                                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Thông tin cá nhân</span>
                                             </div>
-
-                                            <div className="space-y-6">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest block pl-2 italic">Tên đăng nhập (Username) *</label>
-                                                    <div className="relative group">
-                                                        <div className="absolute left-5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-beige-soft/50 flex items-center justify-center text-gold-muted font-black text-sm border border-gold-light/20 group-focus-within:bg-gold-muted group-focus-within:text-white transition-all">@</div>
-                                                        <input
-                                                            className="w-full bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[20px] pl-16 pr-6 py-4.5 text-[15px] font-black text-text-main outline-none transition-all shadow-sm italic"
-                                                            value={form.username ?? ''}
-                                                            onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
-                                                            placeholder="VD: nhat.truong"
-                                                        />
-                                                    </div>
-                                                </div>
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                                                 <div className="space-y-2">
                                                     <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest block pl-2 italic">Họ và tên *</label>
-                                                    <input
-                                                        className="w-full bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[20px] px-6 py-4.5 text-[15px] font-black text-text-main outline-none transition-all shadow-sm italic"
-                                                        value={form.displayName ?? ''}
-                                                        onChange={e => setForm(f => ({ ...f, displayName: e.target.value }))}
-                                                        placeholder="Họ tên đầy đủ"
-                                                    />
+                                                    <input className="w-full bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[20px] px-6 py-4 text-[14px] font-black text-text-main outline-none transition-all shadow-sm italic" value={form.displayName ?? ''} onChange={e => setForm(f => ({ ...f, displayName: e.target.value }))} placeholder="Họ tên đầy đủ" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest block pl-2 italic">Mật khẩu {editing && '(Bỏ trống nếu giữ cũ)'}</label>
-                                                    <div className="relative">
-                                                        <input
-                                                            className="w-full bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[20px] px-6 py-4.5 text-[15px] font-black text-text-main outline-none transition-all shadow-sm font-mono tracking-widest"
-                                                            type="password"
-                                                            value={(form as any).password ?? ''}
-                                                            onChange={e => setForm(f => ({ ...f, password: e.target.value } as any))}
-                                                            placeholder="••••••••"
-                                                        />
-                                                        <div className="absolute right-6 top-1/2 -translate-y-1/2 text-gold-muted/40">
-                                                            <Zap size={18} strokeWidth={2.5} />
-                                                        </div>
-                                                    </div>
+                                                    <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest block pl-2 italic">Email</label>
+                                                    <input className="w-full bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[20px] px-6 py-4 text-[14px] font-bold text-text-main outline-none transition-all shadow-sm" value={form.email ?? ''} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" />
                                                 </div>
                                             </div>
                                         </section>
 
-                                        <section className="bg-beige-soft/30 p-8 rounded-[40px] border border-gold-light/20 relative overflow-hidden group">
-                                            <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
-                                                <Clock size={80} strokeWidth={1} />
-                                            </div>
-                                            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-text-soft/60 mb-6 flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-gold-muted"></div>
-                                                Tiện ích & Bảo mật
-                                            </div>
-
-                                            <div className="space-y-6 relative z-10">
-                                                <div
-                                                    className="flex items-center justify-between p-4 bg-white/60 rounded-2xl border border-transparent hover:border-gold-light/40 cursor-pointer transition-all active:scale-[0.98]"
-                                                    onClick={() => setForm(f => ({ ...f, hasAttendance: !f.hasAttendance }))}
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${form.hasAttendance ? 'bg-indigo-600 shadow-lg shadow-indigo-100 text-white' : 'bg-white border border-gold-light/20 text-text-soft/40'}`}>
-                                                            <Clock size={20} strokeWidth={2} />
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-[11px] font-black text-text-main uppercase tracking-widest leading-none mb-1.5">Chấm công App</div>
-                                                            <div className="text-[9px] font-bold text-text-soft/40 uppercase tracking-tighter">Xác thực bằng dấu vân tay</div>
-                                                        </div>
-                                                    </div>
-                                                    <div className={`w-12 h-6 rounded-full relative transition-all duration-300 ${form.hasAttendance ? 'bg-indigo-600' : 'bg-gray-200'}`}>
-                                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${form.hasAttendance ? 'left-7' : 'left-1'}`} />
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex gap-4 p-1.5 bg-white/40 rounded-[22px] border border-gold-light/10">
-                                                    <button
-                                                        className={`flex-1 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-[18px] transition-all flex items-center justify-center gap-2 ${form.isActive !== false ? 'bg-text-main text-white shadow-luxury' : 'text-text-soft/40 hover:bg-white'}`}
-                                                        onClick={() => setForm(f => ({ ...f, isActive: true }))}
-                                                    >
-                                                        {form.isActive !== false && <Check size={12} strokeWidth={3} />} Kích hoạt
-                                                    </button>
-                                                    <button
-                                                        className={`flex-1 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-[18px] transition-all flex items-center justify-center gap-2 ${form.isActive === false ? 'bg-rose-600 text-white shadow-lg' : 'text-text-soft/40 hover:bg-white'}`}
-                                                        onClick={() => setForm(f => ({ ...f, isActive: false }))}
-                                                    >
-                                                        {form.isActive === false && <X size={12} strokeWidth={3} />} Khóa hồ sơ
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </section>
-                                    </div>
-
-                                    {/* Right Column: Work & Access */}
-                                    <div className="space-y-10">
-                                        <section className="space-y-6">
+                                        <section className="space-y-5">
                                             <div className="flex items-center gap-3 border-b border-gold-light/10 pb-3">
                                                 <Building size={16} className="text-gold-muted" />
                                                 <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Thông tin công tác</span>
                                             </div>
-
-                                            <div className="space-y-6">
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                                                 <div className="space-y-2">
                                                     <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest block pl-2 italic">Cơ sở làm việc</label>
                                                     <div className="relative">
-                                                        <select
-                                                            className="w-full bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[20px] px-6 py-4.5 text-[15px] font-black text-text-main outline-none transition-all appearance-none shadow-sm cursor-pointer italic"
-                                                            value={form.branchId ?? ''}
-                                                            onChange={e => setForm(f => ({ ...f, branchId: e.target.value || undefined, jobTitleId: undefined, title: '' }))}
-                                                        >
+                                                        <select className="w-full bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[20px] px-6 py-4 text-[14px] font-black text-text-main outline-none transition-all appearance-none shadow-sm cursor-pointer italic" value={form.branchId ?? ''} onChange={e => setForm(f => ({ ...f, branchId: e.target.value || undefined, jobTitleId: undefined, title: '' }))}>
                                                             <option value="">Chọn chi nhánh...</option>
                                                             {state.branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                                         </select>
@@ -653,11 +596,7 @@ export default function UsersPage() {
                                                 <div className="space-y-2">
                                                     <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest block pl-2 italic">Chức vụ phụ trách</label>
                                                     <div className="relative">
-                                                        <select
-                                                            className="w-full bg-indigo-50/40 border-2 border-indigo-100 rounded-[20px] px-6 py-4.5 text-[15px] font-black text-indigo-900 focus:border-indigo-300 focus:ring-8 focus:ring-indigo-100/50 outline-none transition-all appearance-none shadow-sm cursor-pointer italic"
-                                                            value={form.jobTitleId ?? ''}
-                                                            onChange={e => onJobTitleChange(e.target.value)}
-                                                        >
+                                                        <select className="w-full bg-indigo-50/40 border-2 border-indigo-100 rounded-[20px] px-6 py-4 text-[14px] font-black text-indigo-900 focus:border-indigo-300 outline-none transition-all appearance-none shadow-sm cursor-pointer italic" value={form.jobTitleId ?? ''} onChange={e => onJobTitleChange(e.target.value)}>
                                                             <option value="">Chọn chức danh...</option>
                                                             {availableJobTitles.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
                                                         </select>
@@ -666,58 +605,248 @@ export default function UsersPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="bg-gray-50/80 p-6 rounded-[32px] border border-gold-light/10 space-y-4">
-                                                <div className="text-[9px] font-black uppercase text-text-soft/40 tracking-[0.2em] mb-3 text-center italic">Trạng thái hiện diện tại chi nhánh</div>
-                                                <div className="flex flex-wrap gap-3 justify-center">
+                                            {/* Work status */}
+                                            <div className="bg-gray-50/80 p-5 rounded-[28px] border border-gold-light/10 space-y-3">
+                                                <div className="text-[9px] font-black uppercase text-text-soft/40 tracking-[0.2em] text-center italic">Trạng thái hiện diện</div>
+                                                <div className="flex flex-wrap gap-2 justify-center">
                                                     {(['working', 'on_leave', 'resigned'] as const).map(s => (
-                                                        <button
-                                                            key={s}
-                                                            onClick={() => setForm(f => ({ ...f, workStatus: s, isActive: s !== 'resigned' }))}
-                                                            className={`px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${form.workStatus === s || (!form.workStatus && s === 'working') ? 'bg-text-main text-white shadow-luxury border-text-main' : 'bg-white text-text-soft/40 border-gold-light/20 hover:border-gold-muted'}`}
-                                                        >
+                                                        <button key={s} onClick={() => setForm(f => ({ ...f, workStatus: s, isActive: s !== 'resigned' }))} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${form.workStatus === s || (!form.workStatus && s === 'working') ? 'bg-text-main text-white shadow-luxury border-text-main' : 'bg-white text-text-soft/40 border-gold-light/20 hover:border-gold-muted'}`}>
                                                             {s === 'working' ? '✓ Đang làm' : s === 'on_leave' ? '☕ Nghỉ phép' : '✕ Nghỉ việc'}
                                                         </button>
                                                     ))}
                                                 </div>
                                             </div>
-                                        </section>
 
-                                        <section className="space-y-6">
-                                            <div className="flex items-center gap-3 border-b border-gold-light/10 pb-3">
-                                                <Settings size={16} className="text-gold-muted" />
-                                                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Phân quyền module</span>
-                                            </div>
-
-                                            <div className="space-y-2 max-h-[300px] overflow-y-auto luxury-scrollbar pr-2 pt-1">
-                                                {PERMISSION_GROUPS.map((group) => {
-                                                    const pageActive = form.allowedPages?.includes(group.page.value) ?? false
-                                                    return (
-                                                        <div key={group.page.value} className={`p-4 rounded-2xl border transition-all ${pageActive ? 'bg-white border-gold-muted shadow-lg shadow-gold-muted/5' : 'bg-gray-50/50 border-gold-light/10 opacity-60'}`}>
-                                                            <div className="flex items-center justify-between">
-                                                                <label className="flex items-center gap-2 cursor-pointer touch-none" onClick={() => {
-                                                                    const current = form.allowedPages || []
-                                                                    const next = !pageActive ? [...current, group.page.value] : current.filter(v => v !== group.page.value)
-                                                                    setForm(f => ({ ...f, allowedPages: next }))
-                                                                }}>
-                                                                    <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${pageActive ? 'bg-gold-muted border-gold-muted text-white' : 'bg-white border-gold-light/30'}`}>
-                                                                        {pageActive && <Check size={12} strokeWidth={3} />}
-                                                                    </div>
-                                                                    <span className={`text-[11px] font-black uppercase tracking-tighter ${pageActive ? 'text-text-main' : 'text-text-soft'}`}>{group.page.label}</span>
-                                                                </label>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
+                                            {/* Attendance toggle */}
+                                            <div className="flex items-center justify-between p-4 bg-white/60 rounded-2xl border border-gold-light/20 hover:border-gold-light/40 cursor-pointer transition-all" onClick={() => setForm(f => ({ ...f, hasAttendance: !f.hasAttendance }))}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${form.hasAttendance ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-gray-100 text-text-soft/30'}`}>
+                                                        <Clock size={18} strokeWidth={2} />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-[11px] font-black text-text-main uppercase tracking-widest leading-none">Chấm công App</div>
+                                                        <div className="text-[9px] font-bold text-text-soft/40 mt-1">Xác thực dấu vân tay</div>
+                                                    </div>
+                                                </div>
+                                                <div className={`w-11 h-6 rounded-full relative transition-all duration-300 ${form.hasAttendance ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+                                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${form.hasAttendance ? 'left-6' : 'left-1'}`} />
+                                                </div>
                                             </div>
                                         </section>
                                     </div>
-                                </div>
+                                )}
+
+                                {/* ═══ TAB 2: PHÂN QUYỀN — CRUD Matrix ═══ */}
+                                {modalTab === 'permissions' && (
+                                    <div className="space-y-6 animate-fade-in">
+                                        <div className="flex items-center gap-3 border-b border-gold-light/10 pb-3">
+                                            <Shield size={16} className="text-gold-muted" />
+                                            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Ma trận phân quyền</span>
+                                        </div>
+
+                                        <div className="rounded-[24px] border border-gold-light/20 overflow-x-auto shadow-sm luxury-scrollbar">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-beige-soft/50 border-b border-gold-light/20">
+                                                        <th className="px-5 py-3.5 text-[9px] font-black text-text-soft uppercase tracking-widest w-[200px]">Trang</th>
+                                                        <th className="px-2 py-3.5 text-[9px] font-black text-emerald-600 uppercase tracking-widest text-center w-[60px]">Xem</th>
+                                                        <th className="px-2 py-3.5 text-[9px] font-black text-blue-600 uppercase tracking-widest text-center w-[60px]">Thêm</th>
+                                                        <th className="px-2 py-3.5 text-[9px] font-black text-amber-600 uppercase tracking-widest text-center w-[60px]">Sửa</th>
+                                                        <th className="px-2 py-3.5 text-[9px] font-black text-rose-600 uppercase tracking-widest text-center w-[60px]">Xóa</th>
+                                                        <th className="px-2 py-3.5 text-[9px] font-black text-slate-600 uppercase tracking-widest text-center w-[60px]">
+                                                            <Lock size={12} className="mx-auto" />
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gold-light/10">
+                                                    {PERMISSION_GROUPS.map(group => {
+                                                        const pageVal = group.page.value
+                                                        const hasRead = form.allowedPages?.includes(pageVal) ?? false
+                                                        const hasCreate = group.crud?.create ? (form.permissions?.includes(group.crud.create) ?? false) : false
+                                                        const hasUpdate = group.crud?.update ? (form.permissions?.includes(group.crud.update) ?? false) : false
+                                                        const hasDelete = group.crud?.delete ? (form.permissions?.includes(group.crud.delete) ?? false) : false
+                                                        const hasLock = group.crud?.lock ? (form.permissions?.includes(group.crud.lock) ?? false) : false
+
+                                                        const togglePerm = (permKey: string | undefined) => {
+                                                            if (!permKey) return
+                                                            const current = form.permissions || []
+                                                            const next = current.includes(permKey) ? current.filter(v => v !== permKey) : [...current, permKey]
+                                                            setForm(f => ({ ...f, permissions: next }))
+
+                                                            // If enabling an action, ensure the page itself is enabled (auto-enable Read)
+                                                            if (!current.includes(permKey) && !form.allowedPages?.includes(pageVal)) {
+                                                                setForm(f => ({ ...f, allowedPages: [...(f.allowedPages || []), pageVal], permissions: next }))
+                                                            }
+                                                        }
+                                                        const togglePage = () => {
+                                                            const currentPages = form.allowedPages || []
+                                                            if (hasRead) {
+                                                                setForm(f => ({ ...f, allowedPages: currentPages.filter(v => v !== pageVal) }))
+                                                            } else {
+                                                                setForm(f => ({ ...f, allowedPages: [...currentPages, pageVal] }))
+                                                            }
+                                                        }
+
+                                                        const Toggle = ({ active, color, onClick, disabled }: { active: boolean; color: string; onClick: () => void; disabled?: boolean }) => (
+                                                            <div className="flex justify-center">
+                                                                <div onClick={disabled ? undefined : onClick} className={`w-9 h-5 rounded-full relative transition-all duration-200 cursor-pointer ${disabled ? 'opacity-20 cursor-not-allowed' : ''} ${active && !disabled ? color : 'bg-gray-200'}`}>
+                                                                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${active && !disabled ? 'left-[18px]' : 'left-0.5'}`} />
+                                                                </div>
+                                                            </div>
+                                                        )
+
+                                                        return (
+                                                            <tr key={pageVal} className={`hover:bg-beige-soft/20 transition-colors`}>
+                                                                <td className="px-5 py-3">
+                                                                    <span className="text-[11px] font-black text-text-main uppercase tracking-tight">{group.page.label}</span>
+                                                                </td>
+                                                                <td className="px-2 py-3"><Toggle active={hasRead} color="bg-emerald-500" onClick={togglePage} /></td>
+                                                                <td className="px-2 py-3"><Toggle active={hasCreate} color="bg-blue-500" onClick={() => togglePerm(group.crud?.create)} disabled={!group.crud?.create} /></td>
+                                                                <td className="px-2 py-3"><Toggle active={hasUpdate} color="bg-amber-500" onClick={() => togglePerm(group.crud?.update)} disabled={!group.crud?.update} /></td>
+                                                                <td className="px-2 py-3"><Toggle active={hasDelete} color="bg-rose-500" onClick={() => togglePerm(group.crud?.delete)} disabled={!group.crud?.delete} /></td>
+                                                                <td className="px-2 py-3"><Toggle active={hasLock} color="bg-slate-600" onClick={() => togglePerm(group.crud?.lock)} disabled={!group.crud?.lock} /></td>
+                                                            </tr>
+                                                        )
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* Extra permissions */}
+                                        {PERMISSION_GROUPS.filter(g => g.crud?.extra && g.crud.extra.length > 0).length > 0 && (
+                                            <div className="space-y-3">
+                                                <div className="text-[9px] font-black uppercase text-text-soft/40 tracking-[0.2em] italic">Quyền bổ sung</div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                    {PERMISSION_GROUPS.filter(g => g.crud?.extra).flatMap(g => {
+                                                        const pageRead = form.allowedPages?.includes(g.page.value) ?? false
+                                                        return (g.crud?.extra || []).map(ex => {
+                                                            const active = (form.permissions?.includes(ex.value) ?? false) && pageRead
+                                                            return (
+                                                                <div key={ex.value} className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${active ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50/50 border-gold-light/10'}`} onClick={() => { const cur = form.permissions || []; setForm(f => ({ ...f, permissions: active ? cur.filter(v => v !== ex.value) : [...cur, ex.value] })) }}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[10px] font-black uppercase tracking-tight text-text-main">{g.page.label}</span>
+                                                                        <span className="text-[9px] text-text-soft/60">·</span>
+                                                                        <span className="text-[10px] font-bold text-text-soft">{ex.label}</span>
+                                                                    </div>
+                                                                    <div className={`w-9 h-5 rounded-full relative transition-all ${active ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+                                                                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${active ? 'left-[18px]' : 'left-0.5'}`} />
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        })
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── Branch Scope ── */}
+                                        <div className="space-y-4 pt-2">
+                                            <div className="flex items-center gap-3 border-b border-gold-light/10 pb-3">
+                                                <Building size={16} className="text-gold-muted" />
+                                                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Phạm vi xem dữ liệu</span>
+                                            </div>
+
+                                            {/* View All Branches toggle */}
+                                            <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer ${form.viewAllBranches ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-gray-50/50 border-gold-light/10'}`} onClick={() => setForm(f => ({ ...f, viewAllBranches: !f.viewAllBranches }))}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${form.viewAllBranches ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-gray-100 text-text-soft/30'}`}>
+                                                        <Globe size={18} strokeWidth={2} />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-[11px] font-black text-text-main uppercase tracking-widest leading-none">Xem toàn bộ chi nhánh</div>
+                                                        <div className="text-[9px] font-bold text-text-soft/40 mt-1">Toàn quyền xem dữ liệu mọi cơ sở</div>
+                                                    </div>
+                                                </div>
+                                                <div className={`w-11 h-6 rounded-full relative transition-all duration-300 ${form.viewAllBranches ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+                                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${form.viewAllBranches ? 'left-6' : 'left-1'}`} />
+                                                </div>
+                                            </div>
+
+                                            {!form.viewAllBranches && (
+                                                <div className="bg-amber-50/60 border border-amber-200/60 rounded-2xl p-4 space-y-2">
+                                                    <div className="text-[9px] font-black uppercase text-amber-700 tracking-[0.15em]">📍 Chỉ xem dữ liệu chi nhánh được gán</div>
+                                                    <div className="text-[10px] text-amber-600/80 font-medium">
+                                                        Nhân sự này chỉ có thể xem dữ liệu thuộc chi nhánh <strong>{state.branches.find(b => b.id === form.branchId)?.name || '(chưa gán)'}</strong>. Để mở rộng truy cập, bật "Xem toàn bộ chi nhánh".
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ═══ TAB 3: QUẢN LÝ TÀI KHOẢN ═══ */}
+                                {modalTab === 'account' && (
+                                    <div className="space-y-8 animate-fade-in">
+                                        <section className="space-y-5">
+                                            <div className="flex items-center gap-3 border-b border-gold-light/10 pb-3">
+                                                <KeyRound size={16} className="text-gold-muted" />
+                                                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Thông tin đăng nhập</span>
+                                            </div>
+                                            <div className="space-y-5">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest block pl-2 italic">Tên đăng nhập (Username) *</label>
+                                                    <div className="relative group">
+                                                        <div className="absolute left-5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-beige-soft/50 flex items-center justify-center text-gold-muted font-black text-sm border border-gold-light/20 group-focus-within:bg-gold-muted group-focus-within:text-white transition-all">@</div>
+                                                        <input className="w-full bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[20px] pl-16 pr-6 py-4 text-[14px] font-black text-text-main outline-none transition-all shadow-sm italic" value={form.username ?? ''} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} placeholder="VD: nhat.truong" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </section>
+
+                                        {/* Đổi mật khẩu - Expandable */}
+                                        <section className="space-y-4">
+                                            <button onClick={() => setShowPasswordChange(!showPasswordChange)} className={`w-full flex items-center justify-between p-5 rounded-[24px] border transition-all ${showPasswordChange ? 'bg-amber-50 border-amber-200' : 'bg-beige-soft/30 border-gold-light/20 hover:border-gold-muted/30'}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${showPasswordChange ? 'bg-amber-500 text-white' : 'bg-gray-100 text-text-soft/40'}`}>
+                                                        <Zap size={18} strokeWidth={2.5} />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <div className="text-[11px] font-black uppercase tracking-widest text-text-main">Đổi mật khẩu</div>
+                                                        <div className="text-[9px] font-bold text-text-soft/40 mt-0.5">{showPasswordChange ? 'Đang hiển thị' : 'Nhấn để mở'}</div>
+                                                    </div>
+                                                </div>
+                                                <ChevronDown size={18} className={`text-text-soft/40 transition-transform ${showPasswordChange ? 'rotate-180' : ''}`} />
+                                            </button>
+
+                                            {showPasswordChange && (
+                                                <div className="space-y-4 pl-2 animate-fade-in">
+                                                    {editing && (
+                                                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                                                            <span className="text-[10px] font-bold text-text-soft/60 italic">Mật khẩu hiện tại:</span>
+                                                            <span className="text-[12px] font-mono font-bold text-text-main blur-[4px] hover:blur-none transition-all cursor-pointer select-none">{editing.password || '••••••'}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest block pl-2 italic">Mật khẩu mới {editing && '(Bỏ trống = giữ cũ)'}</label>
+                                                        <input className="w-full bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[20px] px-6 py-4 text-[14px] font-black text-text-main outline-none transition-all shadow-sm font-mono tracking-widest" type="password" value={(form as any).password ?? ''} onChange={e => setForm(f => ({ ...f, password: e.target.value } as any))} placeholder="••••••••" />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </section>
+
+                                        {/* Trạng thái tài khoản */}
+                                        <section className="space-y-4">
+                                            <div className="flex items-center gap-3 border-b border-gold-light/10 pb-3">
+                                                <Power size={16} className="text-gold-muted" />
+                                                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Trạng thái tài khoản</span>
+                                            </div>
+                                            <div className="flex gap-3 p-1.5 bg-beige-soft/30 border border-gold-light/10 rounded-[22px]">
+                                                <button className={`flex-1 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-[18px] transition-all flex items-center justify-center gap-2 ${form.isActive !== false ? 'bg-text-main text-white shadow-luxury' : 'text-text-soft/40 hover:bg-white'}`} onClick={() => setForm(f => ({ ...f, isActive: true }))}>
+                                                    {form.isActive !== false && <Check size={12} strokeWidth={3} />} Kích hoạt
+                                                </button>
+                                                <button className={`flex-1 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-[18px] transition-all flex items-center justify-center gap-2 ${form.isActive === false ? 'bg-rose-600 text-white shadow-lg' : 'text-text-soft/40 hover:bg-white'}`} onClick={() => setForm(f => ({ ...f, isActive: false }))}>
+                                                    {form.isActive === false && <Lock size={12} strokeWidth={3} />} Khóa tài khoản
+                                                </button>
+                                            </div>
+                                        </section>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Footer */}
-                            <div className="p-8 md:p-10 bg-beige-soft/30 border-t border-gold-light/10 flex gap-4 shrink-0">
-                                <button className="flex-1 py-4.5 rounded-2xl bg-white text-text-soft/60 text-[11px] font-black uppercase tracking-widest border border-gold-light/20 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-95 italic" onClick={() => setShowForm(false)}>Hủy bỏ</button>
-                                <button className="flex-[2] py-4.5 rounded-2xl bg-text-main text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-muted transition-all active:scale-95 shadow-lg flex items-center justify-center gap-3 italic" onClick={handleSave}>
+                            <div className="p-6 md:p-8 bg-beige-soft/30 border-t border-gold-light/10 flex gap-4 shrink-0">
+                                <button className="flex-1 py-4 rounded-2xl bg-white text-text-soft/60 text-[11px] font-black uppercase tracking-widest border border-gold-light/20 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-95 italic" onClick={() => setShowForm(false)}>Hủy bỏ</button>
+                                <button className="flex-[2] py-4 rounded-2xl bg-text-main text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-muted transition-all active:scale-95 shadow-lg flex items-center justify-center gap-3 italic" onClick={handleSave}>
                                     <CheckCircle2 size={16} strokeWidth={2.5} /> Lưu hồ sơ nhân sự
                                 </button>
                             </div>
@@ -815,10 +944,10 @@ function SalaryConfigModal({ user, initialConfig, onSave, onClose }: { user: Use
 
     return (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-            <div className="bg-white w-full max-w-2xl h-fit rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white w-full max-w-2xl h-[85vh] max-h-[850px] min-h-[500px] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
 
                 {/* Left Side: Compact Branding Sidebar */}
-                <div className="w-full md:w-[120px] bg-text-main relative overflow-hidden flex flex-col p-6 text-white shrink-0 items-center justify-center">
+                <div className="w-full md:w-[120px] bg-text-main relative overflow-hidden flex flex-col p-6 text-white shrink-0 items-center justify-center h-full">
                     <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 20% 150%, #C5A059, transparent), radial-gradient(circle at 80% -50%, #F2EBE1, transparent)' }}></div>
                     <div className="relative z-10 flex flex-col items-center">
                         <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center mb-2">
@@ -844,7 +973,7 @@ function SalaryConfigModal({ user, initialConfig, onSave, onClose }: { user: Use
                         </h2>
                     </div>
 
-                    <div className="space-y-8 overflow-y-auto max-h-[60vh] pr-2 luxury-scrollbar">
+                    <div className="space-y-8 flex-1 overflow-y-auto pr-2 luxury-scrollbar">
                         {/* Basic Config */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
