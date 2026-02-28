@@ -13,6 +13,7 @@ import {
 import UserAvatar from '@/components/UserAvatar'
 import PresenceSidebar from '@/components/PresenceSidebar'
 import FloatingChatManager from '@/components/FloatingChatManager'
+import NotificationBanner from '@/components/NotificationBanner'
 import { User } from '@/lib/types'
 
 const FINANCE_NAV = [
@@ -50,7 +51,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter()
     const pathname = usePathname()
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const [showMarquee, setShowMarquee] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [isPreparing, setIsPreparing] = useState(true)
 
@@ -66,18 +66,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return () => window.removeEventListener('resize', checkMobile)
     }, [])
 
-    useEffect(() => {
-        // Only show marquee if not shown in current session
-        const shown = sessionStorage.getItem('marqueeShown')
-        // We check totalCount below after it's calculated
-        if (!shown) {
-            setShowMarquee(true)
-            sessionStorage.setItem('marqueeShown', 'true')
-            // Auto close after 20s (approx duration of one loop)
-            const timer = setTimeout(() => setShowMarquee(false), 20000)
-            return () => clearTimeout(timer)
-        }
-    }, [])
+
     const [bellOpen, setBellOpen] = useState(false)
     const [chatSidebarOpen, setChatSidebarOpen] = useState(false)
     const [activeTab, setActiveTab] = useState<'alerts' | 'watchlist' | 'activity'>('activity')
@@ -337,6 +326,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     paddingTop: 0,
                     '--header-offset': isMobile ? '56px' : '0px'
                 } as any}>
+
+                {/* Dynamic Notification Banner (Overlay) */}
+                <NotificationBanner userId={currentUser?.id} />
 
                 {/* Mobile Top Bar — INSIDE scroll container for sticky to work */}
                 {isMobile && (
