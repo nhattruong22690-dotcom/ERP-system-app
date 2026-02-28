@@ -161,7 +161,7 @@ export default function CashflowPage() {
                 }
             />
 
-            <div className="px-4 py-8 md:px-10 md:py-12 pb-32 max-w-[1600px] mx-auto animate-fade-in">
+            <div className="px-4 py-2 md:px-10 md:py-12 pb-32 max-w-[1600px] mx-auto animate-fade-in">
                 {/* ALERT ITEMS — clickable */}
                 {alerts.length > 0 && (
                     <div className="mb-12">
