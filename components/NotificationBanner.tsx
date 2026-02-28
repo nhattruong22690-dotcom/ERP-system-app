@@ -115,7 +115,7 @@ export default function NotificationBanner({ userId }: Props) {
             .channel('global_notifications_changes')
             .on(
                 'postgres_changes',
-                { event: '*', theme: 'public', table: 'global_notifications' },
+                { event: '*', schema: 'public', table: 'global_notifications' },
                 () => {
                     fetchNotification()
                 }
