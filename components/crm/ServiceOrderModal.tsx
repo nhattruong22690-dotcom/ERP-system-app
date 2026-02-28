@@ -159,10 +159,19 @@ export default function ServiceOrderModal({
         const term = customerSearch.trim();
         // If term is short and not initial values, don't search
         if (term.length < 2) {
-            // But if it's empty, show initial empty state or recent? 
-            // The user requested only load when search.
             if (term.length === 0) setCustomerSuggestions([]);
             return;
+        }
+
+        // Fix: If the current search term exactly matches the selected customer's name/phone,
+        // don't show the suggestion list again.
+        if (formCustomerId && (customerSearch.includes(' - ') || customerSearch.length > 5)) {
+            // We can check if selectedCustomer matches
+            const sel = selectedCustomer;
+            if (sel && (sel.fullName === customerSearch || `${sel.fullName} - ${sel.phone}` === customerSearch)) {
+                setCustomerSuggestions([]);
+                return;
+            }
         }
 
         const delayDebounceFn = setTimeout(async () => {
@@ -359,7 +368,7 @@ export default function ServiceOrderModal({
                                                 <button key={c.id} className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors"
                                                     onClick={() => {
                                                         setFormCustomerId(c.id);
-                                                        setCustomerSearch(c.fullName);
+                                                        setCustomerSearch(`${c.fullName} - ${c.phone}`);
                                                         setShowCustomerDropdown(false);
                                                         if (!formAppointmentId && c.branchId) setFormBranchId(c.branchId)
                                                     }}>

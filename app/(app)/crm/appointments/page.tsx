@@ -134,9 +134,9 @@ export default function AppointmentsPage() {
                 return
             }
 
-            // Check if term matches already selected customer (don't show list)
-            const selectedMatch = customerSuggestions.find(c => c.id === form.customerId)
-            if (selectedMatch && selectedMatch.fullName.toLowerCase() === term) {
+            // Fix: If the current search term exactly matches the selected customer's name,
+            // don't show the suggestion list again.
+            if (form.customerId && (form.customerName === customerSearch || `${form.customerName} - ${form.customerPhone}` === customerSearch)) {
                 setCustomerSuggestions([])
                 return
             }
@@ -836,7 +836,7 @@ export default function AppointmentsPage() {
                                                             customerRank: c.rank,
                                                             customerAvatar: c.avatar
                                                         }))
-                                                        setCustomerSearch(c.fullName)
+                                                        setCustomerSearch(`${c.fullName} - ${c.phone}`)
                                                         setCustomerSuggestions([])
                                                     }}
                                                 >
@@ -849,8 +849,8 @@ export default function AppointmentsPage() {
                                                         {c.rank === CustomerRank.PLATINUM && <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-lg flex items-center justify-center text-[8px] text-white">⭐</span>}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-black text-gray-900">{c.fullName}</p>
-                                                        <p className="text-xs text-gray-400 font-bold">{c.phone}</p>
+                                                        <p className="text-sm font-black text-gray-900">{c.fullName} - {c.phone}</p>
+                                                        <p className="text-xs text-gray-400 font-bold">Hạng: {c.rank || 'Tiêu chuẩn'}</p>
                                                     </div>
                                                 </div>
                                             ))}
@@ -858,8 +858,8 @@ export default function AppointmentsPage() {
                                     )}
                                     {form.customerId && (
                                         <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-black">
-                                            <span className="material-icons-round text-sm">check_circle</span>
-                                            Khách hàng: {customerSearch}
+                                            <span className="material-icons-round text-[14px]">check_circle</span>
+                                            Đã chọn: {form.customerName} - {form.customerPhone}
                                         </div>
                                     )}
                                 </div>
