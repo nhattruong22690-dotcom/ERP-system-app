@@ -108,7 +108,7 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                                 type="text"
                                                 required
                                                 className="w-full pl-12 pr-4 py-4 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-base shadow-sm"
-                                                placeholder="..."
+                                                placeholder="họ và tên khách hàng..."
                                                 value={formData.fullName || ''}
                                                 onChange={e => setFormData({ ...formData, fullName: e.target.value })}
                                             />
@@ -123,7 +123,7 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                                 type="tel"
                                                 required
                                                 className="w-full pl-12 pr-4 py-3 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-base shadow-sm"
-                                                placeholder="..."
+                                                placeholder="số điện thoại..."
                                                 value={formData.phone || ''}
                                                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
                                             />
@@ -137,7 +137,7 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                             <input
                                                 type="email"
                                                 className="w-full pl-12 pr-4 py-3 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-base shadow-sm"
-                                                placeholder="..."
+                                                placeholder="email"
                                                 value={formData.email || ''}
                                                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                                             />
@@ -174,27 +174,23 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                     <div className="md:col-span-6 lg:col-span-4">
                                         <label className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Ngày sinh</label>
                                         <div className="relative group">
-                                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted group-focus-within:scale-110 transition-transform pointer-events-none z-10" size={16} />
+                                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted/40 group-focus-within:text-gold-muted transition-colors pointer-events-none z-10" size={16} />
                                             <input
-                                                type="date"
-                                                className="w-full pl-12 pr-4 py-3 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-sm shadow-sm cursor-pointer appearance-none relative z-0 luxury-date-input"
+                                                type="text"
+                                                placeholder="dd/mm/yyyy"
+                                                maxLength={10}
+                                                className="w-full pl-12 pr-4 py-3 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-sm shadow-sm"
                                                 value={formData.birthday || ''}
-                                                onChange={e => setFormData({ ...formData, birthday: e.target.value })}
+                                                onChange={e => {
+                                                    let val = e.target.value.replace(/\D/g, '');
+                                                    if (val.length >= 3 && val.length <= 4) {
+                                                        val = val.slice(0, 2) + '/' + val.slice(2);
+                                                    } else if (val.length >= 5) {
+                                                        val = val.slice(0, 2) + '/' + val.slice(2, 4) + '/' + val.slice(4, 8);
+                                                    }
+                                                    setFormData({ ...formData, birthday: val });
+                                                }}
                                             />
-                                            <style jsx>{`
-                                                .luxury-date-input::-webkit-calendar-picker-indicator {
-                                                    background: transparent;
-                                                    bottom: 0;
-                                                    color: transparent;
-                                                    cursor: pointer;
-                                                    height: auto;
-                                                    left: 0;
-                                                    position: absolute;
-                                                    right: 0;
-                                                    top: 0;
-                                                    width: auto;
-                                                }
-                                            `}</style>
                                         </div>
                                     </div>
 
@@ -205,7 +201,7 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                             <input
                                                 type="text"
                                                 className="w-full pl-11 pr-4 py-3 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-sm shadow-sm"
-                                                placeholder="L..."
+                                                placeholder="link Fb"
                                                 value={formData.facebook || ''}
                                                 onChange={e => setFormData({ ...formData, facebook: e.target.value })}
                                             />
@@ -219,7 +215,7 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                             <input
                                                 type="text"
                                                 className="w-full pl-11 pr-4 py-3 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-sm shadow-sm"
-                                                placeholder="Z..."
+                                                placeholder="số Zalo"
                                                 value={formData.zalo || ''}
                                                 onChange={e => setFormData({ ...formData, zalo: e.target.value })}
                                             />
@@ -243,7 +239,7 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                                     onChange={e => setFormData({ ...formData, branchId: e.target.value })}
                                                 >
                                                     <option value="" disabled className="not-serif">Chọn chi nhánh</option>
-                                                    {branches.filter(b => !b.isHeadquarter).map(b => (
+                                                    {branches.filter(b => b.type === 'spa' && !b.isHeadquarter).map(b => (
                                                         <option key={b.id} value={b.id} className="not-serif">{b.name}</option>
                                                     ))}
                                                 </select>

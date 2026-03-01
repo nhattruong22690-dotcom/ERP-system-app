@@ -16,6 +16,7 @@ import {
     Trash2,
     ChevronLeft,
     ChevronRight,
+    ChevronDown,
     MapPin,
     Phone,
     Mail,
@@ -70,19 +71,20 @@ const CustomerList: React.FC<CustomerListProps> = ({
     const [searchCount, setSearchCount] = useState<number | null>(null);
     const [localStats, setLocalStats] = useState<BranchStats | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [selectedBirthdayMonth, setSelectedBirthdayMonth] = useState<number>(new Date().getMonth());
 
     const canViewAll = canViewAllBranches(currentUser);
 
     const fetchRemoteData = useCallback(async () => {
         // Always fetch stats first
         const targetBranch = (selectedBranchFilter === 'all' && canViewAll) ? 'all' : (selectedBranchFilter === 'all' ? currentUser.branchId : selectedBranchFilter);
-        let cached = await getCachedStats(targetBranch || 'all');
+        let cached = await getCachedStats(targetBranch || 'all', selectedBirthdayMonth);
 
         if (!cached) {
-            console.log("CustomerList: Cache missing or expired. Automatically syncing...");
+            console.log(`CustomerList: Cache missing or expired for month ${selectedBirthdayMonth}. Automatically syncing...`);
             setIsSyncing(true);
-            await syncCustomerStats();
-            cached = await getCachedStats(targetBranch || 'all');
+            await syncCustomerStats(selectedBirthdayMonth);
+            cached = await getCachedStats(targetBranch || 'all', selectedBirthdayMonth);
             setIsSyncing(false);
         }
 
@@ -158,13 +160,13 @@ const CustomerList: React.FC<CustomerListProps> = ({
         } finally {
             setIsSearching(false);
         }
-    }, [selectedBranchFilter, selectedTab, searchTerm, filterRank, canViewAll, currentUser.branchId, currentPage]);
+    }, [selectedBranchFilter, selectedTab, searchTerm, filterRank, canViewAll, currentUser.branchId, currentPage, selectedBirthdayMonth]);
 
     const handleSync = async () => {
         setIsSyncing(true);
-        await syncCustomerStats();
+        await syncCustomerStats(selectedBirthdayMonth);
         const bIdForStats = selectedBranchFilter === 'all' ? 'all' : selectedBranchFilter;
-        const cached = await getCachedStats(bIdForStats);
+        const cached = await getCachedStats(bIdForStats, selectedBirthdayMonth);
         if (cached) setLocalStats(cached);
         await fetchRemoteData();
         setIsSyncing(false);
@@ -243,10 +245,24 @@ const CustomerList: React.FC<CustomerListProps> = ({
                 >
                     <div className="absolute -right-10 -top-10 w-32 h-32 bg-pink-50 rounded-full blur-3xl group-hover:bg-pink-100 transition-colors"></div>
                     <div className="flex items-center gap-5 mb-6">
-                        <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-sm border border-rose-100">
+                        <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-sm border border-rose-100 relative z-10 shrink-0">
                             <Cake size={28} strokeWidth={1.5} />
                         </div>
-                        <span className="text-[10px] font-black text-text-soft/40 uppercase tracking-[0.3em]">Sinh nhật T{currentMonth + 1}</span>
+                        <div className="flex flex-col relative z-20">
+                            <span className="text-[10px] font-black text-text-soft/40 uppercase tracking-[0.3em] mb-1.5">Sinh nhật</span>
+                            <div className="relative w-fit" onClick={(e) => e.stopPropagation()}>
+                                <select
+                                    className="appearance-none bg-rose-50 hover:bg-rose-100 border border-rose-100/60 text-rose-600 text-[9px] font-black uppercase tracking-widest py-1.5 pl-3 pr-7 rounded-lg cursor-pointer outline-none transition-all shadow-sm focus:ring-2 focus:ring-rose-200"
+                                    value={selectedBirthdayMonth}
+                                    onChange={(e) => setSelectedBirthdayMonth(parseInt(e.target.value))}
+                                >
+                                    {[...Array(12)].map((_, i) => (
+                                        <option key={i} value={i} className="not-serif">Tháng {i + 1}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-400 pointer-events-none" />
+                            </div>
+                        </div>
                     </div>
                     <div className="flex items-baseline gap-2">
                         <h2 className="text-4xl font-serif font-black text-rose-600 tabular-nums italic whitespace-nowrap">
@@ -290,7 +306,7 @@ const CustomerList: React.FC<CustomerListProps> = ({
                             onClick={() => setSelectedTab(tab)}
                             className={`px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center ${selectedTab === tab ? 'bg-gold-muted text-white shadow-lg shadow-gold-muted/20' : 'text-text-soft hover:text-gold-muted hover:bg-white'}`}
                         >
-                            {tab === 'all' ? 'Tất cả' : tab === 'vip' ? 'Khách VIP' : `Sinh nhật T${currentMonth + 1}`}
+                            {tab === 'all' ? 'Tất cả' : tab === 'vip' ? 'Khách VIP' : `Sinh nhật T${selectedBirthdayMonth + 1}`}
                             <span className={`ml-2 px-2 py-0.5 rounded-full text-[9px] ${selectedTab === tab ? 'bg-white/20 text-white' : 'bg-gold-light/20 text-gold-muted'}`}>
                                 {tab === 'all' ? (localStats?.total ?? 0).toLocaleString() : tab === 'vip' ? (localStats?.vip ?? 0).toLocaleString() : (localStats?.birthdays ?? 0).toLocaleString()}
                             </span>

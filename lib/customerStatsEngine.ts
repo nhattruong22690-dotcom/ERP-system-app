@@ -5,6 +5,7 @@ export interface BranchStats {
     vip: number;
     birthdays: number;
     birthdayIds: string[]; // Lưu list ID để tránh filter SQL lỗi
+    birthdayMonth?: number; // Tháng đang lưu cache
 }
 
 export interface StatsCache {
@@ -17,14 +18,15 @@ const CACHE_TABLE = 'crm_stats_cache';
  * Engine tính toán lại toàn bộ số liệu khách hàng
  * Quét toàn bộ 31,700+ hồ sơ theo từng đợt
  */
-export async function syncCustomerStats() {
+export async function syncCustomerStats(targetMonthIndex?: number) {
     console.log('StatsEngine: Bắt đầu tính toán lại số liệu...');
 
+    const searchMonth = targetMonthIndex !== undefined ? targetMonthIndex : new Date().getMonth();
+
     const stats: StatsCache = {
-        'all': { total: 0, vip: 0, birthdays: 0, birthdayIds: [] }
+        'all': { total: 0, vip: 0, birthdays: 0, birthdayIds: [], birthdayMonth: searchMonth }
     };
 
-    const currentMonth = new Date().getMonth();
     let processedWithBirthday = 0;
     let birthdayMatches = 0;
     const sampleDates: string[] = [];
@@ -46,7 +48,7 @@ export async function syncCustomerStats() {
         data.forEach(customer => {
             const bId = customer.branch_id || 'hq';
             if (!stats[bId]) {
-                stats[bId] = { total: 0, vip: 0, birthdays: 0, birthdayIds: [] };
+                stats[bId] = { total: 0, vip: 0, birthdays: 0, birthdayIds: [], birthdayMonth: searchMonth };
             }
 
             // High-Precision Birthday Logic
@@ -61,8 +63,8 @@ export async function syncCustomerStats() {
 
                     // Logic: Month is usually index 1 in VN (DD/MM) or ISO (YYYY-MM)
                     // But some might use US (MM/DD)
-                    // currentMonth is 0-indexed (Jan=0, Feb=1)
-                    const targetMonth = currentMonth + 1; // Feb = 2
+                    // searchMonth is 0-indexed (Jan=0, Feb=1)
+                    const targetMonth = searchMonth + 1; // Feb = 2
 
                     if (parts.length >= 2) {
                         // Case 1: YYYY-MM-DD
@@ -115,7 +117,7 @@ export async function syncCustomerStats() {
         totalRecords: stats['all'].total,
         recordsWithBirthdayField: processedWithBirthday,
         birthdayMatchesInMonth: birthdayMatches,
-        monthSearching: currentMonth + 1,
+        monthSearching: searchMonth + 1,
         samples: sampleDates
     });
 
@@ -152,7 +154,9 @@ export async function syncCustomerStats() {
 /**
  * Lấy số liệu nhanh từ Cache
  */
-export async function getCachedStats(branchId: string = 'all'): Promise<BranchStats | null> {
+export async function getCachedStats(branchId: string = 'all', targetMonthIndex?: number): Promise<BranchStats | null> {
+    const searchMonth = targetMonthIndex !== undefined ? targetMonthIndex : new Date().getMonth();
+
     // 1. Thử lấy từ Database trước
     const { data, error } = await supabase
         .from(CACHE_TABLE)
@@ -161,13 +165,12 @@ export async function getCachedStats(branchId: string = 'all'): Promise<BranchSt
         .single();
 
     if (data && !error && data.updated_at) {
-        const updatedMonth = new Date(data.updated_at).getMonth();
-        const currentMonth = new Date().getMonth();
-        if (updatedMonth !== currentMonth) {
-            console.log('StatsEngine: Cache stat is from a different month. Returning null to force resync.');
+        const cachedData = data.stats_data as BranchStats;
+        if (cachedData.birthdayMonth !== searchMonth) {
+            console.log(`StatsEngine: Cache is for month ${cachedData.birthdayMonth}, but requested ${searchMonth}. Returning null.`);
             return null;
         }
-        return data.stats_data as BranchStats;
+        return cachedData;
     }
 
     // 2. Dự phòng từ LocalStorage
