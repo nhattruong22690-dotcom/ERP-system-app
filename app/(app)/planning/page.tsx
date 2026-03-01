@@ -46,18 +46,19 @@ export function MoneyInput({
                 onClick={() => setIsEditing(true)}
                 style={{
                     cursor: 'pointer',
-                    padding: '6px 10px',
-                    borderRadius: '8px',
-                    border: '1px solid transparent',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(197, 160, 89, 0.1)',
                     textAlign: 'right',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    minWidth: '100px',
+                    fontSize: '1rem',
+                    fontWeight: 800,
+                    minWidth: '120px',
                     transition: 'all 0.15s',
+                    background: 'white',
                     ...style
                 }}
-                onMouseOver={e => (e.currentTarget.style.background = '#f3f4f6')}
-                onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+                onMouseOver={e => (e.currentTarget.style.background = '#f9fafb')}
+                onMouseOut={e => (e.currentTarget.style.background = 'white')}
             >
                 {fmtVND(value)}
             </div>
@@ -77,7 +78,18 @@ export function MoneyInput({
             onChange={handleChange}
             onBlur={() => setIsEditing(false)}
             onKeyDown={e => e.key === 'Enter' && setIsEditing(false)}
-            style={{ minWidth: 0, ...style }}
+            style={{
+                minWidth: 0,
+                padding: '12px 16px',
+                textAlign: 'right',
+                outline: 'none',
+                fontSize: '1rem',
+                fontWeight: 800,
+                borderRadius: '12px',
+                border: '1px solid #C5A059',
+                boxShadow: '0 0 0 4px rgba(197, 160, 89, 0.1)',
+                ...style
+            }}
         />
     )
 }
@@ -106,19 +118,22 @@ function PctInput({
                 onClick={() => { setIsEditing(true); setRaw(display); }}
                 style={{
                     cursor: 'pointer',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
                     textAlign: 'center',
                     background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid rgba(226, 232, 240, 0.8)',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '2px'
+                    gap: '2px',
+                    transition: 'all 0.2s'
                 }}
+                onMouseOver={e => e.currentTarget.style.borderColor = '#C5A059'}
+                onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.8)'}
             >
-                {display}<span style={{ fontSize: '0.7rem', color: '#64748b' }}>%</span>
+                {display}<span style={{ fontSize: '0.8rem', color: '#64748b' }}>%</span>
             </div>
         )
     }
@@ -136,10 +151,12 @@ function PctInput({
                 onBlur={handleBlur}
                 onKeyDown={e => e.key === 'Enter' && handleBlur()}
                 style={{
-                    width: 52, padding: '4px 5px', border: '1.5px solid #7c3aed',
-                    borderRadius: 6, background: '#white',
-                    fontSize: '0.8rem', textAlign: 'right', outline: 'none',
+                    width: 65, padding: '8px 10px', border: '1.5px solid #C5A059',
+                    borderRadius: 8, background: 'white',
+                    fontSize: '0.95rem', textAlign: 'right', outline: 'none',
                     fontVariantNumeric: 'tabular-nums',
+                    fontWeight: 700,
+                    boxShadow: '0 0 0 3px rgba(197, 160, 89, 0.1)',
                 }}
             />
             <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600, lineHeight: 1 }}>%</span>
@@ -379,7 +396,7 @@ export default function PlanningPage() {
                                         <td className="px-8 py-6 text-center text-text-soft/20">—</td>
                                         <td className="px-8 py-6 text-right">
                                             <MoneyInput value={activePlan?.kpiRevenue ?? 0} onChange={updateKPI} readOnly={!canEdit}
-                                                style={{ fontSize: '1.1rem', fontWeight: 800, color: '#C5A059', background: 'white', border: '1px solid #C5A059/20', borderRadius: '12px' }} />
+                                                style={{ fontSize: '1.4rem', fontWeight: 900, color: '#C5A059', background: 'white', border: '1.5px solid rgba(197, 160, 89, 0.3)', borderRadius: '16px', padding: '16px 24px' }} />
                                         </td>
                                         <td colSpan={2} className="px-8 py-6 text-center text-text-soft/20">—</td>
                                     </tr>
@@ -450,7 +467,7 @@ export default function PlanningPage() {
                                                                     value={cp.fixedAmount ?? 0}
                                                                     onChange={v => updateCategoryPlan(cat.id, 'fixedAmount', v)}
                                                                     readOnly={!canEdit || cp.disabled}
-                                                                    style={{ background: 'white', border: '1px solid #C5A059/10', borderRadius: '10px' }}
+                                                                    style={{ background: 'white', border: '1px solid rgba(197, 160, 89, 0.15)', borderRadius: '12px', padding: '10px 14px' }}
                                                                 />
                                                             )}
                                                         </td>
