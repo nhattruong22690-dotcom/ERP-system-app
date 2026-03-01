@@ -63,7 +63,7 @@ export function buildCashFlowRows(
                 if (actual < planned * 0.5) status = 'exceeded'
             } else {
                 if (pct >= (cp.alertThreshold * 100) && pct < 100) status = 'warning'
-                if (pct >= 100) status = 'exceeded'
+                if (pct > 100) status = 'exceeded'
             }
 
             return {
