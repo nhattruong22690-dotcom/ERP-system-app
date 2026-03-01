@@ -83,13 +83,9 @@ export async function syncCustomerStats() {
                         }
                     }
 
-                    // Strict backup with Date object
-                    if (!isBirthday) {
-                        const d = new Date(customer.birthday);
-                        if (!isNaN(d.getTime()) && d.getMonth() === currentMonth) {
-                            isBirthday = true;
-                        }
-                    }
+                    // Strict backup with Date object is intentionally removed.
+                    // JS new Date() erroneously parses DD/MM/YYYY as MM/DD/YYYY,
+                    // causing birthdays on the 3rd of any month to be matched as March birthdays.
                 } catch (e) { }
             }
 
@@ -160,11 +156,17 @@ export async function getCachedStats(branchId: string = 'all'): Promise<BranchSt
     // 1. Thử lấy từ Database trước
     const { data, error } = await supabase
         .from(CACHE_TABLE)
-        .select('stats_data')
+        .select('stats_data, updated_at')
         .eq('id', branchId)
         .single();
 
-    if (data && !error) {
+    if (data && !error && data.updated_at) {
+        const updatedMonth = new Date(data.updated_at).getMonth();
+        const currentMonth = new Date().getMonth();
+        if (updatedMonth !== currentMonth) {
+            console.log('StatsEngine: Cache stat is from a different month. Returning null to force resync.');
+            return null;
+        }
         return data.stats_data as BranchStats;
     }
 

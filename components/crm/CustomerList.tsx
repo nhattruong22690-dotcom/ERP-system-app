@@ -74,6 +74,20 @@ const CustomerList: React.FC<CustomerListProps> = ({
     const canViewAll = canViewAllBranches(currentUser);
 
     const fetchRemoteData = useCallback(async () => {
+        // Always fetch stats first
+        const targetBranch = (selectedBranchFilter === 'all' && canViewAll) ? 'all' : (selectedBranchFilter === 'all' ? currentUser.branchId : selectedBranchFilter);
+        let cached = await getCachedStats(targetBranch || 'all');
+
+        if (!cached) {
+            console.log("CustomerList: Cache missing or expired. Automatically syncing...");
+            setIsSyncing(true);
+            await syncCustomerStats();
+            cached = await getCachedStats(targetBranch || 'all');
+            setIsSyncing(false);
+        }
+
+        if (cached) setLocalStats(cached);
+
         // Skip fetching all customers if no filter/search is active
         const isSearchActive = searchTerm.trim().length >= 2;
         const isTabActive = selectedTab !== 'all';
@@ -88,10 +102,6 @@ const CustomerList: React.FC<CustomerListProps> = ({
 
         setIsSearching(true);
         try {
-            const targetBranch = (selectedBranchFilter === 'all' && canViewAll) ? 'all' : (selectedBranchFilter === 'all' ? currentUser.branchId : selectedBranchFilter);
-            const cached = await getCachedStats(targetBranch || 'all');
-            if (cached) setLocalStats(cached);
-
             let query = supabase
                 .from('crm_customers')
                 .select('*', { count: 'exact' });
