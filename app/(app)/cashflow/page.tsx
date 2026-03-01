@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
 import { buildCashFlowRows, fmtVND, buildAlerts } from '@/lib/calculations'
-import { AlertTriangle, CheckCircle, Star, ArrowRightCircle, Landmark, LayoutDashboard, Database, TrendingUp, TrendingDown, Wallet, Activity } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Star, ArrowRightCircle, Landmark, LayoutDashboard, Database, TrendingUp, TrendingDown, Wallet, Activity, BellOff, ChevronDown, ChevronUp } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import PageHeader from '@/components/PageHeader'
 
@@ -40,6 +40,9 @@ export default function CashflowPage() {
         searchParams.get('highlight')
     )
     const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({})
+
+    const [hideAlerts, setHideAlerts] = useState(false)
+    const [isAlertsExpanded, setIsAlertsExpanded] = useState(false)
 
     useEffect(() => {
         const catId = searchParams.get('highlight')
@@ -161,16 +164,24 @@ export default function CashflowPage() {
                 }
             />
 
-            <div className="px-4 py-2 md:px-10 md:py-12 pb-32 max-w-[1600px] mx-auto animate-fade-in">
-                {/* ALERT ITEMS — clickable */}
-                {alerts.length > 0 && (
+            {/* ALERT ITEMS — clickable */}
+            {!hideAlerts ? (
+                alerts.length > 0 && (
                     <div className="mb-12">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></div>
-                            <span className="text-[10px] font-black text-text-soft uppercase tracking-[0.2em] opacity-40">Cảnh báo tài chính thời gian thực ({alerts.length})</span>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></div>
+                                <span className="text-[10px] font-black text-text-soft uppercase tracking-[0.2em] opacity-40">Cảnh báo tài chính thời gian thực ({alerts.length})</span>
+                            </div>
+                            <button
+                                onClick={() => setHideAlerts(true)}
+                                className="px-4 py-2 bg-white border border-gold-light/20 rounded-[14px] text-[9px] font-black uppercase tracking-widest text-text-soft hover:text-rose-600 hover:border-rose-200 transition-all flex items-center gap-2 shadow-sm italic"
+                            >
+                                <BellOff size={14} /> Ẩn toàn bộ
+                            </button>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {alerts.map((a, i) => (
+                            {(isAlertsExpanded ? alerts : alerts.slice(0, 4)).map((a, i) => (
                                 <button key={i} onClick={() => scrollToCategory(a.categoryId)}
                                     className={`flex items-center gap-5 p-6 rounded-[24px] border transition-all text-left group hover:scale-[1.02] active:scale-95 ${a.status === 'exceeded' ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-amber-50 border-amber-100 text-amber-900'
                                         }`}
@@ -179,244 +190,275 @@ export default function CashflowPage() {
                                         }`}>
                                         <AlertTriangle size={24} />
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="text-[14px] font-bold tracking-tight">{a.categoryName}</div>
-                                        <div className="text-[11px] font-medium opacity-60 mt-1 uppercase tracking-wide">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-[14px] font-bold tracking-tight truncate">{a.categoryName}</div>
+                                        <div className="text-[11px] font-medium opacity-60 mt-1 uppercase tracking-wide truncate">
                                             {a.status === 'exceeded' ? 'Vượt ngưỡng giới hạn' : 'Sắp đạt ngưỡng cảnh báo'} — Đã dùng {a.pct.toFixed(0)}%
                                         </div>
                                     </div>
-                                    <ArrowRightCircle size={18} className="opacity-20 group-hover:opacity-100 transition-opacity" />
+                                    <ArrowRightCircle size={18} className="opacity-20 flex-shrink-0 group-hover:opacity-100 transition-opacity" />
                                 </button>
                             ))}
                         </div>
+                        {alerts.length > 4 && (
+                            <div className="mt-4 flex justify-center">
+                                <button
+                                    onClick={() => setIsAlertsExpanded(!isAlertsExpanded)}
+                                    className="px-5 py-2.5 bg-beige-soft/50 border border-gold-light/20 rounded-full text-[10px] font-black uppercase tracking-[0.1em] text-text-soft hover:text-gold-muted hover:border-gold-light/40 transition-all flex items-center gap-2 italic"
+                                >
+                                    {isAlertsExpanded ? (
+                                        <><ChevronUp size={14} /> Thu gọn</>
+                                    ) : (
+                                        <><ChevronDown size={14} /> Xem thêm {alerts.length - 4} cảnh báo</>
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </div>
-                )}
+                )
+            ) : alerts.length > 0 && (
+                <div className="mb-12 flex justify-start">
+                    <button
+                        onClick={() => setHideAlerts(false)}
+                        className="px-5 py-3 bg-white border border-gold-light/20 rounded-[16px] text-[10px] font-black uppercase tracking-widest text-text-soft hover:text-gold-muted hover:border-gold-muted/30 transition-all flex items-center gap-3 shadow-sm italic"
+                    >
+                        <div className="flex items-center gap-1.5 opacity-60">
+                            <AlertTriangle size={14} /> Mở lại cảnh báo ({alerts.length})
+                        </div>
+                    </button>
+                </div>
+            )}
+            {/* Summary cards Luxury */}
+            {plan && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8 mb-20">
+                    {[
+                        { label: 'KPI Mục tiêu', value: plan.kpiRevenue || 0, actual: plan.kpiRevenue || 0, icon: LayoutDashboard, color: 'text-text-main', bg: 'bg-white', iconColor: 'text-gold-muted' },
+                        { label: 'Doanh thu thực đạt', value: plan.kpiRevenue || 0, actual: totalRevenueActual, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-white', iconColor: 'text-emerald-600' },
+                        { label: 'Lợi nhuận dự kiến', value: plannedProfit, actual: actualProfit, icon: Activity, color: actualProfit >= 0 ? 'text-text-main' : 'text-rose-600', bg: 'bg-white', iconColor: 'text-gold-muted' },
+                        { label: 'Lợi nhuận ròng', value: plannedProfitAfterTax, actual: actualProfitAfterTax, icon: Wallet, color: actualProfitAfterTax >= 0 ? 'text-text-main' : 'text-rose-600', bg: 'bg-text-main text-white', iconColor: 'text-white' },
+                    ].map((c, i) => {
+                        const pct = c.value > 0 ? (c.actual / c.value) * 100 : c.actual > 0 ? 100 : 0
+                        const status = c.label === 'Doanh thu thực đạt'
+                            ? (pct >= 100 ? 'ok' : pct >= 80 ? 'warning' : 'exceeded')
+                            : (pct > 100 ? 'exceeded' : pct >= 80 ? 'warning' : 'ok')
+                        const isDark = c.bg.includes('main')
 
-                {/* Summary cards Luxury */}
-                {plan && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8 mb-20">
-                        {[
-                            { label: 'KPI Mục tiêu', value: plan.kpiRevenue || 0, actual: plan.kpiRevenue || 0, icon: LayoutDashboard, color: 'text-text-main', bg: 'bg-white', iconColor: 'text-gold-muted' },
-                            { label: 'Doanh thu thực đạt', value: plan.kpiRevenue || 0, actual: totalRevenueActual, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-white', iconColor: 'text-emerald-600' },
-                            { label: 'Lợi nhuận dự kiến', value: plannedProfit, actual: actualProfit, icon: Activity, color: actualProfit >= 0 ? 'text-text-main' : 'text-rose-600', bg: 'bg-white', iconColor: 'text-gold-muted' },
-                            { label: 'Lợi nhuận ròng', value: plannedProfitAfterTax, actual: actualProfitAfterTax, icon: Wallet, color: actualProfitAfterTax >= 0 ? 'text-text-main' : 'text-rose-600', bg: 'bg-text-main text-white', iconColor: 'text-white' },
-                        ].map((c, i) => {
-                            const pct = c.value > 0 ? (c.actual / c.value) * 100 : c.actual > 0 ? 100 : 0
-                            const status = c.label === 'Doanh thu thực đạt'
-                                ? (pct >= 100 ? 'ok' : pct >= 80 ? 'warning' : 'exceeded')
-                                : (pct >= 100 ? 'ok' : pct >= 80 ? 'warning' : 'exceeded')
-                            const isDark = c.bg.includes('main')
-
-                            return (
-                                <div key={c.label} className={`p-8 rounded-[40px] border border-gold-light/20 ${c.bg} shadow-luxury group transition-all duration-500 hover:scale-[1.02]`}>
-                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-500 flex-shrink-0 ${isDark ? 'bg-white/10 text-white' : 'bg-gold-light/20 ' + c.iconColor}`}>
-                                            <c.icon size={28} strokeWidth={1.5} />
+                        return (
+                            <div key={c.label} className={`p-8 rounded-[40px] border border-gold-light/20 ${c.bg} shadow-luxury group transition-all duration-500 hover:scale-[1.02]`}>
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-500 flex-shrink-0 ${isDark ? 'bg-white/10 text-white' : 'bg-gold-light/20 ' + c.iconColor}`}>
+                                        <c.icon size={28} strokeWidth={1.5} />
+                                    </div>
+                                    <div className="text-left md:text-right whitespace-nowrap flex-shrink-0">
+                                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] opacity-40 ${isDark ? 'text-gold-muted' : 'text-text-soft'}`}>{c.label}</p>
+                                        <h3 className={`text-2xl font-serif font-bold mt-2 italic tabular-nums ${c.color} ${isDark ? 'text-white' : ''}`}>{fmtVND(c.actual)}</h3>
+                                    </div>
+                                </div>
+                                {c.label !== 'KPI Mục tiêu' && (
+                                    <div>
+                                        <div className={`relative h-1 w-full rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-black/5'}`}>
+                                            <div
+                                                className={`absolute h-full rounded-full transition-all duration-1000 ${status === 'ok' ? 'bg-emerald-500' : status === 'warning' ? 'bg-amber-500' : 'bg-rose-500'
+                                                    }`}
+                                                style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }}
+                                            />
                                         </div>
-                                        <div className="text-left md:text-right whitespace-nowrap flex-shrink-0">
-                                            <p className={`text-[10px] font-black uppercase tracking-[0.2em] opacity-40 ${isDark ? 'text-gold-muted' : 'text-text-soft'}`}>{c.label}</p>
-                                            <h3 className={`text-2xl font-serif font-bold mt-2 italic tabular-nums ${c.color} ${isDark ? 'text-white' : ''}`}>{fmtVND(c.actual)}</h3>
+                                        <div className={`flex justify-between mt-4 text-[9px] font-black uppercase tracking-widest opacity-30 italic ${isDark ? 'text-white' : 'text-text-soft'}`}>
+                                            <span>Dự kiến: {fmtVND(c.value)}</span>
+                                            <span>{pct.toFixed(0)}%</span>
                                         </div>
                                     </div>
-                                    {c.label !== 'KPI Mục tiêu' && (
-                                        <div>
-                                            <div className={`relative h-1 w-full rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-black/5'}`}>
-                                                <div
-                                                    className={`absolute h-full rounded-full transition-all duration-1000 ${status === 'ok' ? 'bg-emerald-500' : status === 'warning' ? 'bg-amber-500' : 'bg-rose-500'
-                                                        }`}
-                                                    style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }}
-                                                />
-                                            </div>
-                                            <div className={`flex justify-between mt-4 text-[9px] font-black uppercase tracking-widest opacity-30 italic ${isDark ? 'text-white' : 'text-text-soft'}`}>
-                                                <span>Dự kiến: {fmtVND(c.value)}</span>
-                                                <span>{pct.toFixed(0)}%</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        })}
-                    </div>
-                )}
-
-                {!plan ? (
-                    <div className="flex flex-col items-center justify-center py-40 bg-beige-soft/30 rounded-[40px] border-2 border-dashed border-gold-light/40">
-                        <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center text-gold-muted shadow-sm mb-6">
-                            <AlertTriangle size={40} />
-                        </div>
-                        <h3 className="text-2xl font-serif text-text-main mb-2">Không tìm thấy dữ liệu tài chính</h3>
-                        <p className="text-text-soft opacity-60">Dữ liệu kế hoạch cho giai đoạn này chưa được khởi tạo.</p>
-                    </div>
-                ) : (
-                    <div className="space-y-24">
-                        {sections.map(section => (
-                            <div key={section} className="animate-fade-in">
-                                <div className="flex items-center gap-6 mb-10">
-                                    <div className="h-[1px] flex-1 bg-gold-light/30"></div>
-                                    <h3 className="text-xs font-black text-gold-muted uppercase tracking-[0.5em] px-4 whitespace-nowrap opacity-60 italic">{SECTION_LABELS[section]}</h3>
-                                    <div className="h-[1px] flex-1 bg-gold-light/30"></div>
-                                </div>
-
-                                <div className="overflow-x-auto luxury-scrollbar border border-gold-light/20 rounded-[32px] md:rounded-[40px] bg-white shadow-luxury">
-                                    <table className="w-full min-w-[800px] md:min-w-full text-left luxury-table border-collapse">
-                                        <thead>
-                                            <tr className="bg-beige-soft/40 border-b border-gold-light/20">
-                                                <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] italic opacity-60">Phân loại mục</th>
-                                                <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Ngân sách dự kiến</th>
-                                                <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Thực tế thực hiện</th>
-                                                <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">% Hiệu suất</th>
-                                                <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-right italic opacity-60">Còn lại/Chênh lệch</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {rowsBySection(section).map(r => {
-                                                const isExceeded = r.status === 'exceeded'
-                                                const isWarning = r.status === 'warning'
-                                                const isOK = r.status === 'ok'
-                                                const isHighlighted = highlightedCat === r.categoryId
-                                                const starKey = `${currentUser?.id}:${selectedBranch}|${month}|${year}|${r.categoryId}`
-                                                const isStarred = (state.starredAlerts || []).includes(starKey)
-
-                                                return (
-                                                    <tr
-                                                        key={r.categoryId}
-                                                        ref={el => { rowRefs.current[r.categoryId] = el }}
-                                                        className={`border-b border-gold-light/10 transition-all duration-500 hover:bg-beige-soft/30 group ${isHighlighted ? 'bg-gold-light/20 ring-2 ring-gold-muted/20 relative z-10' : ''
-                                                            }`}
-                                                    >
-                                                        <td className="px-10 py-7">
-                                                            <div className="flex items-center gap-5">
-                                                                <button
-                                                                    onClick={() => toggleStar(r.categoryId)}
-                                                                    className={`w-8 h-8 rounded-full border border-gold-light/40 flex items-center justify-center transition-all ${isStarred ? 'bg-gold-muted text-white border-gold-muted shadow-md scale-110' : 'text-text-soft opacity-20 hover:opacity-100 hover:scale-110 hover:border-gold-muted hover:text-gold-muted'
-                                                                        }`}
-                                                                >
-                                                                    <Star size={14} fill={isStarred ? 'currentColor' : 'none'} />
-                                                                </button>
-                                                                <div>
-                                                                    <h4 className="text-[14px] font-bold text-text-main tracking-tight group-hover:text-gold-muted transition-colors text-tight-wrap max-w-[250px]">{r.categoryName}</h4>
-                                                                    <div className="flex flex-wrap items-center gap-2 mt-1.5 opacity-60">
-                                                                        {isOK ? (
-                                                                            <span className="flex items-center gap-1.5 text-[9px] font-black text-emerald-600 uppercase tracking-widest whitespace-nowrap">
-                                                                                <CheckCircle size={10} className="flex-shrink-0" /> Dòng tiền tối ưu
-                                                                            </span>
-                                                                        ) : (
-                                                                            <span className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${isExceeded ? 'text-rose-600' : 'text-amber-600'}`}>
-                                                                                <AlertTriangle size={10} className="flex-shrink-0" /> {isExceeded ? 'Vượt định mức' : 'Cảnh báo an toàn'}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-10 py-7 text-center text-[13px] font-medium text-text-soft italic opacity-60">
-                                                            {fmtVND(r.planned)}
-                                                        </td>
-                                                        <td className="px-10 py-7 text-center text-[15px] font-serif font-black italic text-text-main">
-                                                            {fmtVND(r.actual)}
-                                                        </td>
-                                                        <td className="px-10 py-7">
-                                                            <div className="flex items-center gap-5 justify-center">
-                                                                <div className="h-1.5 w-24 bg-beige-soft rounded-full overflow-hidden flex-shrink-0 relative">
-                                                                    <div
-                                                                        className={`absolute h-full rounded-full transition-all duration-1000 ${isExceeded ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-emerald-500'
-                                                                            }`}
-                                                                        style={{ width: `${Math.min(r.pct, 100)}%` }}
-                                                                    />
-                                                                </div>
-                                                                <span className={`text-[12px] font-black w-8 tabular-nums ${isExceeded ? 'text-rose-600' : isWarning ? 'text-amber-600' : 'text-emerald-600'
-                                                                    }`}>{r.pct.toFixed(0)}%</span>
-                                                            </div>
-                                                        </td>
-                                                        <td className={`px-10 py-7 text-right text-[15px] font-serif font-black italic force-nowrap ${r.isNegativeStatus ? 'text-rose-600' : 'text-emerald-600'
-                                                            }`}>
-                                                            {r.isNegativeStatus ? '-' : '+'}{fmtVND(Math.abs(r.remaining))}
-                                                        </td>
-                                                    </tr>
-                                                )
-                                            })}
-                                        </tbody>
-                                        {/* Section Sums */}
-                                        <tfoot className="bg-beige-soft/30 border-t border-gold-light/20">
-                                            <tr>
-                                                <td className="px-10 py-6 text-[11px] font-black text-gold-muted uppercase tracking-[0.3em] italic opacity-60">Tổng cộng {SECTION_LABELS[section]}</td>
-                                                <td className="px-10 py-6 text-[14px] font-serif font-bold text-text-main text-center opacity-40 italic">
-                                                    {fmtVND(rowsBySection(section).reduce((s, r) => s + r.planned, 0))}
-                                                </td>
-                                                <td className="px-10 py-6 text-[18px] font-serif font-black text-text-main text-center italic">
-                                                    {fmtVND(rowsBySection(section).reduce((s, r) => s + r.actual, 0))}
-                                                </td>
-                                                <td className="px-10 py-6"></td>
-                                                <td className="px-10 py-6 text-right font-serif font-black text-gold-muted text-[18px] italic">
-                                                    {fmtVND(rowsBySection(section).reduce((s, r) => s + r.remaining, 0))}
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
+                                )}
                             </div>
-                        ))}
+                        )
+                    })}
+                </div>
+            )}
 
-                        {/* Financial Health by Account */}
-                        <div className="animate-fade-in pt-12">
-                            <div className="flex items-center gap-4 mb-10">
-                                <div className="w-12 h-12 rounded-2xl bg-gold-light/30 flex items-center justify-center text-gold-muted shadow-sm">
-                                    <Database size={24} strokeWidth={1.5} />
-                                </div>
-                                <h3 className="text-xl font-serif font-bold italic text-text-main leading-tight">Sức khỏe thanh khoản <span className="italic font-normal text-gold-muted opacity-80">theo Tài khoản</span></h3>
+            {!plan ? (
+                <div className="flex flex-col items-center justify-center py-40 bg-beige-soft/30 rounded-[40px] border-2 border-dashed border-gold-light/40">
+                    <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center text-gold-muted shadow-sm mb-6">
+                        <AlertTriangle size={40} />
+                    </div>
+                    <h3 className="text-2xl font-serif text-text-main mb-2">Không tìm thấy dữ liệu tài chính</h3>
+                    <p className="text-text-soft opacity-60">Dữ liệu kế hoạch cho giai đoạn này chưa được khởi tạo.</p>
+                </div>
+            ) : (
+                <div className="space-y-24">
+                    {sections.map(section => (
+                        <div key={section} className="animate-fade-in">
+                            <div className="flex items-center gap-6 mb-10">
+                                <div className="h-[1px] flex-1 bg-gold-light/30"></div>
+                                <h3 className="text-xs font-black text-gold-muted uppercase tracking-[0.5em] px-4 whitespace-nowrap opacity-60 italic">{SECTION_LABELS[section]}</h3>
+                                <div className="h-[1px] flex-1 bg-gold-light/30"></div>
                             </div>
 
                             <div className="overflow-x-auto luxury-scrollbar border border-gold-light/20 rounded-[32px] md:rounded-[40px] bg-white shadow-luxury">
                                 <table className="w-full min-w-[800px] md:min-w-full text-left luxury-table border-collapse">
                                     <thead>
                                         <tr className="bg-beige-soft/40 border-b border-gold-light/20">
-                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Tài khoản tài sản</th>
-                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Loại hình</th>
-                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Tổng dòng tiền vào (+)</th>
-                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Tổng dòng tiền ra (-)</th>
-                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-right italic opacity-60">Biến động ròng</th>
+                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] italic opacity-60">Phân loại mục</th>
+                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Ngân sách dự kiến</th>
+                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Thực tế thực hiện</th>
+                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">% Hiệu suất</th>
+                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-right italic opacity-60">Còn lại/Chênh lệch</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {state.accounts.filter(a => !a.branchId || a.branchId === selectedBranch).map(acc => {
-                                            const txs = state.transactions.filter(tx =>
-                                                tx.paymentAccountId === acc.id &&
-                                                new Date(tx.date).getFullYear() === year &&
-                                                new Date(tx.date).getMonth() + 1 === month
-                                            )
-                                            const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-                                            const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-                                            if (income === 0 && expense === 0) return null
-                                            const net = income - expense
+                                        {rowsBySection(section).map(r => {
+                                            const isExceeded = r.status === 'exceeded'
+                                            const isWarning = r.status === 'warning'
+                                            const isOK = r.status === 'ok'
+                                            const isHighlighted = highlightedCat === r.categoryId
+                                            const starKey = `${currentUser?.id}:${selectedBranch}|${month}|${year}|${r.categoryId}`
+                                            const isStarred = (state.starredAlerts || []).includes(starKey)
+
                                             return (
-                                                <tr key={acc.id} className="border-b border-gold-light/10 hover:bg-beige-soft/30 transition-all duration-300">
-                                                    <td className="px-10 py-7 text-center">
-                                                        <span className="text-[14px] font-bold text-text-main tracking-tight uppercase">{acc.name}</span>
+                                                <tr
+                                                    key={r.categoryId}
+                                                    ref={el => { rowRefs.current[r.categoryId] = el }}
+                                                    className={`border-b border-gold-light/10 transition-all duration-500 hover:bg-beige-soft/30 group ${isHighlighted ? 'bg-gold-light/20 ring-2 ring-gold-muted/20 relative z-10' : ''
+                                                        }`}
+                                                >
+                                                    <td className="px-10 py-7">
+                                                        <div className="flex items-center gap-5">
+                                                            <button
+                                                                onClick={() => toggleStar(r.categoryId)}
+                                                                className={`w-8 h-8 rounded-full border border-gold-light/40 flex items-center justify-center transition-all ${isStarred ? 'bg-gold-muted text-white border-gold-muted shadow-md scale-110' : 'text-text-soft opacity-20 hover:opacity-100 hover:scale-110 hover:border-gold-muted hover:text-gold-muted'
+                                                                    }`}
+                                                            >
+                                                                <Star size={14} fill={isStarred ? 'currentColor' : 'none'} />
+                                                            </button>
+                                                            <div>
+                                                                <h4 className="text-[14px] font-bold text-text-main tracking-tight group-hover:text-gold-muted transition-colors text-tight-wrap max-w-[250px]">{r.categoryName}</h4>
+                                                                <div className="flex flex-wrap items-center gap-2 mt-1.5 opacity-60">
+                                                                    {isOK ? (
+                                                                        <span className="flex items-center gap-1.5 text-[9px] font-black text-emerald-600 uppercase tracking-widest whitespace-nowrap">
+                                                                            <CheckCircle size={10} className="flex-shrink-0" /> Dòng tiền tối ưu
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${isExceeded ? 'text-rose-600' : 'text-amber-600'}`}>
+                                                                            <AlertTriangle size={10} className="flex-shrink-0" /> {isExceeded ? 'Vượt định mức' : 'Cảnh báo an toàn'}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </td>
-                                                    <td className="px-10 py-7 text-center">
-                                                        <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-beige-soft text-gold-muted text-[9px] font-black uppercase tracking-widest border border-gold-light/20 italic">
-                                                            {acc.type === 'bank' ? 'Thanh khoản: Ngân hàng' : acc.type === 'cash' ? 'Thanh khoản: Tiền mặt' : 'Thanh khoản: POS'}
-                                                        </span>
+                                                    <td className="px-10 py-7 text-center text-[13px] font-medium text-text-soft italic opacity-60">
+                                                        {fmtVND(r.planned)}
                                                     </td>
-                                                    <td className="px-10 py-7 text-center text-[15px] font-serif font-black text-emerald-600 tabular-nums italic">
-                                                        {income > 0 ? `+${fmtVND(income)}` : '—'}
+                                                    <td className="px-10 py-7 text-center text-[15px] font-serif font-black italic text-text-main">
+                                                        {fmtVND(r.actual)}
                                                     </td>
-                                                    <td className="px-10 py-7 text-center text-[15px] font-serif font-black text-rose-600 tabular-nums italic">
-                                                        {expense > 0 ? `-${fmtVND(expense)}` : '—'}
+                                                    <td className="px-10 py-7">
+                                                        <div className="flex items-center gap-5 justify-center">
+                                                            <div className="h-1.5 w-24 bg-beige-soft rounded-full overflow-hidden flex-shrink-0 relative">
+                                                                <div
+                                                                    className={`absolute h-full rounded-full transition-all duration-1000 ${isExceeded ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-emerald-500'
+                                                                        }`}
+                                                                    style={{ width: `${Math.min(r.pct, 100)}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className={`text-[12px] font-black w-8 tabular-nums ${isExceeded ? 'text-rose-600' : isWarning ? 'text-amber-600' : 'text-emerald-600'
+                                                                }`}>{r.pct.toFixed(0)}%</span>
+                                                        </div>
                                                     </td>
-                                                    <td className={`px-10 py-7 text-right text-[18px] font-serif font-black italic tabular-nums ${net >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                        {net > 0 ? '+' : ''}{fmtVND(net)}
+                                                    <td className={`px-10 py-7 text-right text-[15px] font-serif font-black italic force-nowrap ${r.isNegativeStatus ? 'text-rose-600' : 'text-emerald-600'
+                                                        }`}>
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <span>{r.isNegativeStatus ? '-' : '+'}{fmtVND(Math.abs(r.remaining))}</span>
+                                                            {isExceeded && r.actual > 0 && r.planned > 0 && (
+                                                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-rose-100/50 text-rose-600 text-[9px] font-sans font-black uppercase tracking-widest border border-rose-200/50">
+                                                                    Tỷ lệ: {(((r.actual - r.planned) / r.actual) * 100).toFixed(0)}%
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             )
                                         })}
                                     </tbody>
+                                    {/* Section Sums */}
+                                    <tfoot className="bg-beige-soft/30 border-t border-gold-light/20">
+                                        <tr>
+                                            <td className="px-10 py-6 text-[11px] font-black text-gold-muted uppercase tracking-[0.3em] italic opacity-60">Tổng cộng {SECTION_LABELS[section]}</td>
+                                            <td className="px-10 py-6 text-[14px] font-serif font-bold text-text-main text-center opacity-40 italic">
+                                                {fmtVND(rowsBySection(section).reduce((s, r) => s + r.planned, 0))}
+                                            </td>
+                                            <td className="px-10 py-6 text-[18px] font-serif font-black text-text-main text-center italic">
+                                                {fmtVND(rowsBySection(section).reduce((s, r) => s + r.actual, 0))}
+                                            </td>
+                                            <td className="px-10 py-6"></td>
+                                            <td className="px-10 py-6 text-right font-serif font-black text-gold-muted text-[18px] italic">
+                                                {fmtVND(rowsBySection(section).reduce((s, r) => s + r.remaining, 0))}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                         </div>
+                    ))}
+
+                    {/* Financial Health by Account */}
+                    <div className="animate-fade-in pt-12">
+                        <div className="flex items-center gap-4 mb-10">
+                            <div className="w-12 h-12 rounded-2xl bg-gold-light/30 flex items-center justify-center text-gold-muted shadow-sm">
+                                <Database size={24} strokeWidth={1.5} />
+                            </div>
+                            <h3 className="text-xl font-serif font-bold italic text-text-main leading-tight">Sức khỏe thanh khoản <span className="italic font-normal text-gold-muted opacity-80">theo Tài khoản</span></h3>
+                        </div>
+
+                        <div className="overflow-x-auto luxury-scrollbar border border-gold-light/20 rounded-[32px] md:rounded-[40px] bg-white shadow-luxury">
+                            <table className="w-full min-w-[800px] md:min-w-full text-left luxury-table border-collapse">
+                                <thead>
+                                    <tr className="bg-beige-soft/40 border-b border-gold-light/20">
+                                        <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Tài khoản tài sản</th>
+                                        <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Loại hình</th>
+                                        <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Tổng dòng tiền vào (+)</th>
+                                        <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Tổng dòng tiền ra (-)</th>
+                                        <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-right italic opacity-60">Biến động ròng</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {state.accounts.filter(a => !a.branchId || a.branchId === selectedBranch).map(acc => {
+                                        const txs = state.transactions.filter(tx =>
+                                            tx.paymentAccountId === acc.id &&
+                                            new Date(tx.date).getFullYear() === year &&
+                                            new Date(tx.date).getMonth() + 1 === month
+                                        )
+                                        const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+                                        const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+                                        if (income === 0 && expense === 0) return null
+                                        const net = income - expense
+                                        return (
+                                            <tr key={acc.id} className="border-b border-gold-light/10 hover:bg-beige-soft/30 transition-all duration-300">
+                                                <td className="px-10 py-7 text-center">
+                                                    <span className="text-[14px] font-bold text-text-main tracking-tight uppercase">{acc.name}</span>
+                                                </td>
+                                                <td className="px-10 py-7 text-center">
+                                                    <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-beige-soft text-gold-muted text-[9px] font-black uppercase tracking-widest border border-gold-light/20 italic">
+                                                        {acc.type === 'bank' ? 'Thanh khoản: Ngân hàng' : acc.type === 'cash' ? 'Thanh khoản: Tiền mặt' : 'Thanh khoản: POS'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-10 py-7 text-center text-[15px] font-serif font-black text-emerald-600 tabular-nums italic">
+                                                    {income > 0 ? `+${fmtVND(income)}` : '—'}
+                                                </td>
+                                                <td className="px-10 py-7 text-center text-[15px] font-serif font-black text-rose-600 tabular-nums italic">
+                                                    {expense > 0 ? `-${fmtVND(expense)}` : '—'}
+                                                </td>
+                                                <td className={`px-10 py-7 text-right text-[18px] font-serif font-black italic tabular-nums ${net >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                    {net > 0 ? '+' : ''}{fmtVND(net)}
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     )
 }
