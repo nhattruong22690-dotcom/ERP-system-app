@@ -144,7 +144,13 @@ export async function syncUser(user: User, currentUserId: string | undefined) {
         view_all_branches: user.viewAllBranches || false
     })
     if (error) {
-        console.error('Supabase Error (User):', error)
+        console.error('Supabase Error (User):', JSON.stringify(error, null, 2))
+        console.error('Error details:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+        })
         return false
     }
     return true
