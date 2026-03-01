@@ -244,6 +244,13 @@ const CustomerList: React.FC<CustomerListProps> = ({
                     className={`bg-white p-8 rounded-[40px] shadow-luxury border border-gold-light/20 relative overflow-hidden group cursor-pointer transition-all duration-500 hover:scale-[1.05] ${selectedTab === 'birthdays' ? 'ring-4 ring-gold-light/50 border-gold-muted/40' : ''}`}
                 >
                     <div className="absolute -right-10 -top-10 w-32 h-32 bg-pink-50 rounded-full blur-3xl group-hover:bg-pink-100 transition-colors"></div>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); handleSync(); }}
+                        disabled={isSyncing}
+                        className="absolute right-6 top-8 p-2 text-rose-300 hover:text-rose-600 transition-colors disabled:opacity-50 z-20"
+                    >
+                        <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
+                    </button>
                     <div className="flex items-center gap-5 mb-6">
                         <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-sm border border-rose-100 relative z-10 shrink-0">
                             <Cake size={28} strokeWidth={1.5} />
