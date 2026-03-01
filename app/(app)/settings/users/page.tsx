@@ -6,7 +6,7 @@ import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
 import JobTitlesModal from '@/components/settings/JobTitlesModal'
 import UserAvatar from '@/components/UserAvatar'
-import { Plus, Edit2, X, Shield, Eye, EyeOff, Search, Power, Settings, BadgeCheck, Phone, CheckCircle2, UserCircle, Building, Store, Award, Check, ChevronDown, Landmark, MapPin, Tag, Smartphone, Globe, Star, Heart, Zap, Coffee, MessageSquare, Scissors, DollarSign, Clock, Sparkles, Trash2, History, ArrowRight, PlusCircle, Lock, KeyRound } from 'lucide-react'
+import { Plus, Edit2, X, Shield, Eye, EyeOff, Search, Power, Settings, BadgeCheck, Phone, CheckCircle2, UserCircle, Building, Store, Award, Check, ChevronDown, Landmark, MapPin, Tag, Smartphone, Globe, Star, Heart, Zap, Coffee, MessageSquare, Scissors, DollarSign, Clock, Sparkles, Trash2, History, ArrowRight, PlusCircle, Lock, KeyRound, ShieldCheck } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import PageHeader from '@/components/PageHeader'
@@ -91,6 +91,28 @@ export default function UsersPage() {
         } else {
             setForm(f => ({ ...f, jobTitleId: undefined, title: '' }))
         }
+    }
+
+    const grantAllPermissions = () => {
+        const allPages = PERMISSION_GROUPS.map(p => p.page.value)
+        const allPermissions = PERMISSION_GROUPS.flatMap(g => {
+            const perms = []
+            if (g.crud?.create) perms.push(g.crud.create)
+            if (g.crud?.update) perms.push(g.crud.update)
+            if (g.crud?.delete) perms.push(g.crud.delete)
+            if (g.crud?.lock) perms.push(g.crud.lock)
+            if (g.crud?.extra) g.crud.extra.forEach(ex => perms.push(ex.value))
+            return perms
+        })
+
+        setForm(f => ({
+            ...f,
+            allowedPages: Array.from(new Set(allPages)),
+            permissions: Array.from(new Set(allPermissions)),
+            viewAllBranches: true,
+            role: 'admin'
+        }))
+        showToast('Thành công', 'Đã cấp toàn bộ quyền truy cập và thao tác cho tài khoản này.', 'success' as any)
     }
 
     if (!canManageUsers(currentUser)) {
@@ -639,9 +661,14 @@ export default function UsersPage() {
                                 {/* ═══ TAB 2: PHÂN QUYỀN — CRUD Matrix ═══ */}
                                 {modalTab === 'permissions' && (
                                     <div className="space-y-6 animate-fade-in">
-                                        <div className="flex items-center gap-3 border-b border-gold-light/10 pb-3">
-                                            <Shield size={16} className="text-gold-muted" />
-                                            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Ma trận phân quyền</span>
+                                        <div className="flex items-center justify-between border-b border-gold-light/10 pb-3">
+                                            <div className="flex items-center gap-3">
+                                                <Shield size={16} className="text-gold-muted" />
+                                                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Ma trận phân quyền</span>
+                                            </div>
+                                            <button onClick={grantAllPermissions} className="px-4 py-2 bg-text-main text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gold-muted transition-all flex items-center gap-2 shadow-sm italic">
+                                                <ShieldCheck size={14} strokeWidth={3} /> Cấp toàn quyền (Admin)
+                                            </button>
                                         </div>
 
                                         <div className="rounded-[24px] border border-gold-light/20 overflow-x-auto shadow-sm luxury-scrollbar">
