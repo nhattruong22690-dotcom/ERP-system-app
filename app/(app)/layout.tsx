@@ -236,6 +236,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }
 
         const currentRoleStyle = roleStyles[role] || roleStyles.staff
+        const branchName = state.branches.find(b => b.id === currentUser.branchId)?.name || 'Trụ sở chính'
 
         return (
             <div className="p-5 w-full">
@@ -260,9 +261,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                 <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-75"></div>
                             </div>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             <p style={{
-                                fontSize: '17.5px',
+                                fontSize: '17px',
                                 fontWeight: '800',
                                 color: 'white',
                                 margin: 0,
@@ -274,8 +275,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                             }} className="group-hover:text-gold-muted transition-colors leading-tight">
                                 {displayName}
                             </p>
-                            <div className={`inline-flex items-center text-[12px] font-black uppercase tracking-[0.1em] px-3 py-1 rounded-lg border bg-gradient-to-br w-fit ${currentRoleStyle}`}>
-                                {roleLabel}
+                            <div className="flex flex-col gap-1.5">
+                                <div className={`inline-flex items-center text-[9px] font-black uppercase tracking-[0.12em] px-2.5 py-0.5 rounded-md border bg-gradient-to-br w-fit whitespace-nowrap shadow-sm ${currentRoleStyle}`}>
+                                    {roleLabel}
+                                </div>
+                                <div className="inline-flex items-center text-[9px] font-black uppercase tracking-[0.12em] text-white/50 border border-white/10 bg-white/5 px-2.5 py-0.5 rounded-md w-fit whitespace-nowrap">
+                                    {branchName}
+                                </div>
                             </div>
                         </div>
                     </Link>

@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react'
 import { useApp } from '@/lib/auth'
-import { User, Mail, Lock, User as UserIcon, Camera, Save, Key, CheckCircle2, Loader2, Edit2, X } from 'lucide-react'
+import { User, Mail, Lock, User as UserIcon, Camera, Save, Key, CheckCircle2, Loader2, Edit2, X, Store } from 'lucide-react'
 import { useToast } from '@/components/ToastProvider'
 import PageHeader from '@/components/PageHeader'
 import imageCompression from 'browser-image-compression'
@@ -91,6 +91,8 @@ export default function ProfilePage() {
     else if (currentUser?.role === 'manager') roleLabel = 'Quản lý'
     else if (currentUser?.role === 'accountant') roleLabel = 'Kế toán'
     else if (currentUser?.role === 'staff') roleLabel = 'Nhân viên'
+
+    const branchName = state.branches.find(b => b.id === currentUser?.branchId)?.name || 'Trụ sở chính'
 
     async function handleUpdateInfo() {
         if (!currentUser) return
@@ -197,11 +199,17 @@ export default function ProfilePage() {
 
                                 <input id="avatar-upload" type="file" hidden accept="image/*" onChange={handleFileChange} />
 
-                                <div className="text-center">
+                                <div className="text-center flex flex-col items-center">
                                     <p className="text-[11px] font-bold text-text-soft uppercase tracking-widest opacity-40 mb-2">Đăng nhập tài khoản</p>
                                     <p className="text-lg font-serif italic text-text-main font-bold">@{currentUser.username}</p>
-                                    <div className="mt-4 inline-flex items-center gap-2 px-6 py-2 rounded-full border border-gold-light/30 bg-gold-light/10 text-gold-muted text-[10px] font-black uppercase tracking-widest">
-                                        <CheckCircle2 size={12} strokeWidth={1.5} /> {roleLabel}
+
+                                    <div className="mt-4 flex flex-col items-center gap-2">
+                                        <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full border border-gold-light/30 bg-gold-light/10 text-gold-muted text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                                            <CheckCircle2 size={12} strokeWidth={1.5} /> {roleLabel}
+                                        </div>
+                                        <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary/70 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                                            <Store size={12} strokeWidth={1.5} /> {branchName}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

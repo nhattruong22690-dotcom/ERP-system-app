@@ -10,6 +10,7 @@ import { CalendarDays, Search, Store, ChevronLeft, ChevronRight, PlusCircle, Rec
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/PageHeader'
 import ServiceOrderModal from '@/components/crm/ServiceOrderModal'
+import CustomerProfileModal from '@/components/crm/CustomerProfileModal'
 import { searchCustomers } from '@/lib/supabaseFetch'
 
 const STATUS_CONFIG: Record<AppointmentStatus, { label: string; color: string; icon: string; bg: string }> = {
@@ -33,6 +34,7 @@ export default function AppointmentsPage() {
     const { state, saveState, currentUser } = useApp()
     const { showAlert, showConfirm } = useModal()
     const { showToast } = useToast()
+    const router = useRouter()
 
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
     const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day')
@@ -46,6 +48,10 @@ export default function AppointmentsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [deleteReason, setDeleteReason] = useState('')
     const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null)
+
+    // Customer Profile Modal state
+    const [showProfileCustomer, setShowProfileCustomer] = useState(false)
+    const [selectedCustomerForProfile, setSelectedCustomerForProfile] = useState<Customer | null>(null)
 
     // Service Order Modal state
     const [showServiceOrderForm, setShowServiceOrderForm] = useState(false)
@@ -142,7 +148,7 @@ export default function AppointmentsPage() {
             }
 
             setIsSearchingCustomers(true)
-            const results = await searchCustomers(term)
+            const results = await searchCustomers(term, currentUser?.branchId, canViewAll)
             setCustomerSuggestions(results)
             setIsSearchingCustomers(false)
         }
@@ -825,7 +831,7 @@ export default function AppointmentsPage() {
                                         <div className="absolute top-full left-0 right-0 z-20 mt-2 bg-white rounded-3xl border border-gray-100 shadow-2xl overflow-hidden divide-y divide-gray-50">
                                             {customerSuggestions.map((c: Customer) => (
                                                 <div key={c.id}
-                                                    className="p-4 hover:bg-gray-50 flex items-center gap-4 cursor-pointer transition-colors"
+                                                    className="p-4 hover:bg-gray-50 flex items-center gap-4 cursor-pointer transition-colors group/cust"
                                                     onClick={() => {
                                                         setForm(f => ({
                                                             ...f,
@@ -848,10 +854,23 @@ export default function AppointmentsPage() {
                                                         />
                                                         {c.rank === CustomerRank.PLATINUM && <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-lg flex items-center justify-center text-[8px] text-white">⭐</span>}
                                                     </div>
-                                                    <div>
-                                                        <p className="text-sm font-black text-gray-900">{c.fullName} - {c.phone}</p>
-                                                        <p className="text-xs text-gray-400 font-bold">Hạng: {c.rank || 'Tiêu chuẩn'}</p>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-black text-gray-900 truncate">{c.fullName} - {c.phone}</p>
+                                                        <p className="text-xs text-gray-400 font-bold truncate">
+                                                            {state.branches.find(b => b.id === c.branchId)?.name || 'Chưa gán'} - Hạng: {c.rank || 'Tiêu chuẩn'}
+                                                        </p>
                                                     </div>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            setSelectedCustomerForProfile(c)
+                                                            setShowProfileCustomer(true)
+                                                        }}
+                                                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all bg-gray-50 text-gray-400 opacity-0 group-hover/cust:opacity-100 hover:bg-primary/10 hover:text-primary shrink-0"
+                                                        title="Xem hồ sơ"
+                                                    >
+                                                        <span className="material-icons-round text-lg">person</span>
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
@@ -1033,6 +1052,23 @@ export default function AppointmentsPage() {
                 initialCustomerId={serviceOrderInitialData.customerId}
                 initialBranchId={serviceOrderInitialData.branchId}
             />
+            {showProfileCustomer && selectedCustomerForProfile && currentUser && (
+                <CustomerProfileModal
+                    customer={selectedCustomerForProfile}
+                    onClose={() => setShowProfileCustomer(false)}
+                    onNavigate={(tab: string) => {
+                        setShowProfileCustomer(false);
+                        if (tab === 'sales') setShowServiceOrderForm(true);
+                        else router.push(`/crm/${tab}`);
+                    }}
+                    onEdit={() => {
+                        setShowProfileCustomer(false);
+                    }}
+                    currentUser={currentUser}
+                    branches={state.branches}
+                    appointments={state.appointments}
+                />
+            )}
         </div>
     )
 }

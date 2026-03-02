@@ -1,13 +1,15 @@
 'use client'
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
-import { useApp } from '@/lib/auth'
-import { ServiceOrder, ServiceLineItem, StaffSplit, Customer, Appointment } from '@/lib/types'
+import { useApp, canViewAllBranches } from '@/lib/auth'
+import { ServiceOrder, ServiceLineItem, StaffSplit, Customer, Appointment, CustomerRank } from '@/lib/types'
 import { saveServiceOrder, syncServiceOrder } from '@/lib/storage'
 import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
 import { searchCustomers } from '@/lib/supabaseFetch'
 import { X, Plus, Receipt, Trash2, Edit2, Search, Loader2, Wrench, Package, CreditCard, MessageSquare, PlusSquare, Calendar, Users, ChevronDown, Eye, PlusCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import CustomerProfileModal from '@/components/crm/CustomerProfileModal'
 
 const SERVICE_TYPES = [
     { value: 'single', label: 'Dịch vụ lẻ', icon: Wrench, color: 'bg-blue-50 text-blue-600 border-blue-100' },
@@ -86,6 +88,13 @@ export default function ServiceOrderModal({
     const { state, saveState, currentUser } = useApp()
     const { showAlert, showConfirm } = useModal()
     const { showToast } = useToast()
+    const router = useRouter()
+
+    const canViewAll = canViewAllBranches(currentUser)
+
+    // Customer Profile state
+    const [showProfileCustomer, setShowProfileCustomer] = useState(false)
+    const [selectedCustomerForProfile, setSelectedCustomerForProfile] = useState<Customer | null>(null)
 
     // Form state
     const [formCustomerId, setFormCustomerId] = useState('')
@@ -177,7 +186,7 @@ export default function ServiceOrderModal({
         const delayDebounceFn = setTimeout(async () => {
             setIsSearchingCustomers(true);
             try {
-                const results = await searchCustomers(term);
+                const results = await searchCustomers(term, currentUser?.branchId, canViewAll);
                 setCustomerSuggestions(results);
             } finally {
                 setIsSearchingCustomers(false);
@@ -365,16 +374,35 @@ export default function ServiceOrderModal({
                                     {showCustomerDropdown && customerSuggestions.length > 0 && !selectedCustomer && (
                                         <div className="absolute z-20 top-full mt-2 w-full bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto p-2">
                                             {customerSuggestions.map(c => (
-                                                <button key={c.id} className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors"
+                                                <div key={c.id} className="w-full px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-4 cursor-pointer group/cust"
                                                     onClick={() => {
                                                         setFormCustomerId(c.id);
                                                         setCustomerSearch(`${c.fullName} - ${c.phone}`);
                                                         setShowCustomerDropdown(false);
                                                         if (!formAppointmentId && c.branchId) setFormBranchId(c.branchId)
                                                     }}>
-                                                    <p className="font-bold text-sm text-gray-900">{c.fullName}</p>
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase">{c.phone}</p>
-                                                </button>
+                                                    <div className="relative">
+                                                        <img src={c.avatar || `https://ui-avatars.com/api/?name=${c.fullName}&background=random`} className="w-10 h-10 rounded-xl object-cover" alt="" />
+                                                        {c.rank === CustomerRank.PLATINUM && <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-lg flex items-center justify-center text-[8px] text-white">⭐</span>}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-black text-gray-900 truncate">{c.fullName} - {c.phone}</p>
+                                                        <p className="text-xs text-gray-400 font-bold truncate">
+                                                            {branches.find(b => b.id === c.branchId)?.name || 'Chưa gán'} - Hạng: {c.rank || 'Tiêu chuẩn'}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            setSelectedCustomerForProfile(c)
+                                                            setShowProfileCustomer(true)
+                                                        }}
+                                                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all bg-gray-50 text-gray-400 opacity-0 group-hover/cust:opacity-100 hover:bg-primary/10 hover:text-primary shrink-0"
+                                                        title="Xem hồ sơ"
+                                                    >
+                                                        <span className="material-icons-round text-lg">person</span>
+                                                    </button>
+                                                </div>
                                             ))}
                                         </div>
                                     )}
@@ -622,6 +650,23 @@ export default function ServiceOrderModal({
                         </div>
                     </div>
                 </div>
+            )}
+
+            {showProfileCustomer && selectedCustomerForProfile && currentUser && (
+                <CustomerProfileModal
+                    customer={selectedCustomerForProfile}
+                    onClose={() => setShowProfileCustomer(false)}
+                    onNavigate={(tab: string) => {
+                        setShowProfileCustomer(false);
+                        router.push(`/crm/${tab}`);
+                    }}
+                    onEdit={() => {
+                        setShowProfileCustomer(false);
+                    }}
+                    currentUser={currentUser}
+                    branches={branches}
+                    appointments={appointments}
+                />
             )}
         </>
     )

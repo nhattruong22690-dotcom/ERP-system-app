@@ -385,15 +385,20 @@ export async function fetchAllData(): Promise<AppState | null> {
     }
 }
 
-export async function searchCustomers(query: string) {
+export async function searchCustomers(query: string, branchId?: string, canViewAll?: boolean) {
     if (!query.trim()) return [];
 
     const lowerQuery = query.toLowerCase().trim();
-    const { data, error } = await supabase
+    let supabaseQuery = supabase
         .from('crm_customers')
         .select('*')
-        .or(`full_name.ilike.%${lowerQuery}%,phone.ilike.%${lowerQuery}%,email.ilike.%${lowerQuery}%`)
-        .limit(20);
+        .or(`full_name.ilike.%${lowerQuery}%,phone.ilike.%${lowerQuery}%,email.ilike.%${lowerQuery}%`);
+
+    if (branchId && !canViewAll) {
+        supabaseQuery = supabaseQuery.eq('branch_id', branchId);
+    }
+
+    const { data, error } = await supabaseQuery.limit(20);
 
     if (error) {
         console.error('searchCustomers Error:', error);
