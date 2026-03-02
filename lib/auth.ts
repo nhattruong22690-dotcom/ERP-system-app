@@ -322,11 +322,11 @@ export function canManageAccounts(user?: User) {
 export function canViewAllBranches(user?: User) {
     if (!user) return false;
 
-    // Admin, Văn phòng (HQ), và Team Sale được xem toàn hệ thống
-    const isGlobalDept = user.departmentType === 'admin' || user.departmentType === 'hq' || user.departmentType === 'sale';
+    // Admin, Văn phòng (HQ) được xem toàn hệ thống
+    const isGlobalDept = user.departmentType === 'admin' || user.departmentType === 'hq';
     if (user.role === 'admin' || isGlobalDept) return true;
 
-    if (!user.branchId) return true; // Fallback nếu user không bị gán chi nhánh cụ thể
+    // Nếu user được gán quyền "Xem tất cả chi nhánh" trong Settings
     return hasPermission(user, 'branch_view_all')
 }
 

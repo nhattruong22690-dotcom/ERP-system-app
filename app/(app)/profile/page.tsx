@@ -203,7 +203,7 @@ export default function ProfilePage() {
                                     <p className="text-[11px] font-bold text-text-soft uppercase tracking-widest opacity-40 mb-2">Đăng nhập tài khoản</p>
                                     <p className="text-lg font-serif italic text-text-main font-bold">@{currentUser.username}</p>
                                     <div className="mt-4 inline-flex items-center gap-2 px-6 py-2 rounded-full border border-gold-light/30 bg-gold-light/10 text-gold-muted text-[10px] font-black uppercase tracking-widest">
-                                        <CheckCircle2 size={12} strokeWidth={1.5} /> {roleInfo.label}
+                                        <CheckCircle2 size={12} strokeWidth={1.5} /> {roleInfo?.label || 'Thành viên'}
                                     </div>
                                 </div>
                             </div>
