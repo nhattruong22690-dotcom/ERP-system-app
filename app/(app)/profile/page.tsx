@@ -372,7 +372,7 @@ export default function ProfilePage() {
                             </div>
                             <div className="flex flex-col gap-2">
                                 <span className="text-[10px] font-black text-text-soft/60 uppercase tracking-widest">Gia nhập hệ thống</span>
-                                <span className="text-sm font-bold text-text-main">{new Date(currentUser.createdAt).toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                <span className="text-sm font-bold text-text-main">{currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' }) : '---'}</span>
                             </div>
                         </div>
                     </div>
