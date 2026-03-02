@@ -165,8 +165,8 @@ const CustomerList: React.FC<CustomerListProps> = ({
     const handleSync = async () => {
         setIsSyncing(true);
         await syncCustomerStats(selectedBirthdayMonth);
-        const bIdForStats = selectedBranchFilter === 'all' ? 'all' : selectedBranchFilter;
-        const cached = await getCachedStats(bIdForStats, selectedBirthdayMonth);
+        const bIdForStats = (selectedBranchFilter === 'all' && canViewAll) ? 'all' : (selectedBranchFilter === 'all' ? currentUser.branchId : selectedBranchFilter);
+        const cached = await getCachedStats(bIdForStats || 'all', selectedBirthdayMonth);
         if (cached) setLocalStats(cached);
         await fetchRemoteData();
         setIsSyncing(false);

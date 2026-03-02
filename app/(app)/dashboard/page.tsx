@@ -21,10 +21,12 @@ export default function DashboardPage() {
     const [year, setYear] = useState(now.getFullYear())
     const [month, setMonth] = useState(now.getMonth() + 1)
 
+    const effectiveBranch = canViewAllBranches(currentUser) ? selectedBranch : currentUser?.branchId
+
     const allAlerts = useMemo(() =>
         buildAlerts(state.plans, state.categories, state.transactions, state.branches)
-            .filter(a => !selectedBranch || a.branchId === selectedBranch)
-        , [state, selectedBranch])
+            .filter(a => !effectiveBranch || a.branchId === effectiveBranch)
+        , [state, effectiveBranch])
 
     const visibleBranches = canViewAllBranches(currentUser)
         ? state.branches.filter(b => b.type !== 'hq' && !b.isHeadquarter)
@@ -32,15 +34,15 @@ export default function DashboardPage() {
 
     const filteredPlans = state.plans.filter(p =>
         p.year === year && p.month === month &&
-        (!selectedBranch || p.branchId === selectedBranch)
+        (!effectiveBranch || p.branchId === effectiveBranch)
     )
 
     const totalKPI = filteredPlans.reduce((s, p) => s + p.kpiRevenue, 0)
     const totalActualRevenue = state.transactions
-        .filter(tx => tx.type === 'income' && new Date(tx.date).getFullYear() === year && new Date(tx.date).getMonth() + 1 === month && (!selectedBranch || tx.branchId === selectedBranch))
+        .filter(tx => tx.type === 'income' && new Date(tx.date).getFullYear() === year && new Date(tx.date).getMonth() + 1 === month && (!effectiveBranch || tx.branchId === effectiveBranch))
         .reduce((s, tx) => s + tx.amount, 0)
     const totalActualExpense = state.transactions
-        .filter(tx => tx.type === 'expense' && new Date(tx.date).getFullYear() === year && new Date(tx.date).getMonth() + 1 === month && (!selectedBranch || tx.branchId === selectedBranch))
+        .filter(tx => tx.type === 'expense' && new Date(tx.date).getFullYear() === year && new Date(tx.date).getMonth() + 1 === month && (!effectiveBranch || tx.branchId === effectiveBranch))
         .reduce((s, tx) => s + tx.amount, 0)
     const revenuePct = totalKPI > 0 ? (totalActualRevenue / totalKPI * 100) : 0
 
@@ -168,7 +170,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Branch overview Luxury Table */}
-                {canViewAllBranches(currentUser) && (
+                {visibleBranches.length > 0 && (
                     <div className="mb-12">
                         <div className="flex items-center gap-3 mb-8">
                             <div className="w-10 h-10 rounded-xl bg-beige-soft flex items-center justify-center text-gold-muted">
@@ -196,7 +198,7 @@ export default function DashboardPage() {
                                         const expense = state.transactions.filter(tx => tx.type === 'expense' && tx.branchId === branch.id && new Date(tx.date).getFullYear() === year && new Date(tx.date).getMonth() + 1 === month).reduce((s, tx) => s + tx.amount, 0)
                                         const kpi = plan?.kpiRevenue ?? 0
                                         const pct = kpi > 0 ? income / kpi * 100 : 0
-                                        const branchAlerts = allAlerts.filter(a => a.branchId === branch.id)
+                                        const branchAlerts = allAlerts.filter(a => a.branchId === branch.id && a.month === month && a.year === year)
                                         return (
                                             <tr key={branch.id} className="border-b border-gold-light/10 hover:bg-beige-soft/30 transition-colors">
                                                 <td className="px-8 py-6 max-w-[200px] text-tight-wrap">
@@ -270,7 +272,7 @@ export default function DashboardPage() {
                             </thead>
                             <tbody>
                                 {state.transactions
-                                    .filter(tx => !selectedBranch || tx.branchId === selectedBranch)
+                                    .filter(tx => !effectiveBranch || tx.branchId === effectiveBranch)
                                     .sort((a, b) => {
                                         const dateComp = b.date.localeCompare(a.date)
                                         if (dateComp !== 0) return dateComp
