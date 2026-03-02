@@ -1,0 +1,29 @@
+{
+    "manifest_version": 3,
+    "name": "ERP Zalo Bridge",
+    "version": "1.1",
+    "description": "Kết nối Zalo Web với ERP - Theo dõi theo phòng chat",
+    "permissions": [
+        "storage"
+    ],
+    "host_permissions": [
+        "https://chat.zalo.me/*",
+        "http://localhost:3000/*"
+    ],
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://chat.zalo.me/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "css": [
+                "style.css"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { width: 300px; padding: 15px; font-family: sans-serif; }
+    h3 { margin-top: 0; color: #0068ff; }
+    textarea { width: 100%; height: 80px; margin-bottom: 10px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    button { background: #0068ff; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; width: 100%; }
+    .hint { font-size: 11px; color: #666; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h3>Cài đặt Zalo Bridge</h3>
+  <div class="hint">Nhập tên các phòng chat muốn theo dõi (mỗi tên một dòng). Để trống nếu muốn theo dõi tất cả.</div>
+  <textarea id="rooms" placeholder="Ví dụ: Sales Team, Khách hàng VIP..."></textarea>
+  <button id="save">Lưu cấu hình</button>
+  <script src="popup.js"></script>
+</body>
+</html>

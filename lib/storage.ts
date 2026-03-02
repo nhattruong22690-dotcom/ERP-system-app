@@ -1207,7 +1207,7 @@ export async function updateAppointmentKpiStatus(id: string, updateData: any) {
     return true
 }
 
-export async function syncMembershipTier(tier: MembershipTier) {
+export async function syncMembershipTier(tier: MembershipTier, currentUserId?: string) {
     const { error } = await supabase.from('crm_membership_tiers').upsert({
         id: tier.id,
         name: tier.name,
@@ -1220,10 +1220,36 @@ export async function syncMembershipTier(tier: MembershipTier) {
         created_at: tier.createdAt
     })
     if (error) console.error('Supabase Error (MembershipTier):', error)
+
+    if (currentUserId) {
+        const details = `Cấu hình Membership: ${tier.name} (Giảm ${tier.discount}%)`
+        const logId = crypto.randomUUID()
+        supabase.from('activity_logs').insert({
+            id: logId, user_id: currentUserId, type: 'update',
+            entity_type: 'membership_tier', entity_id: tier.id,
+            details, created_at: new Date().toISOString()
+        }).then(r => r.error && console.error('Supabase Error (ActivityLog):', r.error))
+    }
     return null
 }
 
-export async function syncLoyaltySettings(settings: LoyaltySettings) {
+export async function syncDeleteMembershipTier(id: string, name: string, currentUserId: string | undefined) {
+    const { error } = await supabase.from('crm_membership_tiers').delete().eq('id', id)
+    if (error) console.error('Supabase Error (Delete MembershipTier):', error)
+
+    if (currentUserId) {
+        const details = `Xóa Hạng thành viên: ${name}`
+        const logId = crypto.randomUUID()
+        supabase.from('activity_logs').insert({
+            id: logId, user_id: currentUserId, type: 'delete',
+            entity_type: 'membership_tier', entity_id: id,
+            details, created_at: new Date().toISOString()
+        }).then(r => r.error && console.error('Supabase Error (ActivityLog):', r.error))
+    }
+    return null
+}
+
+export async function syncLoyaltySettings(settings: LoyaltySettings, currentUserId?: string) {
     const { error } = await supabase.from('crm_loyalty_settings').upsert({
         id: settings.id,
         points_per_vnd: settings.pointsPerVnd,
@@ -1232,6 +1258,16 @@ export async function syncLoyaltySettings(settings: LoyaltySettings) {
         updated_at: settings.updatedAt
     })
     if (error) console.error('Supabase Error (LoyaltySettings):', error)
+
+    if (currentUserId) {
+        const details = `Cập nhật cấu hình Tích điểm: ${settings.isActive ? 'Bật' : 'Tắt'} - 1đ/${(1 / settings.pointsPerVnd).toLocaleString()}đ - 1đ=${settings.vndPerPoint.toLocaleString()}đ`
+        const logId = crypto.randomUUID()
+        supabase.from('activity_logs').insert({
+            id: logId, user_id: currentUserId, type: 'update',
+            entity_type: 'loyalty_settings', entity_id: settings.id,
+            details, created_at: new Date().toISOString()
+        }).then(r => r.error && console.error('Supabase Error (ActivityLog):', r.error))
+    }
     return null
 }
 

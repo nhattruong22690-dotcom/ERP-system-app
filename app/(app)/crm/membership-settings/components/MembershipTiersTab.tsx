@@ -67,7 +67,7 @@ export const MembershipTiersTab = () => {
             }
 
             saveState(storage.saveMembershipTier(newTier))
-            await storage.syncMembershipTier(newTier)
+            await storage.syncMembershipTier(newTier, state.currentUserId)
 
             showToast('Thành công', editingTier ? 'Đã cập nhật hạng' : 'Đã thêm hạng mới', 'success')
             setIsModalOpen(false)
@@ -80,16 +80,16 @@ export const MembershipTiersTab = () => {
     }
 
     const handleDelete = async (id: string) => {
-        const confirmed = await showConfirm('Xác nhận xóa hạng thành viên này?')
+        const tier = tiers.find(t => t.id === id)
+        const confirmed = await showConfirm(`Xác nhận xóa hạng thành viên "${tier?.name}"?`)
         if (confirmed) {
             try {
-                // Delete logic needs a storage function which I'll assume exists or implement if needed
-                // For now just filtering from state
+                const storage = await import('@/lib/storage')
                 saveState(s => ({
                     ...s,
                     membershipTiers: s.membershipTiers.filter(t => t.id !== id)
                 }))
-                // Ideally also call storage.deleteMembershipTierDB(id)
+                await storage.syncDeleteMembershipTier(id, tier?.name || id, state.currentUserId)
                 showToast('Thành công', 'Đã xóa hạng', 'success')
             } catch (error) {
                 console.error(error)
@@ -130,10 +130,10 @@ export const MembershipTiersTab = () => {
                         <div key={tier.id} className="group bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/20 hover:shadow-2xl hover:shadow-gray-200/40 transition-all relative overflow-hidden flex flex-col h-full">
                             <div className="flex items-start justify-between mb-6">
                                 <div className={`p-4 rounded-3xl ${tier.theme === 'amber' ? 'bg-amber-50 text-amber-500' :
-                                        tier.theme === 'blue' ? 'bg-blue-50 text-blue-500' :
-                                            tier.theme === 'purple' ? 'bg-purple-50 text-purple-500' :
-                                                tier.theme === 'rose' ? 'bg-rose-50 text-rose-500' :
-                                                    'bg-gray-50 text-gray-500'
+                                    tier.theme === 'blue' ? 'bg-blue-50 text-blue-500' :
+                                        tier.theme === 'purple' ? 'bg-purple-50 text-purple-500' :
+                                            tier.theme === 'rose' ? 'bg-rose-50 text-rose-500' :
+                                                'bg-gray-50 text-gray-500'
                                     }`}>
                                     <Award size={32} />
                                 </div>

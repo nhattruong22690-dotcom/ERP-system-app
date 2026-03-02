@@ -564,6 +564,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                                     .slice(0, 50)
                                                     .map((log, i, arr) => {
                                                         const u = state.users.find(user => user.id === log.userId)
+                                                        const b = state.branches.find(br => br.id === u?.branchId)
+                                                        const branchName = b ? (b.name.toLowerCase().startsWith('cn') ? b.name : `CN ${b.name}`) : ''
                                                         const time = new Date(log.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
                                                         const isIncome = log.details.includes('[THU]')
                                                         const isExpense = log.details.includes('[CHI]')
@@ -580,11 +582,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                                                         {log.details}
                                                                     </div>
                                                                 </div>
-                                                                <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                                                                    <div style={{ fontWeight: 700, fontSize: '0.65rem', color: 'var(--primary)' }}>
+                                                                <div style={{ flexShrink: 0, textAlign: 'center', minWidth: '70px' }}>
+                                                                    <div style={{ fontWeight: 700, fontSize: '0.65rem', color: 'var(--primary)', lineHeight: 1.2 }}>
                                                                         {u?.displayName || 'System'}
                                                                     </div>
-                                                                    <div style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>
+                                                                    {branchName && (
+                                                                        <div style={{ fontSize: '0.6rem', color: 'var(--gold-muted)', lineHeight: 1.2 }}>
+                                                                            {branchName}
+                                                                        </div>
+                                                                    )}
+                                                                    <div style={{ fontSize: '0.6rem', color: 'var(--muted)', marginTop: 2 }}>
                                                                         {time}
                                                                     </div>
                                                                 </div>
@@ -756,6 +763,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                                 .slice(0, 50)
                                                 .map((log, i, arr) => {
                                                     const u = state.users.find(user => user.id === log.userId)
+                                                    const b = state.branches.find(br => br.id === u?.branchId)
+                                                    const branchName = b ? (b.name.toLowerCase().startsWith('cn') ? b.name : `CN ${b.name}`) : ''
                                                     const time = new Date(log.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
                                                     const isIncome = log.details.includes('[THU]')
                                                     const isExpense = log.details.includes('[CHI]')
@@ -763,7 +772,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                                     return (
                                                         <div key={log.id} style={{ padding: '10px 16px', borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)', display: 'flex', gap: 12, alignItems: 'center' }}>
                                                             <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: '0.8rem', color: semanticColor, lineHeight: 1.4, fontWeight: 600 }}>{log.details}</div></div>
-                                                            <div style={{ flexShrink: 0, textAlign: 'right' }}><div style={{ fontWeight: 700, fontSize: '0.65rem', color: 'var(--primary)' }}>{u?.displayName || 'System'}</div><div style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>{time}</div></div>
+                                                            <div style={{ flexShrink: 0, textAlign: 'center', minWidth: '70px' }}>
+                                                                <div style={{ fontWeight: 700, fontSize: '0.65rem', color: 'var(--primary)', lineHeight: 1.2 }}>{u?.displayName || 'System'}</div>
+                                                                {branchName && <div style={{ fontSize: '0.6rem', color: 'var(--gold-muted)', lineHeight: 1.2 }}>{branchName}</div>}
+                                                                <div style={{ fontSize: '0.6rem', color: 'var(--muted)', marginTop: 2 }}>{time}</div>
+                                                            </div>
                                                         </div>
                                                     )
                                                 })

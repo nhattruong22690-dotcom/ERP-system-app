@@ -15,9 +15,11 @@ import { ActivityLog, Customer, CustomerRank, User, Branch, MembershipTier, Appo
 import { supabase } from '@/lib/supabase'
 import { Users } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
+import { useRouter } from 'next/navigation'
 
 export default function CustomersPage() {
     const { state, currentUser, saveState } = useApp()
+    const router = useRouter()
     const [viewingCustomer, setViewingCustomer] = React.useState<Customer | null>(null)
     const [editingCustomer, setEditingCustomer] = React.useState<Customer | null>(null)
     const [isFormOpen, setIsFormOpen] = React.useState(false)
@@ -135,7 +137,7 @@ export default function CustomersPage() {
                 }
             />
 
-            <div className="flex-1 w-full max-w-[1700px] mx-auto">
+            <div className="flex-1 w-full max-w-[1700px] mx-auto relative">
                 <CustomerList
                     currentUser={currentUser}
                     onNavigate={(tab: string) => {
@@ -152,25 +154,32 @@ export default function CustomersPage() {
                     }}
                     customerStats={state.customerStats}
                 />
-            </div>
 
-            {viewingCustomer && (
-                <CustomerProfileModal
-                    customer={viewingCustomer}
-                    onClose={() => setViewingCustomer(null)}
-                    onNavigate={(tab: string) => {
-                        console.log('Navigate to:', tab)
-                    }}
-                    onEdit={() => {
-                        setEditingCustomer(viewingCustomer);
-                        setIsFormOpen(true);
-                        setViewingCustomer(null);
-                    }}
-                    currentUser={currentUser}
-                    branches={state.branches}
-                    appointments={state.appointments}
-                />
-            )}
+                {viewingCustomer && (
+                    <CustomerProfileModal
+                        customer={viewingCustomer}
+                        onClose={() => setViewingCustomer(null)}
+                        onNavigate={(tab: string) => {
+                            if (tab === 'create_appointment' || tab === 'appointments') {
+                                sessionStorage.setItem('create_appointment_data', JSON.stringify(viewingCustomer));
+                                router.push('/crm/appointments');
+                            } else if (tab === 'sales') {
+                                router.push('/crm/sales');
+                            } else {
+                                router.push(`/crm/${tab}`);
+                            }
+                        }}
+                        onEdit={() => {
+                            setEditingCustomer(viewingCustomer);
+                            setIsFormOpen(true);
+                            setViewingCustomer(null);
+                        }}
+                        currentUser={currentUser}
+                        branches={state.branches}
+                        appointments={state.appointments}
+                    />
+                )}
+            </div>
 
             <CustomerFormModal
                 isOpen={isFormOpen}

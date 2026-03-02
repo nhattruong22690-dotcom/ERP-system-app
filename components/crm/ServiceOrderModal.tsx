@@ -678,7 +678,12 @@ export default function ServiceOrderModal({
                     onClose={() => setShowProfileCustomer(false)}
                     onNavigate={(tab: string) => {
                         setShowProfileCustomer(false);
-                        router.push(`/crm/${tab}`);
+                        if (tab === 'appointments' || tab === 'create_appointment') {
+                            sessionStorage.setItem('createAppointmentForCustomer', selectedCustomerForProfile.id);
+                            router.push('/crm/appointments');
+                        } else {
+                            router.push(`/crm/${tab}`);
+                        }
                     }}
                     onEdit={() => {
                         setShowProfileCustomer(false);

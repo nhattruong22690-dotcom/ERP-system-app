@@ -68,6 +68,39 @@ export default function AppointmentsPage() {
         }
     }, [currentUser, canViewAll])
 
+    // Lắng nghe tín hiệu tạo lịch hẹn từ trang khác (ví dụ: Modal Hồ sơ khách hàng)
+    useEffect(() => {
+        const rawData = sessionStorage.getItem('create_appointment_data');
+        if (!rawData) return;
+
+        sessionStorage.removeItem('create_appointment_data');
+        let customerData: any = null;
+        try {
+            customerData = JSON.parse(rawData);
+        } catch (e) {
+            // Trường hợp dữ liệu cũ hoặc lỗi parse
+            return;
+        }
+
+        if (customerData && customerData.id) {
+            setForm({
+                customerId: customerData.id,
+                customerName: customerData.fullName,
+                customerPhone: customerData.phone,
+                customerRank: customerData.rank,
+                customerAvatar: customerData.avatar,
+                appointmentDate: new Date().toISOString().split('T')[0],
+                appointmentTime: '09:00',
+                status: 'pending',
+                branchId: customerData.branchId || currentUser?.branchId || (state.branches.find(b => b.type !== 'hq' && !b.isHeadquarter)?.id || state.branches[0]?.id)
+            });
+            setCustomerSearch(`${customerData.fullName} - ${customerData.phone}`);
+            setEditing(null);
+            setShowForm(true);
+        }
+    }, [currentUser, state.branches]);
+
+
     // Date formatting for display
     const dateDisplay = useMemo(() => {
         const d = new Date(selectedDate)
@@ -504,325 +537,361 @@ export default function AppointmentsPage() {
                 </div>
             </PageHeader>
 
-            <div className="content-wrapper">
+            <div className="flex-1 flex flex-col gap-4 relative min-h-0">
+                <div className="content-wrapper">
 
-                {/* Dashboard Stats - Compact */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {[
-                        { label: 'Tổng lịch', value: stats.total, icon: 'analytics', color: 'bg-blue-50 text-blue-600', border: 'border-blue-50' },
-                        { label: 'Chờ/Xác nhận', value: stats.pending, icon: 'history', color: 'bg-amber-50 text-amber-600', border: 'border-amber-50' },
-                        { label: 'Đã đến', value: stats.arrived, icon: 'check_circle', color: 'bg-emerald-50 text-emerald-600', border: 'border-emerald-50' },
-                        { label: 'Đã hủy', value: stats.cancelled, icon: 'cancel', color: 'bg-red-50 text-red-600', border: 'border-red-50' },
-                        { label: 'Rớt Sale', value: stats.noShow, icon: 'person_off', color: 'bg-gray-100 text-gray-600', border: 'border-gray-100' },
-                    ].map((s, i) => (
-                        <div key={i} className={`bg-white p-3.5 px-4 rounded-[1.5rem] border ${s.border} shadow-md shadow-gray-100/30 flex flex-col gap-1 relative overflow-hidden group hover:shadow-lg transition-all`}>
-                            <span className="material-icons-round absolute -right-1 -bottom-1 text-4xl opacity-5 group-hover:scale-110 transition-transform">{s.icon}</span>
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">{s.label}</p>
-                            <div className="flex items-end gap-1.5 mt-0.5">
-                                <span className="text-xl font-black text-gray-900 leading-none">{s.value}</span>
-                                <span className={`text-[8px] font-black px-1 py-0.5 rounded-md ${s.color}`}>+Lượt</span>
+                    {/* Dashboard Stats - Compact */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        {[
+                            { label: 'Tổng lịch', value: stats.total, icon: 'analytics', color: 'bg-blue-50 text-blue-600', border: 'border-blue-50' },
+                            { label: 'Chờ/Xác nhận', value: stats.pending, icon: 'history', color: 'bg-amber-50 text-amber-600', border: 'border-amber-50' },
+                            { label: 'Đã đến', value: stats.arrived, icon: 'check_circle', color: 'bg-emerald-50 text-emerald-600', border: 'border-emerald-50' },
+                            { label: 'Đã hủy', value: stats.cancelled, icon: 'cancel', color: 'bg-red-50 text-red-600', border: 'border-red-50' },
+                            { label: 'Rớt Sale', value: stats.noShow, icon: 'person_off', color: 'bg-gray-100 text-gray-600', border: 'border-gray-100' },
+                        ].map((s, i) => (
+                            <div key={i} className={`bg-white p-3.5 px-4 rounded-[1.5rem] border ${s.border} shadow-md shadow-gray-100/30 flex flex-col gap-1 relative overflow-hidden group hover:shadow-lg transition-all`}>
+                                <span className="material-icons-round absolute -right-1 -bottom-1 text-4xl opacity-5 group-hover:scale-110 transition-transform">{s.icon}</span>
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">{s.label}</p>
+                                <div className="flex items-end gap-1.5 mt-0.5">
+                                    <span className="text-xl font-black text-gray-900 leading-none">{s.value}</span>
+                                    <span className={`text-[8px] font-black px-1 py-0.5 rounded-md ${s.color}`}>+Lượt</span>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
-            </div>
 
-            {/* Main Content Area */}
-            <div className="flex-1 bg-white rounded-[2rem] border border-gray-100 shadow-2xl overflow-hidden flex flex-col min-h-0">
-                <div className="overflow-y-auto flex-1 custom-scrollbar p-5">
-                    {viewMode === 'day' && (
-                        <div className="max-w-5xl mx-auto flex flex-col gap-1 relative">
-                            {/* Timeline Guide Line */}
-                            <div className="absolute left-20 top-0 bottom-0 w-px bg-gray-100 z-0"></div>
+                {/* Main Content Area */}
+                <div className="flex-1 bg-white rounded-[2rem] border border-gray-100 shadow-2xl overflow-hidden flex flex-col min-h-0">
+                    <div className="overflow-y-auto flex-1 custom-scrollbar p-5">
+                        {viewMode === 'day' && (
+                            <div className="max-w-5xl mx-auto flex flex-col gap-1 relative">
+                                {/* Timeline Guide Line */}
+                                <div className="absolute left-20 top-0 bottom-0 w-px bg-gray-100 z-0"></div>
 
-                            {HOURS.map(hour => {
-                                const appointments = viewAppointments.filter(a => a.appointmentTime?.startsWith(hour.split(':')[0]))
+                                {HOURS.map(hour => {
+                                    const appointments = viewAppointments.filter(a => a.appointmentTime?.startsWith(hour.split(':')[0]))
 
-                                return (
-                                    <div key={hour} className={`flex gap-8 group min-h-[100px] relative ${viewAppointments.some(a => a.id === actionMenuId && a.appointmentTime?.startsWith(hour.split(':')[0])) ? 'z-[60]' : 'z-10'}`}>
-                                        <div className="w-28 pt-2 flex items-center justify-end gap-3 shrink-0">
-                                            <button
-                                                onClick={() => openNew(hour)}
-                                                className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-primary hover:bg-primary hover:text-gray-900 transition-all shadow-sm active:scale-95 group/addbtn"
-                                                title={`Đặt lịch lúc ${hour}`}
-                                            >
-                                                <span className="material-icons-round text-lg">add</span>
-                                            </button>
-                                            <span className="text-sm font-black text-gray-900 group-hover:text-primary transition-colors">{hour}</span>
-                                        </div>
+                                    return (
+                                        <div key={hour} className={`flex gap-8 group min-h-[100px] relative ${viewAppointments.some(a => a.id === actionMenuId && a.appointmentTime?.startsWith(hour.split(':')[0])) ? 'z-[60]' : 'z-10'}`}>
+                                            <div className="w-28 pt-2 flex items-center justify-end gap-3 shrink-0">
+                                                <button
+                                                    onClick={() => openNew(hour)}
+                                                    className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-primary hover:bg-primary hover:text-gray-900 transition-all shadow-sm active:scale-95 group/addbtn"
+                                                    title={`Đặt lịch lúc ${hour}`}
+                                                >
+                                                    <span className="material-icons-round text-lg">add</span>
+                                                </button>
+                                                <span className="text-sm font-black text-gray-900 group-hover:text-primary transition-colors">{hour}</span>
+                                            </div>
 
-                                        <div className="flex-1 pb-8 flex flex-col gap-4 relative">
-                                            {/* Horizontal dashed line for timeline */}
-                                            <div className="absolute top-4 left-0 right-0 border-t border-dashed border-gray-200 -z-10"></div>
-                                            {appointments.length > 0 ? (
-                                                appointments.map((a: Appointment) => {
-                                                    const config = STATUS_CONFIG[a.status as AppointmentStatus] || STATUS_CONFIG.pending
-                                                    const isVip = a.customerRank === CustomerRank.PLATINUM || a.customerRank === CustomerRank.GOLD
-                                                    const hasRedFlag = (a.customerRedFlags && a.customerRedFlags.length > 0)
+                                            <div className="flex-1 pb-8 flex flex-col gap-4 relative">
+                                                {/* Horizontal dashed line for timeline */}
+                                                <div className="absolute top-4 left-0 right-0 border-t border-dashed border-gray-200 -z-10"></div>
+                                                {appointments.length > 0 ? (
+                                                    appointments.map((a: Appointment) => {
+                                                        const config = STATUS_CONFIG[a.status as AppointmentStatus] || STATUS_CONFIG.pending
+                                                        const isVip = a.customerRank === CustomerRank.PLATINUM || a.customerRank === CustomerRank.GOLD
+                                                        const hasRedFlag = (a.customerRedFlags && a.customerRedFlags.length > 0)
 
-                                                    const isMenuOpen = actionMenuId === a.id
+                                                        const isMenuOpen = actionMenuId === a.id
 
-                                                    return (
-                                                        <div
-                                                            key={a.id}
-                                                            onClick={() => openEdit(a)}
-                                                            className={`p-6 rounded-[2rem] border-2 shadow-xl hover:shadow-2xl transition-all cursor-pointer group/item relative flex flex-col md:flex-row gap-6 items-start md:items-center ${a.status === 'arrived' ? 'bg-emerald-50 border-emerald-200' :
-                                                                a.status === 'confirmed' ? 'bg-cyan-50 border-cyan-200' :
-                                                                    a.status === 'pending' ? 'bg-amber-50 border-amber-200' :
-                                                                        a.status === 'completed' ? 'bg-indigo-50 border-indigo-200' :
-                                                                            a.status === 'cancelled' ? 'bg-red-50 border-red-200' :
-                                                                                'bg-gray-50 border-gray-200'
-                                                                }`}
-                                                        >
-                                                            <span className="material-icons-round absolute -right-6 -bottom-6 text-9xl opacity-[0.05] group-hover/item:scale-110 transition-transform text-white">{config.icon}</span>
+                                                        return (
+                                                            <div
+                                                                key={a.id}
+                                                                onClick={() => openEdit(a)}
+                                                                className={`p-6 rounded-[2rem] border-2 shadow-xl hover:shadow-2xl transition-all cursor-pointer group/item relative flex flex-col md:flex-row gap-6 items-start md:items-center ${a.status === 'arrived' ? 'bg-emerald-50 border-emerald-200' :
+                                                                    a.status === 'confirmed' ? 'bg-cyan-50 border-cyan-200' :
+                                                                        a.status === 'pending' ? 'bg-amber-50 border-amber-200' :
+                                                                            a.status === 'completed' ? 'bg-indigo-50 border-indigo-200' :
+                                                                                a.status === 'cancelled' ? 'bg-red-50 border-red-200' :
+                                                                                    'bg-gray-50 border-gray-200'
+                                                                    }`}
+                                                            >
+                                                                <span className="material-icons-round absolute -right-6 -bottom-6 text-9xl opacity-[0.05] group-hover/item:scale-110 transition-transform text-white">{config.icon}</span>
 
 
-                                                            <div className="flex items-center gap-4 shrink-0">
-                                                                <div className="relative">
-                                                                    {/* Status Badge above avatar */}
-                                                                    <div className="absolute -top-10 left-0 right-0 flex justify-center z-20">
-                                                                        <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border-2 border-dashed shadow-sm whitespace-nowrap ${config.bg}`}>
-                                                                            {config.label}
-                                                                        </span>
+                                                                <div className="flex items-center gap-4 shrink-0">
+                                                                    <div className="relative">
+                                                                        {/* Status Badge above avatar */}
+                                                                        <div className="absolute -top-10 left-0 right-0 flex justify-center z-20">
+                                                                            <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border-2 border-dashed shadow-sm whitespace-nowrap ${config.bg}`}>
+                                                                                {config.label}
+                                                                            </span>
+                                                                        </div>
+
+                                                                        <img
+                                                                            src={a.customerAvatar || `https://ui-avatars.com/api/?name=${a.customerName}&background=random`}
+                                                                            className={`w-14 h-14 rounded-2xl object-cover ring-4 ring-white shadow-md ${isVip ? 'ring-amber-200' : 'ring-gray-100'}`}
+                                                                            alt=""
+                                                                        />
+                                                                        {isVip && (
+                                                                            <span className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 text-white rounded-lg flex items-center justify-center shadow-lg border-2 border-white">
+                                                                                <span className="material-icons-round text-[14px]">workspace_premium</span>
+                                                                            </span>
+                                                                        )}
                                                                     </div>
-
-                                                                    <img
-                                                                        src={a.customerAvatar || `https://ui-avatars.com/api/?name=${a.customerName}&background=random`}
-                                                                        className={`w-14 h-14 rounded-2xl object-cover ring-4 ring-white shadow-md ${isVip ? 'ring-amber-200' : 'ring-gray-100'}`}
-                                                                        alt=""
-                                                                    />
-                                                                    {isVip && (
-                                                                        <span className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 text-white rounded-lg flex items-center justify-center shadow-lg border-2 border-white">
-                                                                            <span className="material-icons-round text-[14px]">workspace_premium</span>
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-lg font-black text-gray-900">{a.customerName || 'Khách vãng lai'}</p>
-                                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                                        <span className="text-[10px] bg-white px-2 py-0.5 rounded-md font-black text-gray-900 uppercase tracking-widest border border-gray-200">{a.appointmentTime}</span>
-                                                                        <span className="text-[9px] bg-gray-100 px-2 py-0.5 rounded-md font-black text-gray-500 uppercase tracking-widest">LH-{a.appointmentDate.replace(/-/g, '').slice(2)}</span>
-                                                                        <span className="text-xs text-gray-600 font-bold">{a.customerPhone}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="flex-1 space-y-2">
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    {hasRedFlag && (
-                                                                        <span className="flex items-center gap-1.5 px-3 py-1 bg-red-500 text-white rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse shadow-lg shadow-red-200">
-                                                                            <span className="material-icons-round text-xs">report_problem</span>
-                                                                            Cần lưu ý
-                                                                        </span>
-                                                                    )}
-                                                                    <span className="px-3 py-1 bg-white border border-gray-200 rounded-full text-[10px] font-black text-gray-600 uppercase tracking-widest shadow-sm">
-                                                                        {state.branches.find(b => b.id === a.branchId)?.name || 'HQ'}
-                                                                    </span>
-                                                                    {a.bookingSource && SOURCE_CONFIG[a.bookingSource as keyof typeof SOURCE_CONFIG] && (
-                                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm border ${SOURCE_CONFIG[a.bookingSource as keyof typeof SOURCE_CONFIG].bg}`}>
-                                                                            <span className="material-icons-round text-xs align-middle mr-1">{SOURCE_CONFIG[a.bookingSource as keyof typeof SOURCE_CONFIG].icon}</span>
-                                                                            {SOURCE_CONFIG[a.bookingSource as keyof typeof SOURCE_CONFIG].label}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                {a.notes && (
-                                                                    <p className="text-sm font-bold text-gray-900 line-clamp-1 italic">
-                                                                        <span className="material-icons-round text-sm align-middle mr-1 opacity-60">edit_note</span>
-                                                                        {a.notes}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-
-                                                            {/* Unified Quick Actions */}
-                                                            <div className="relative pt-2" onClick={e => e.stopPropagation()}>
-                                                                <button
-                                                                    onClick={() => setActionMenuId(isMenuOpen ? null : a.id)}
-                                                                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 text-gray-900 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 font-black text-[10px] uppercase tracking-widest"
-                                                                >
-                                                                    Hành động
-                                                                    <span className="material-icons-round text-base transition-transform" style={{ transform: isMenuOpen ? 'rotate(180deg)' : 'none' }}>expand_more</span>
-                                                                </button>
-
-                                                                {isMenuOpen && (
-                                                                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden divide-y divide-gray-50 z-[100] animate-scale-up origin-top-right">
-                                                                        <div className="p-2 grid grid-cols-1 gap-1">
-                                                                            <div className="flex items-center justify-between px-3 py-2 mb-1">
-                                                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Trạng thái</span>
-                                                                                <button onClick={() => setActionMenuId(null)} className="text-gray-400 hover:text-gray-900 transition-colors">
-                                                                                    <span className="material-icons-round text-sm">close</span>
-                                                                                </button>
-                                                                            </div>
-                                                                            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
-                                                                                const isActive = a.status === key
-                                                                                return (
-                                                                                    <button
-                                                                                        key={key}
-                                                                                        onClick={() => handleStatusChange(a, key as AppointmentStatus)}
-                                                                                        className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all group/btn ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-gray-50 text-gray-600 hover:pl-5 active:scale-95'}`}
-                                                                                    >
-                                                                                        <span className="material-icons-round text-base transition-transform group-hover/btn:scale-125" style={{ color: !isActive ? cfg.color : undefined }}>{cfg.icon}</span>
-                                                                                        <span className="text-[11px] font-black uppercase tracking-wider">{cfg.label}</span>
-                                                                                        {isActive && <span className="material-icons-round text-sm ml-auto animate-in zoom-in-50 duration-300">check</span>}
-                                                                                    </button>
-                                                                                )
-                                                                            })}
-                                                                            <div className="h-px bg-gray-100 my-1"></div>
-                                                                            <button
-                                                                                onClick={() => handleDelete(a)}
-                                                                                className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-red-50 text-red-500 transition-all font-black hover:pl-5 active:scale-95 group/delbtn"
-                                                                            >
-                                                                                <span className="material-icons-round text-base transition-transform group-hover/delbtn:rotate-12 group-hover/delbtn:scale-125">delete</span>
-                                                                                <span className="text-[11px] uppercase tracking-wider">Xóa lịch hẹn</span>
-                                                                            </button>
-                                                                            <div className="h-px bg-gray-100 my-1"></div>
-                                                                            <button
-                                                                                onClick={() => {
-                                                                                    setActionMenuId(null)
-                                                                                    setServiceOrderInitialData({
-                                                                                        appointmentId: a.id,
-                                                                                        customerId: a.customerId,
-                                                                                        branchId: a.branchId || ''
-                                                                                    })
-                                                                                    setShowServiceOrderForm(true)
-                                                                                }}
-                                                                                className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-primary/10 text-primary transition-all font-black hover:pl-5 active:scale-95 group/sobtn"
-                                                                            >
-                                                                                <Receipt size={16} className="transition-transform group-hover/sobtn:scale-125" />
-                                                                                <span className="text-[11px] uppercase tracking-wider">Tạo phiếu DV</span>
-                                                                            </button>
+                                                                    <div>
+                                                                        <p className="text-lg font-black text-gray-900">{a.customerName || 'Khách vãng lai'}</p>
+                                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                                            <span className="text-[10px] bg-white px-2 py-0.5 rounded-md font-black text-gray-900 uppercase tracking-widest border border-gray-200">{a.appointmentTime}</span>
+                                                                            <span className="text-[9px] bg-gray-100 px-2 py-0.5 rounded-md font-black text-gray-500 uppercase tracking-widest">LH-{a.appointmentDate.replace(/-/g, '').slice(2)}</span>
+                                                                            <span className="text-xs text-gray-600 font-bold">{a.customerPhone}</span>
                                                                         </div>
                                                                     </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })
-                                            ) : (
-                                                <div
-                                                    onClick={() => openNew(hour)}
-                                                    className="h-14 border border-dashed border-gray-300 rounded-2xl flex items-center px-6 text-gray-600 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all cursor-pointer group/slot"
-                                                >
-                                                    <span className="material-icons-round text-lg mr-3 opacity-30 group-hover/slot:opacity-100 transition-opacity">add_circle_outline</span>
-                                                    <span className="text-xs font-black uppercase tracking-widest opacity-60 group-hover/slot:opacity-100 transition-opacity">Đặt lịch lúc {hour}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    )}
-
-                    {viewMode === 'week' && (
-                        <div className="max-w-6xl mx-auto space-y-8 pb-20">
-                            {Array.from({ length: 7 }).map((_, i) => {
-                                const curr = new Date(selectedDate)
-                                const first = curr.getDate() - curr.getDay() + 1
-                                const date = new Date(curr.setDate(first + i))
-                                const dateStr = date.toISOString().split('T')[0]
-                                const label = date.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })
-                                const dayAppointments = viewAppointments.filter(a => a.appointmentDate === dateStr)
-                                const isToday = dateStr === new Date().toISOString().split('T')[0]
-
-                                return (
-                                    <div key={dateStr} className={`bg-gray-50/50 rounded-2xl border ${isToday ? 'border-primary/50 bg-primary/5' : 'border-gray-100'} p-4 flex flex-col md:flex-row gap-4`}>
-                                        <div
-                                            onClick={() => {
-                                                setSelectedDate(dateStr)
-                                                setViewMode('day')
-                                            }}
-                                            className="w-24 shrink-0 cursor-pointer hover:bg-white p-2 rounded-xl transition-all group/daylink"
-                                        >
-                                            <p className={`text-xs font-black uppercase tracking-widest ${isToday ? 'text-primary' : 'text-gray-600'}`}>{label.split(' ')[0]}</p>
-                                            <p className="text-xl font-black text-gray-900 leading-none mt-1">{label.split(' ')[1]}</p>
-                                            {isToday && <span className="text-[8px] font-black text-primary uppercase tracking-widest block mt-1">Hôm nay</span>}
-                                            <span className="material-icons-round text-sm text-primary opacity-0 group-hover/daylink:opacity-100 transition-opacity mt-1">login</span>
-                                        </div>
-                                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {dayAppointments.map(a => {
-                                                const customer = state.customers.find(c => c.id === a.customerId)
-                                                const config = STATUS_CONFIG[a.status as AppointmentStatus] || STATUS_CONFIG.pending
-                                                return (
-                                                    <div key={a.id} onClick={() => openEdit(a)} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-3">
-                                                        <div className="w-2 h-10 rounded-full" style={{ backgroundColor: config.color }}></div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-xs font-black text-gray-900 truncate">{customer?.fullName || 'Khách vãng lai'}</p>
-                                                            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest mt-0.5">{a.appointmentTime}</p>
-                                                        </div>
-                                                        <span className="material-icons-round text-sm text-gray-400">{config.icon}</span>
-                                                    </div>
-                                                )
-                                            })}
-                                            {dayAppointments.length === 0 && (
-                                                <div className="col-span-full py-4 text-center opacity-30 italic text-sm font-bold">Trống</div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    )}
-
-                    {viewMode === 'month' && (
-                        <div className="max-w-6xl mx-auto pb-20">
-                            <div className="grid grid-cols-7 gap-px bg-gray-100 border border-gray-100 shadow-2xl rounded-3xl overflow-hidden">
-                                {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
-                                    <div key={d} className="bg-gray-50 p-4 text-center text-[10px] font-black text-gray-600 uppercase tracking-widest">{d}</div>
-                                ))}
-                                {(() => {
-                                    const d = new Date(selectedDate)
-                                    const month = d.getMonth()
-                                    const year = d.getFullYear()
-                                    const firstDay = new Date(year, month, 1).getDay()
-                                    const daysInMonth = new Date(year, month + 1, 0).getDate()
-                                    const offset = firstDay === 0 ? 6 : firstDay - 1
-
-                                    return Array.from({ length: 42 }).map((_, i) => {
-                                        const dayNum = i - offset + 1
-                                        const isValid = dayNum > 0 && dayNum <= daysInMonth
-                                        const date = new Date(year, month, dayNum)
-                                        const dateStr = date.toISOString().split('T')[0]
-                                        const dayAppointments = viewAppointments.filter(a => a.appointmentDate === dateStr)
-                                        const isToday = dateStr === new Date().toISOString().split('T')[0]
-
-                                        return (
-                                            <div
-                                                key={i}
-                                                onClick={() => {
-                                                    if (isValid) {
-                                                        setSelectedDate(dateStr)
-                                                        setViewMode('day')
-                                                    }
-                                                }}
-                                                className={`bg-white min-h-[100px] p-2 flex flex-col gap-1 transition-colors relative group/monthday ${!isValid ? 'bg-gray-50/30' : 'hover:bg-primary/5 cursor-pointer'}`}
-                                            >
-                                                {isValid && (
-                                                    <span className="material-icons-round absolute right-2 top-2 text-xs text-primary opacity-0 group-hover/monthday:opacity-100 transition-opacity">login</span>
-                                                )}
-                                                {isValid && (
-                                                    <>
-                                                        <span className={`text-xs font-black ${isToday ? 'w-6 h-6 rounded-lg bg-primary text-gray-900 flex items-center justify-center' : 'text-gray-600'}`}>{dayNum}</span>
-                                                        <div className="flex flex-col gap-1">
-                                                            {dayAppointments.slice(0, 3).map(a => (
-                                                                <div key={a.id} className="px-2 py-1 rounded-md bg-gray-50 border border-gray-200 flex items-center gap-1.5 opacity-90 overflow-hidden">
-                                                                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_CONFIG[a.status as AppointmentStatus]?.color || '#ccc' }}></div>
-                                                                    <span className="text-[9px] font-black text-gray-900 truncate">{a.customerName || 'Khách'}</span>
                                                                 </div>
-                                                            ))}
-                                                            {dayAppointments.length > 3 && (
-                                                                <span className="text-[9px] font-black text-primary pl-2">+{dayAppointments.length - 3} thêm...</span>
-                                                            )}
-                                                        </div>
-                                                    </>
+
+                                                                <div className="flex-1 space-y-2">
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {hasRedFlag && (
+                                                                            <span className="flex items-center gap-1.5 px-3 py-1 bg-red-500 text-white rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse shadow-lg shadow-red-200">
+                                                                                <span className="material-icons-round text-xs">report_problem</span>
+                                                                                Cần lưu ý
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="px-3 py-1 bg-white border border-gray-200 rounded-full text-[10px] font-black text-gray-600 uppercase tracking-widest shadow-sm">
+                                                                            {state.branches.find(b => b.id === a.branchId)?.name || 'HQ'}
+                                                                        </span>
+                                                                        {a.bookingSource && SOURCE_CONFIG[a.bookingSource as keyof typeof SOURCE_CONFIG] && (
+                                                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm border ${SOURCE_CONFIG[a.bookingSource as keyof typeof SOURCE_CONFIG].bg}`}>
+                                                                                <span className="material-icons-round text-xs align-middle mr-1">{SOURCE_CONFIG[a.bookingSource as keyof typeof SOURCE_CONFIG].icon}</span>
+                                                                                {SOURCE_CONFIG[a.bookingSource as keyof typeof SOURCE_CONFIG].label}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    {a.notes && (
+                                                                        <p className="text-sm font-bold text-gray-900 line-clamp-1 italic">
+                                                                            <span className="material-icons-round text-sm align-middle mr-1 opacity-60">edit_note</span>
+                                                                            {a.notes}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Unified Quick Actions */}
+                                                                <div className="relative pt-2" onClick={e => e.stopPropagation()}>
+                                                                    <button
+                                                                        onClick={() => setActionMenuId(isMenuOpen ? null : a.id)}
+                                                                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 text-gray-900 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 font-black text-[10px] uppercase tracking-widest"
+                                                                    >
+                                                                        Hành động
+                                                                        <span className="material-icons-round text-base transition-transform" style={{ transform: isMenuOpen ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+                                                                    </button>
+
+                                                                    {isMenuOpen && (
+                                                                        <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden divide-y divide-gray-50 z-[100] animate-scale-up origin-top-right">
+                                                                            <div className="p-2 grid grid-cols-1 gap-1">
+                                                                                <div className="flex items-center justify-between px-3 py-2 mb-1">
+                                                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Trạng thái</span>
+                                                                                    <button onClick={() => setActionMenuId(null)} className="text-gray-400 hover:text-gray-900 transition-colors">
+                                                                                        <span className="material-icons-round text-sm">close</span>
+                                                                                    </button>
+                                                                                </div>
+                                                                                {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+                                                                                    const isActive = a.status === key
+                                                                                    return (
+                                                                                        <button
+                                                                                            key={key}
+                                                                                            onClick={() => handleStatusChange(a, key as AppointmentStatus)}
+                                                                                            className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all group/btn ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-gray-50 text-gray-600 hover:pl-5 active:scale-95'}`}
+                                                                                        >
+                                                                                            <span className="material-icons-round text-base transition-transform group-hover/btn:scale-125" style={{ color: !isActive ? cfg.color : undefined }}>{cfg.icon}</span>
+                                                                                            <span className="text-[11px] font-black uppercase tracking-wider">{cfg.label}</span>
+                                                                                            {isActive && <span className="material-icons-round text-sm ml-auto animate-in zoom-in-50 duration-300">check</span>}
+                                                                                        </button>
+                                                                                    )
+                                                                                })}
+                                                                                <div className="h-px bg-gray-100 my-1"></div>
+                                                                                <button
+                                                                                    onClick={() => handleDelete(a)}
+                                                                                    className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-red-50 text-red-500 transition-all font-black hover:pl-5 active:scale-95 group/delbtn"
+                                                                                >
+                                                                                    <span className="material-icons-round text-base transition-transform group-hover/delbtn:rotate-12 group-hover/delbtn:scale-125">delete</span>
+                                                                                    <span className="text-[11px] uppercase tracking-wider">Xóa lịch hẹn</span>
+                                                                                </button>
+                                                                                <div className="h-px bg-gray-100 my-1"></div>
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        setActionMenuId(null)
+                                                                                        setServiceOrderInitialData({
+                                                                                            appointmentId: a.id,
+                                                                                            customerId: a.customerId,
+                                                                                            branchId: a.branchId || ''
+                                                                                        })
+                                                                                        setShowServiceOrderForm(true)
+                                                                                    }}
+                                                                                    className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-primary/10 text-primary transition-all font-black hover:pl-5 active:scale-95 group/sobtn"
+                                                                                >
+                                                                                    <Receipt size={16} className="transition-transform group-hover/sobtn:scale-125" />
+                                                                                    <span className="text-[11px] uppercase tracking-wider">Tạo phiếu DV</span>
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })
+                                                ) : (
+                                                    <div
+                                                        onClick={() => openNew(hour)}
+                                                        className="h-14 border border-dashed border-gray-300 rounded-2xl flex items-center px-6 text-gray-600 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all cursor-pointer group/slot"
+                                                    >
+                                                        <span className="material-icons-round text-lg mr-3 opacity-30 group-hover/slot:opacity-100 transition-opacity">add_circle_outline</span>
+                                                        <span className="text-xs font-black uppercase tracking-widest opacity-60 group-hover/slot:opacity-100 transition-opacity">Đặt lịch lúc {hour}</span>
+                                                    </div>
                                                 )}
                                             </div>
-                                        )
-                                    })
-                                })()}
+                                        </div>
+                                    )
+                                })}
                             </div>
-                        </div>
-                    )}
+                        )}
+
+                        {viewMode === 'week' && (
+                            <div className="max-w-6xl mx-auto space-y-8 pb-20">
+                                {Array.from({ length: 7 }).map((_, i) => {
+                                    const curr = new Date(selectedDate)
+                                    const first = curr.getDate() - curr.getDay() + 1
+                                    const date = new Date(curr.setDate(first + i))
+                                    const dateStr = date.toISOString().split('T')[0]
+                                    const label = date.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })
+                                    const dayAppointments = viewAppointments.filter(a => a.appointmentDate === dateStr)
+                                    const isToday = dateStr === new Date().toISOString().split('T')[0]
+
+                                    return (
+                                        <div key={dateStr} className={`bg-gray-50/50 rounded-2xl border ${isToday ? 'border-primary/50 bg-primary/5' : 'border-gray-100'} p-4 flex flex-col md:flex-row gap-4`}>
+                                            <div
+                                                onClick={() => {
+                                                    setSelectedDate(dateStr)
+                                                    setViewMode('day')
+                                                }}
+                                                className="w-24 shrink-0 cursor-pointer hover:bg-white p-2 rounded-xl transition-all group/daylink"
+                                            >
+                                                <p className={`text-xs font-black uppercase tracking-widest ${isToday ? 'text-primary' : 'text-gray-600'}`}>{label.split(' ')[0]}</p>
+                                                <p className="text-xl font-black text-gray-900 leading-none mt-1">{label.split(' ')[1]}</p>
+                                                {isToday && <span className="text-[8px] font-black text-primary uppercase tracking-widest block mt-1">Hôm nay</span>}
+                                                <span className="material-icons-round text-sm text-primary opacity-0 group-hover/daylink:opacity-100 transition-opacity mt-1">login</span>
+                                            </div>
+                                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {dayAppointments.map(a => {
+                                                    const customer = state.customers.find(c => c.id === a.customerId)
+                                                    const config = STATUS_CONFIG[a.status as AppointmentStatus] || STATUS_CONFIG.pending
+                                                    return (
+                                                        <div key={a.id} onClick={() => openEdit(a)} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-3">
+                                                            <div className="w-2 h-10 rounded-full" style={{ backgroundColor: config.color }}></div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs font-black text-gray-900 truncate">{customer?.fullName || 'Khách vãng lai'}</p>
+                                                                <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest mt-0.5">{a.appointmentTime}</p>
+                                                            </div>
+                                                            <span className="material-icons-round text-sm text-gray-400">{config.icon}</span>
+                                                        </div>
+                                                    )
+                                                })}
+                                                {dayAppointments.length === 0 && (
+                                                    <div className="col-span-full py-4 text-center opacity-30 italic text-sm font-bold">Trống</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+
+                        {viewMode === 'month' && (
+                            <div className="max-w-6xl mx-auto pb-20">
+                                <div className="grid grid-cols-7 gap-px bg-gray-100 border border-gray-100 shadow-2xl rounded-3xl overflow-hidden">
+                                    {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
+                                        <div key={d} className="bg-gray-50 p-4 text-center text-[10px] font-black text-gray-600 uppercase tracking-widest">{d}</div>
+                                    ))}
+                                    {(() => {
+                                        const d = new Date(selectedDate)
+                                        const month = d.getMonth()
+                                        const year = d.getFullYear()
+                                        const firstDay = new Date(year, month, 1).getDay()
+                                        const daysInMonth = new Date(year, month + 1, 0).getDate()
+                                        const offset = firstDay === 0 ? 6 : firstDay - 1
+
+                                        return Array.from({ length: 42 }).map((_, i) => {
+                                            const dayNum = i - offset + 1
+                                            const isValid = dayNum > 0 && dayNum <= daysInMonth
+                                            const date = new Date(year, month, dayNum)
+                                            const dateStr = date.toISOString().split('T')[0]
+                                            const dayAppointments = viewAppointments.filter(a => a.appointmentDate === dateStr)
+                                            const isToday = dateStr === new Date().toISOString().split('T')[0]
+
+                                            return (
+                                                <div
+                                                    key={i}
+                                                    onClick={() => {
+                                                        if (isValid) {
+                                                            setSelectedDate(dateStr)
+                                                            setViewMode('day')
+                                                        }
+                                                    }}
+                                                    className={`bg-white min-h-[100px] p-2 flex flex-col gap-1 transition-colors relative group/monthday ${!isValid ? 'bg-gray-50/30' : 'hover:bg-primary/5 cursor-pointer'}`}
+                                                >
+                                                    {isValid && (
+                                                        <span className="material-icons-round absolute right-2 top-2 text-xs text-primary opacity-0 group-hover/monthday:opacity-100 transition-opacity">login</span>
+                                                    )}
+                                                    <div className="flex justify-between items-center">
+                                                        <span className={`text-xs font-black ${isToday ? 'bg-primary text-gray-900 w-6 h-6 rounded-full flex items-center justify-center' : isValid ? 'text-gray-900' : 'text-gray-300'}`}>{isValid ? dayNum : ''}</span>
+                                                        {dayAppointments.length > 0 && (
+                                                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col gap-1 mt-1">
+                                                        {dayAppointments.slice(0, 3).map(a => (
+                                                            <div key={a.id} className="h-1.5 rounded-full" style={{ backgroundColor: STATUS_CONFIG[a.status as AppointmentStatus]?.color || '#f59e0b' }}></div>
+                                                        ))}
+                                                        {dayAppointments.length > 3 && (
+                                                            <span className="text-[8px] font-black text-gray-400">+{dayAppointments.length - 3}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })
+                                    })()}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
+
+                {showProfileCustomer && selectedCustomerForProfile && currentUser && (
+                    <CustomerProfileModal
+                        customer={selectedCustomerForProfile}
+                        onClose={() => setShowProfileCustomer(false)}
+                        onNavigate={(tab: string) => {
+                            setShowProfileCustomer(false);
+                            if (tab === 'sales') {
+                                setShowServiceOrderForm(true);
+                            } else if (tab === 'appointments' || tab === 'create_appointment') {
+                                setForm({
+                                    customerId: selectedCustomerForProfile.id,
+                                    customerName: selectedCustomerForProfile.fullName,
+                                    customerPhone: selectedCustomerForProfile.phone,
+                                    customerRank: selectedCustomerForProfile.rank,
+                                    customerAvatar: selectedCustomerForProfile.avatar,
+                                    appointmentDate: new Date().toISOString().split('T')[0],
+                                    appointmentTime: '09:00',
+                                    status: 'pending',
+                                    branchId: selectedCustomerForProfile.branchId || currentUser?.branchId || (state.branches.find(b => b.type !== 'hq' && !b.isHeadquarter)?.id || state.branches[0]?.id)
+                                });
+                                setCustomerSearch(`${selectedCustomerForProfile.fullName} - ${selectedCustomerForProfile.phone}`);
+                                setEditing(null);
+                                setShowForm(true);
+                            } else {
+                                router.push(`/crm/${tab}`);
+                            }
+                        }}
+                        onEdit={() => {
+                            setShowProfileCustomer(false);
+                        }}
+                        currentUser={currentUser}
+                        branches={state.branches}
+                        appointments={state.appointments}
+                    />
+                )}
             </div>
 
             {/* Modal Form */}
@@ -1091,8 +1160,26 @@ export default function AppointmentsPage() {
                     onClose={() => setShowProfileCustomer(false)}
                     onNavigate={(tab: string) => {
                         setShowProfileCustomer(false);
-                        if (tab === 'sales') setShowServiceOrderForm(true);
-                        else router.push(`/crm/${tab}`);
+                        if (tab === 'sales') {
+                            setShowServiceOrderForm(true);
+                        } else if (tab === 'appointments' || tab === 'create_appointment') {
+                            setForm({
+                                customerId: selectedCustomerForProfile.id,
+                                customerName: selectedCustomerForProfile.fullName,
+                                customerPhone: selectedCustomerForProfile.phone,
+                                customerRank: selectedCustomerForProfile.rank,
+                                customerAvatar: selectedCustomerForProfile.avatar,
+                                appointmentDate: new Date().toISOString().split('T')[0],
+                                appointmentTime: '09:00',
+                                status: 'pending',
+                                branchId: selectedCustomerForProfile.branchId || currentUser?.branchId || (state.branches.find(b => b.type !== 'hq' && !b.isHeadquarter)?.id || state.branches[0]?.id)
+                            });
+                            setCustomerSearch(`${selectedCustomerForProfile.fullName} - ${selectedCustomerForProfile.phone}`);
+                            setEditing(null);
+                            setShowForm(true);
+                        } else {
+                            router.push(`/crm/${tab}`);
+                        }
                     }}
                     onEdit={() => {
                         setShowProfileCustomer(false);

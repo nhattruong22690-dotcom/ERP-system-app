@@ -32,7 +32,7 @@ export const LoyaltySettingsTab = () => {
             }
 
             saveState(storage.saveLoyaltySettings(updated))
-            await storage.syncLoyaltySettings(updated)
+            await storage.syncLoyaltySettings(updated, state.currentUserId)
 
             showToast('Thành công', 'Đã lưu cấu hình tích điểm', 'success')
         } catch (error) {

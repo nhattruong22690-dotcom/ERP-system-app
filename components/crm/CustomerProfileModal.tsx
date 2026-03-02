@@ -171,118 +171,118 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
 
     return (
         <div
-            className="fixed inset-0 z-[1100] bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer"
+            className="fixed inset-0 md:left-[var(--sidebar-width,280px)] md:w-[calc(100%-var(--sidebar-width,280px))] z-[9999] bg-black/60 backdrop-blur-md animate-fade-in flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-10 cursor-pointer"
             onClick={onClose}
         >
-            <div className="flex justify-center min-h-full py-4 md:py-16 px-4 md:px-10">
-                <div
-                    className="bg-white w-full max-w-[1600px] h-fit rounded-[32px] md:rounded-[50px] shadow-2xl overflow-hidden flex flex-col animate-modal-up relative border border-white/20 cursor-default mb-20"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    {/* Actions Top-Right */}
-                    <div className="absolute top-6 right-8 flex items-center gap-4 z-[120]">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                            className="w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all backdrop-blur-lg border border-white/10 active:scale-90 group"
-                        >
-                            <Edit3 size={20} className="group-hover:text-gold-muted transition-colors" />
-                        </button>
-                        <button
-                            onClick={onClose}
-                            className="w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all backdrop-blur-lg border border-white/10 active:scale-90 group"
-                        >
-                            <X size={20} className="group-hover:text-rose-400 transition-colors" />
-                        </button>
+            <div
+                className="bg-white w-full max-w-[1800px] h-[92vh] rounded-[24px] md:rounded-[40px] shadow-2xl flex flex-col animate-modal-up relative border border-white/20 cursor-default overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Actions Top-Right - Fixed Position */}
+                <div className="absolute top-4 right-4 md:top-6 md:right-8 flex items-center gap-2 md:gap-4 z-[120]">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                        className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition-all backdrop-blur-lg border border-white/20 active:scale-90 group shadow-lg"
+                    >
+                        <Edit3 size={18} className="group-hover:text-gold-muted transition-colors md:w-5 md:h-5" />
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition-all backdrop-blur-lg border border-white/20 active:scale-90 group shadow-lg"
+                    >
+                        <X size={18} className="group-hover:text-rose-400 transition-colors md:w-5 md:h-5" />
+                    </button>
+                </div>
+
+                {/* Scrollable Content Area */}
+                <div className="flex-1 overflow-y-auto luxury-scrollbar relative bg-beige-soft/10 pb-10">
+                    {/* Header Luxury Background - More Compact */}
+                    <div className="h-32 md:h-48 bg-text-main shrink-0 overflow-hidden relative border-b border-gold-muted/20">
+                        <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 20% 150%, #C5A059, transparent), radial-gradient(circle at 80% -50%, #F2EBE1, transparent)' }}></div>
                     </div>
 
-                    <div className="flex-1 relative bg-beige-soft/10">
-                        {/* Header Luxury Background - Adjusted vertical space */}
-                        <div className="h-64 bg-text-main shrink-0 overflow-hidden relative border-b border-gold-muted/20">
-                            <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 20% 150%, #C5A059, transparent), radial-gradient(circle at 80% -50%, #F2EBE1, transparent)' }}></div>
-                        </div>
+                    <div className="px-4 md:px-12 -mt-16 md:-mt-24 relative z-[130]">
+                        {/* Premium Information Box - Refined Compact Style */}
+                        <div className="bg-[#FAF7F2]/95 backdrop-blur-xl border-2 border-dashed border-gold-muted/40 rounded-[28px] md:rounded-[40px] p-4 md:p-8 shadow-luxury-lg flex flex-col items-center xl:items-start xl:flex-row gap-6 xl:gap-10 transition-all hover:border-gold-muted/60 group">
+                            {/* Avatar Container */}
+                            <div className="relative shrink-0">
+                                <div className="relative group/avatar">
+                                    <RankAvatar
+                                        src={customer.avatar || `https://ui-avatars.com/api/?name=${customer.fullName}&background=FAF7F2&color=C5A059&size=200&bold=true`}
+                                        rank={customer.rank}
+                                        size={140}
+                                    />
 
-                        <div className="px-4 md:px-12 -mt-24 md:-mt-32 relative z-[130]">
-                            {/* Premium Information Box */}
-                            <div className="bg-[#FAF7F2]/95 backdrop-blur-xl border-2 border-dashed border-gold-muted/40 rounded-[32px] md:rounded-[50px] p-6 md:p-12 shadow-luxury-lg flex flex-col items-center md:items-start md:flex-row gap-8 md:gap-12 transition-all hover:border-gold-muted/60 group">
-                                {/* Avatar Container */}
-                                <div className="relative shrink-0">
-                                    <div className="relative group/avatar">
-                                        <RankAvatar
-                                            src={customer.avatar || `https://ui-avatars.com/api/?name=${customer.fullName}&background=FAF7F2&color=C5A059&size=200&bold=true`}
-                                            rank={customer.rank}
-                                            size={currentUser ? 240 : 200} // Increased size for impact
-                                        />
+                                    {/* Status Glow */}
+                                    <div className="absolute bottom-6 right-6 w-8 h-8 rounded-full bg-emerald-500 border-4 border-white shadow-lg z-20 animate-pulse"></div>
 
-                                        {/* Status Glow */}
-                                        <div className="absolute bottom-6 right-6 w-8 h-8 rounded-full bg-emerald-500 border-4 border-white shadow-lg z-20 animate-pulse"></div>
-
-                                        {/* VIP Badge image - Perfectly positioned overlapping the frame */}
-                                        {customer.isVip && (
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 z-[150] w-48 h-48 flex items-center justify-center">
-                                                <img
-                                                    src="/images/vip-badge-luxury.png"
-                                                    alt="VIP"
-                                                    className="w-full h-full object-contain animate-bounce-slow"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Golden Frame Accent */}
-                                    <div className="absolute -inset-4 border border-gold-muted/20 rounded-[58px] z-0 opacity-50 group-hover:inset-0 transition-all duration-700 animate-pulse-slow"></div>
-                                    {isBirthdayMonth && (
-                                        <div className="absolute -top-10 -left-10 w-24 h-24 bg-gradient-to-br from-rose-400 to-rose-600 text-white rounded-[32px] shadow-luxury border-4 border-white flex items-center justify-center animate-bounce z-[50]">
-                                            <Cake size={40} strokeWidth={2.5} />
+                                    {/* VIP Badge image - Perfectly positioned overlapping the frame */}
+                                    {customer.isVip && (
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 z-[150] w-32 h-32 md:w-40 md:h-40 flex items-center justify-center">
+                                            <img
+                                                src="/images/vip-badge-luxury.png"
+                                                alt="VIP"
+                                                className="w-full h-full object-contain animate-bounce-slow"
+                                            />
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Details Container */}
-                                <div className="flex-1 flex flex-col gap-2 w-full">
-                                    <div className="flex flex-col">
-                                        <div className="flex items-center gap-6 justify-center md:justify-start">
-                                            <h1 className="text-4xl md:text-7xl font-serif font-black text-text-main tracking-tighter drop-shadow-sm group-hover:text-gold-muted transition-all duration-500 italic pb-2">
-                                                {customer.fullName}
-                                            </h1>
+                                {/* Golden Frame Accent */}
+                                <div className="absolute -inset-4 border border-gold-muted/20 rounded-[58px] z-0 opacity-50 group-hover:inset-0 transition-all duration-700 animate-pulse-slow"></div>
+                                {isBirthdayMonth && (
+                                    <div className="absolute -top-10 -left-10 w-24 h-24 bg-gradient-to-br from-rose-400 to-rose-600 text-white rounded-[32px] shadow-luxury border-4 border-white flex items-center justify-center animate-bounce z-[50]">
+                                        <Cake size={40} strokeWidth={2.5} />
+                                    </div>
+                                )}
+                            </div>
 
-                                            {/* Art Gender Icon - Next to Name */}
-                                            <div className="shrink-0">
-                                                {customer.gender === 'nam' ? (
-                                                    <div
-                                                        className="text-blue-300 transition-all duration-700"
-                                                        style={{
-                                                            filter: 'drop-shadow(0 0 15px rgba(147,197,253,0.8))',
-                                                            animation: 'waving-hand 2s ease-in-out infinite'
-                                                        }}
-                                                    >
-                                                        <Mars size={48} strokeWidth={3} />
-                                                    </div>
-                                                ) : customer.gender === 'nu' ? (
-                                                    <div
-                                                        className="text-pink-400 transition-all duration-700"
-                                                        style={{
-                                                            filter: 'drop-shadow(0 0 15px rgba(244,114,182,0.8))',
-                                                            animation: 'swinging-icon 3s ease-in-out infinite'
-                                                        }}
-                                                    >
-                                                        <Venus size={48} strokeWidth={3} />
-                                                    </div>
-                                                ) : (
-                                                    <div
-                                                        className="text-amber-500 transition-all duration-700"
-                                                        style={{
-                                                            filter: 'drop-shadow(0 0 20px rgba(245,158,11,0.8))',
-                                                            animation: 'swinging-icon 3s ease-in-out infinite'
-                                                        }}
-                                                    >
-                                                        <Rainbow size={32} strokeWidth={3} className="md:w-12 md:h-12" />
-                                                    </div>
-                                                )}
-                                            </div>
+                            {/* Details Container */}
+                            <div className="flex-1 flex flex-col gap-2 w-full">
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-6 justify-center xl:justify-start">
+                                        <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-serif font-black text-text-main tracking-tighter drop-shadow-sm group-hover:text-gold-muted transition-all duration-500 italic pb-2 break-words">
+                                            {customer.fullName}
+                                        </h1>
+
+                                        {/* Art Gender Icon - Next to Name */}
+                                        <div className="shrink-0">
+                                            {customer.gender === 'nam' ? (
+                                                <div
+                                                    className="text-blue-300 transition-all duration-700"
+                                                    style={{
+                                                        filter: 'drop-shadow(0 0 15px rgba(147,197,253,0.8))',
+                                                        animation: 'waving-hand 2s ease-in-out infinite'
+                                                    }}
+                                                >
+                                                    <Mars size={48} strokeWidth={3} />
+                                                </div>
+                                            ) : customer.gender === 'nu' ? (
+                                                <div
+                                                    className="text-pink-400 transition-all duration-700"
+                                                    style={{
+                                                        filter: 'drop-shadow(0 0 15px rgba(244,114,182,0.8))',
+                                                        animation: 'swinging-icon 3s ease-in-out infinite'
+                                                    }}
+                                                >
+                                                    <Venus size={48} strokeWidth={3} />
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    className="text-amber-500 transition-all duration-700"
+                                                    style={{
+                                                        filter: 'drop-shadow(0 0 20px rgba(245,158,11,0.8))',
+                                                        animation: 'swinging-icon 3s ease-in-out infinite'
+                                                    }}
+                                                >
+                                                    <Rainbow size={32} strokeWidth={3} className="md:w-12 md:h-12" />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
+                                </div>
 
-                                    <style jsx>{`
+                                <style jsx>{`
                                         @keyframes waving-hand {
                                             0%, 100% { transform: rotate(-5deg); }
                                             50% { transform: rotate(20deg); }
@@ -297,79 +297,78 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                         }
                                     `}</style>
 
-                                    <div className="flex flex-wrap items-center gap-4">
-                                        {/* ID Badge - Refined Gold Style */}
-                                        <div className="flex items-center gap-3 text-gold-muted text-[11px] font-black uppercase tracking-widest bg-gold-muted/5 px-6 py-3 rounded-2xl border border-gold-muted/20 shadow-sm">
-                                            <Fingerprint size={16} strokeWidth={3} />
-                                            <span>{formattedId}</span>
-                                        </div>
-
-                                        {/* Removed standalone rank badge */}
+                                <div className="flex flex-wrap items-center gap-4">
+                                    {/* ID Badge - Refined Gold Style */}
+                                    <div className="flex items-center gap-3 text-gold-muted text-[11px] font-black uppercase tracking-widest bg-gold-muted/5 px-6 py-3 rounded-2xl border border-gold-muted/20 shadow-sm">
+                                        <Fingerprint size={16} strokeWidth={3} />
+                                        <span>{formattedId}</span>
                                     </div>
 
-                                    {/* Contact Strip - Consistent Gold Theme - Tightened top spacing */}
-                                    <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-gold-muted/10">
-                                        <div className="flex items-center gap-3 bg-white px-6 py-3 rounded-2xl border border-gold-muted/10 text-gold-muted shadow-sm hover:border-gold-muted/30 transition-all">
-                                            <Phone size={16} strokeWidth={2.5} />
-                                            <span className="text-[15px] font-black tracking-tight">{customer.phone}</span>
-                                        </div>
+                                    {/* Removed standalone rank badge */}
+                                </div>
 
-                                        <div className="flex items-center gap-3 bg-white px-6 py-3 rounded-2xl border border-gold-muted/10 text-gold-muted shadow-sm hover:border-gold-muted/30 transition-all">
-                                            <Calendar size={16} strokeWidth={2.5} />
-                                            <span className="text-[15px] font-black tracking-tight">{formatBirthday(customer.birthday)}</span>
-                                            {calculateAge(customer.birthday) && (
-                                                <span className="bg-gold-muted/10 text-gold-muted text-[10px] font-black px-3 py-1 rounded-xl ml-1 border border-gold-muted/20">
-                                                    {calculateAge(customer.birthday)} TUỔI
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {customer.zalo && (
-                                            <a
-                                                href={`https://zalo.me/${customer.zalo.replace(/\D/g, '') || customer.phone.replace(/\D/g, '')}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center justify-center w-12 h-12 bg-white rounded-2xl border border-gold-muted/10 text-sky-500 hover:bg-sky-50 transition-all shadow-sm hover:scale-110 active:scale-95 cursor-pointer"
-                                                title="Mở Zalo"
-                                            >
-                                                <MessageSquare size={20} fill="currentColor" className="opacity-20" />
-                                                <span className="absolute font-black text-[9px]">Z</span>
-                                            </a>
-                                        )}
-
-                                        {customer.facebook && (
-                                            <a
-                                                href={customer.facebook.startsWith('http') ? customer.facebook : `https://facebook.com/${customer.facebook}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center justify-center w-12 h-12 bg-white rounded-2xl border border-gold-muted/10 text-blue-600 hover:bg-blue-50 transition-all shadow-sm hover:scale-110 active:scale-95 cursor-pointer"
-                                                title="Mở Facebook"
-                                            >
-                                                <Facebook size={20} />
-                                            </a>
-                                        )}
+                                {/* Contact Strip - Consistent Gold Theme - Tightened top spacing */}
+                                <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-gold-muted/10">
+                                    <div className="flex items-center gap-3 bg-white px-6 py-3 rounded-2xl border border-gold-muted/10 text-gold-muted shadow-sm hover:border-gold-muted/30 transition-all">
+                                        <Phone size={16} strokeWidth={2.5} />
+                                        <span className="text-[15px] font-black tracking-tight">{customer.phone}</span>
                                     </div>
 
-                                    {/* Last Visit Info */}
-                                    <div className="flex items-center gap-3 mt-1 px-4">
-                                        <div className="flex items-center gap-2 text-gold-muted/60">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-gold-muted/40 animate-pulse"></div>
-                                            <span className="text-[11px] font-black uppercase tracking-widest italic">
-                                                Lần cuối đến Xinh:  {customer.lastVisit && customer.lastVisit !== 'Chưa có' ?
-                                                    (customer.lastVisit.includes('-') ? customer.lastVisit.split('-').reverse().join('-') : customer.lastVisit)
-                                                    : 'chưa có dữ liệu'}
+                                    <div className="flex items-center gap-3 bg-white px-6 py-3 rounded-2xl border border-gold-muted/10 text-gold-muted shadow-sm hover:border-gold-muted/30 transition-all">
+                                        <Calendar size={16} strokeWidth={2.5} />
+                                        <span className="text-[15px] font-black tracking-tight">{formatBirthday(customer.birthday)}</span>
+                                        {calculateAge(customer.birthday) && (
+                                            <span className="bg-gold-muted/10 text-gold-muted text-[10px] font-black px-3 py-1 rounded-xl ml-1 border border-gold-muted/20">
+                                                {calculateAge(customer.birthday)} TUỔI
                                             </span>
-                                        </div>
+                                        )}
+                                    </div>
+
+                                    {customer.zalo && (
+                                        <a
+                                            href={`https://zalo.me/${customer.zalo.replace(/\D/g, '') || customer.phone.replace(/\D/g, '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center w-12 h-12 bg-white rounded-2xl border border-gold-muted/10 text-sky-500 hover:bg-sky-50 transition-all shadow-sm hover:scale-110 active:scale-95 cursor-pointer"
+                                            title="Mở Zalo"
+                                        >
+                                            <MessageSquare size={20} fill="currentColor" className="opacity-20" />
+                                            <span className="absolute font-black text-[9px]">Z</span>
+                                        </a>
+                                    )}
+
+                                    {customer.facebook && (
+                                        <a
+                                            href={customer.facebook.startsWith('http') ? customer.facebook : `https://facebook.com/${customer.facebook}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center w-12 h-12 bg-white rounded-2xl border border-gold-muted/10 text-blue-600 hover:bg-blue-50 transition-all shadow-sm hover:scale-110 active:scale-95 cursor-pointer"
+                                            title="Mở Facebook"
+                                        >
+                                            <Facebook size={20} />
+                                        </a>
+                                    )}
+                                </div>
+
+                                {/* Last Visit Info */}
+                                <div className="flex items-center gap-3 mt-1 px-4">
+                                    <div className="flex items-center gap-2 text-gold-muted/60">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-gold-muted/40 animate-pulse"></div>
+                                        <span className="text-[11px] font-black uppercase tracking-widest italic">
+                                            Lần cuối đến Xinh:  {customer.lastVisit && customer.lastVisit !== 'Chưa có' ?
+                                                (customer.lastVisit.includes('-') ? customer.lastVisit.split('-').reverse().join('-') : customer.lastVisit)
+                                                : 'chưa có dữ liệu'}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Layout: Full Width Tabbed Content */}
-                    <div className="space-y-12">
+                    {/* Layout: Full Width Tabbed Content - Now inside the same scroll container! */}
+                    <div className="mt-8 md:mt-12 space-y-6 relative z-[140]">
                         {/* Navigation Tabs - Luxury Minimalist */}
-                        <div className="flex flex-wrap md:flex-nowrap justify-center gap-1 md:gap-2 p-2 bg-beige-soft/50 rounded-[28px] md:rounded-[32px] border border-gold-light/20 sticky top-2 z-20 backdrop-blur-xl shadow-luxury max-w-full md:max-w-fit mx-2 md:mx-auto">
+                        <div className="flex flex-wrap md:flex-nowrap justify-center gap-1 md:gap-2 p-2 bg-beige-soft/80 rounded-[28px] md:rounded-[32px] border border-gold-light/20 sticky top-2 z-20 backdrop-blur-xl shadow-luxury max-w-full md:max-w-fit mx-2 md:mx-auto">
                             {tabs.map(tab => (
                                 <button
                                     key={tab.id}
@@ -386,121 +385,138 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                         </div>
 
                         {/* Tab Content */}
-                        <div className="min-h-[500px]">
+                        <div className="min-h-[400px] px-6 md:px-10 pb-16">
                             {activeTab === 'tổng quan' && (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-fade-in px-4">
-                                    <div className="lg:col-span-1">
-                                        {/* Spending Card - Professional Luxury Card */}
-                                        <section className="bg-text-main p-10 h-full rounded-[40px] text-white shadow-luxury relative overflow-hidden group">
-                                            <div className="absolute -top-20 -right-20 w-64 h-64 bg-gold-muted/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000"></div>
-                                            <div className="absolute bottom-0 right-0 p-8 opacity-5">
-                                                <TrendingUp size={160} strokeWidth={1} />
+                                <div className="space-y-12 animate-fade-in">
+                                    {/* Finance Section */}
+                                    <section>
+                                        <div className="flex items-center gap-3 mb-8 sticky top-16 bg-transparent z-10">
+                                            <div className="w-12 h-12 rounded-2xl bg-gold-muted/10 text-gold-muted flex items-center justify-center shadow-sm">
+                                                <Wallet size={24} />
                                             </div>
+                                            <div className="bg-white/60 backdrop-blur-sm px-6 py-2 rounded-2xl flex flex-col border border-gold-muted/5">
+                                                <h3 className="text-base font-black text-gray-900 uppercase tracking-widest leading-none">
+                                                    Tài chính & Chi tiêu
+                                                </h3>
+                                                <p className="text-[9px] font-black text-text-soft uppercase tracking-widest mt-1 opacity-60">Thống kê tài chính khách hàng</p>
+                                            </div>
+                                        </div>
 
-                                            <div className="relative z-10 h-full flex flex-col">
-                                                <div className="flex justify-between items-start mb-16">
-                                                    <div>
-                                                        <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.3em] mb-2">Tài chính</p>
-                                                        <h3 className="text-lg font-serif italic text-gold-muted">Hồ sơ chi tiêu</h3>
-                                                    </div>
-                                                    <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-gold-muted border border-white/10 shadow-inner">
-                                                        <Wallet size={28} strokeWidth={1.5} />
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex-1 space-y-10">
-                                                    <div>
-                                                        <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-3 opacity-60">Tổng chi tiêu</p>
-                                                        <p className="text-5xl font-serif font-black text-white italic tracking-tighter">
-                                                            {(customer.totalSpent || 0).toLocaleString('vi-VN')}
-                                                            <span className="text-xl ml-2 font-sans font-normal opacity-30 not-italic">VNĐ</span>
-                                                        </p>
+                                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                            {/* Spending Card - Professional Luxury Card */}
+                                            <div className="xl:col-span-1">
+                                                <div className="bg-text-main p-8 md:p-10 rounded-[32px] md:rounded-[40px] text-white shadow-luxury relative overflow-hidden group h-full">
+                                                    <div className="absolute -top-20 -right-20 w-64 h-64 bg-gold-muted/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000"></div>
+                                                    <div className="absolute bottom-0 right-0 p-8 opacity-5">
+                                                        <TrendingUp size={160} strokeWidth={1} />
                                                     </div>
 
-                                                    <div className="grid grid-cols-2 gap-10">
-                                                        <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                                                            <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-2">Loyalty Points</p>
-                                                            <div className="flex items-center gap-2">
-                                                                <Sparkles size={14} className="text-gold-muted" />
-                                                                <span className="text-[18px] font-black text-white">{(customer.points || 0).toLocaleString()}</span>
+                                                    <div className="relative z-10 flex flex-col h-full">
+                                                        <div className="flex justify-between items-start mb-10">
+                                                            <div>
+                                                                <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.3em] mb-2">Tài chính</p>
+                                                                <h3 className="text-lg font-serif italic text-gold-muted">Hồ sơ chi tiêu</h3>
+                                                            </div>
+                                                            <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-gold-muted border border-white/10 shadow-inner">
+                                                                <Wallet size={28} strokeWidth={1.5} />
                                                             </div>
                                                         </div>
-                                                        <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                                                            <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-2">Lần cuối ghé</p>
-                                                            <p className="text-[14px] font-black text-white italic">{customer.lastVisit || 'Chưa có'}</p>
+
+                                                        <div className="space-y-8 flex-1">
+                                                            <div>
+                                                                <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-2 opacity-60">Tổng chi tiêu</p>
+                                                                <p className="text-3xl md:text-5xl font-serif font-black text-white italic tracking-tighter">
+                                                                    {(customer.totalSpent || 0).toLocaleString('vi-VN')}
+                                                                    <span className="text-xl ml-2 font-sans font-normal opacity-30 not-italic">VNĐ</span>
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="grid grid-cols-2 gap-10">
+                                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                                                    <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-2">Loyalty Points</p>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Sparkles size={14} className="text-gold-muted" />
+                                                                        <span className="text-[18px] font-black text-white">{(customer.points || 0).toLocaleString()}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                                                    <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-2">Lần cuối ghé</p>
+                                                                    <p className="text-[14px] font-black text-white italic">{customer.lastVisit || 'Chưa có'}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-12 pt-6 border-t border-white/10">
+                                                            <div className="flex justify-between items-end mb-4">
+                                                                <span className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em]">Hạng thành viên</span>
+                                                                <span className="text-[10px] font-black text-gold-muted tracking-widest uppercase">
+                                                                    {rankProgress.nextTierName ? `LÊN ${rankProgress.nextTierName}: ${Math.round(rankProgress.percent)}%` : 'HẠNG TỐI ĐA'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                                                <div className="h-full bg-gold-muted shadow-[0_0_20px_rgba(197,160,89,0.5)] rounded-full transition-all duration-1000" style={{ width: `${rankProgress.percent}%` }}></div>
+                                                            </div>
+                                                            {rankProgress.nextTierName && (
+                                                                <p className="text-[9px] text-white/30 font-bold uppercase mt-3 tracking-wider">
+                                                                    Còn thiếu {(rankProgress.minForNext - customer.totalSpent).toLocaleString()}đ để thăng hạng
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
+                                            </div>
 
-                                                <div className="mt-16 pt-8 border-t border-white/10">
-                                                    <div className="flex justify-between items-end mb-4">
-                                                        <span className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em]">Hạng thành viên</span>
-                                                        <span className="text-[10px] font-black text-gold-muted tracking-widest uppercase">
-                                                            {rankProgress.nextTierName ? `LÊN ${rankProgress.nextTierName}: ${Math.round(rankProgress.percent)}%` : 'HẠNG TỐI ĐA'}
-                                                        </span>
+                                            {/* Notes Card */}
+                                            <div className="xl:col-span-1">
+                                                <div className="bg-[#FAF8F6] border border-gold-muted/10 rounded-[32px] md:rounded-[40px] p-8 md:p-10 relative overflow-hidden flex flex-col shadow-inner h-full min-h-[350px]">
+                                                    <div className="flex items-center gap-3 mb-8">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-gold-muted"></div>
+                                                        <h3 className="text-[11px] font-black text-gold-muted uppercase tracking-[0.3em]">
+                                                            Ghi chú từ chuyên gia
+                                                        </h3>
                                                     </div>
-                                                    <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                                                        <div className="h-full bg-gold-muted shadow-[0_0_20px_rgba(197,160,89,0.5)] rounded-full transition-all duration-1000" style={{ width: `${rankProgress.percent}%` }}></div>
+                                                    <div className="absolute top-0 right-0 w-40 h-40 bg-gold-muted/5 rounded-full translate-x-10 -translate-y-10"></div>
+                                                    <div className="absolute bottom-10 right-10 text-gold-muted/10">
+                                                        <MessageSquare size={80} strokeWidth={1} />
                                                     </div>
-                                                    {rankProgress.nextTierName && (
-                                                        <p className="text-[9px] text-white/30 font-bold uppercase mt-3 tracking-wider">
-                                                            Còn thiếu {(rankProgress.minForNext - customer.totalSpent).toLocaleString()}đ để thăng hạng
-                                                        </p>
-                                                    )}
+                                                    <p className="text-[18px] md:text-[22px] text-text-main leading-relaxed font-serif italic relative z-10 flex-1 opacity-80 decoration-gold-muted/20 underline underline-offset-8">
+                                                        "{customer.professionalNotes || 'Chưa có ghi chú chuyên sâu từ đội ngũ chuyên gia/KTV.'}"
+                                                    </p>
+                                                    <div className="mt-10 flex items-center gap-6">
+                                                        <div className="flex -space-x-3">
+                                                            {[1, 2, 3].map(i => (
+                                                                <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-gold-light/50 flex items-center justify-center text-[10px] font-bold text-gold-muted">K</div>
+                                                            ))}
+                                                        </div>
+                                                        <div className="h-px flex-1 bg-gold-muted/10"></div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </section>
-                                    </div>
-
-                                    <div className="lg:col-span-1 h-full">
-                                        {/* Professional Notes - Aesthetic Paper Style */}
-                                        <section className="h-full">
-                                            <div className="bg-[#FAF8F6] border border-gold-muted/10 rounded-[40px] p-12 h-full relative overflow-hidden flex flex-col shadow-inner">
-                                                <h3 className="text-[11px] font-black text-gold-muted uppercase tracking-[0.3em] mb-8 flex items-center gap-3">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-gold-muted"></div>
-                                                    Thông tin thêm
-                                                </h3>
-                                                <div className="absolute top-0 right-0 w-40 h-40 bg-gold-muted/5 rounded-full translate-x-10 -translate-y-10"></div>
-                                                <div className="absolute bottom-10 right-10 text-gold-muted/10">
-                                                    <MessageSquare size={80} strokeWidth={1} />
-                                                </div>
-                                                <p className="text-[16px] text-text-main leading-relaxed font-serif italic relative z-10 flex-1 opacity-80 decoration-gold-muted/20 underline underline-offset-8">
-                                                    "{customer.professionalNotes || 'Chưa có ghi chú chuyên sâu từ đội ngũ chuyên gia/KTV.'}"
-                                                </p>
-                                                <div className="mt-10 flex items-center gap-6">
-                                                    <div className="flex -space-x-3">
-                                                        {[1, 2, 3].map(i => (
-                                                            <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-gold-light/50 flex items-center justify-center text-[10px] font-bold text-gold-muted">K</div>
-                                                        ))}
-                                                    </div>
-                                                    <div className="h-px flex-1 bg-gold-muted/10"></div>
-                                                </div>
-                                            </div>
-                                        </section>
-                                    </div>
+                                        </div>
+                                    </section>
                                 </div>
                             )}
 
                             {activeTab === 'lịch hẹn' && (
-                                <div className="space-y-10 animate-fade-in pb-10">
+                                <div className="space-y-10 animate-fade-in">
                                     {/* Upcoming Section */}
                                     <section>
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                                        <div className="flex items-center gap-3 mb-6 sticky top-16 bg-transparent z-10">
+                                            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-sm">
                                                 <CalendarDays size={20} />
                                             </div>
-                                            <h3 className="text-base font-black text-gray-900 uppercase tracking-widest">
+                                            <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
                                                 Lịch hẹn sắp tới
                                             </h3>
                                         </div>
 
                                         {upcomingAppointments.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                                 {upcomingAppointments.map(apt => {
                                                     const config = getStatusConfig(apt.status);
                                                     const b = branches.find(b => b.id === apt.branchId);
                                                     return (
-                                                        <div key={apt.id} className="bg-white border-2 border-primary/20 rounded-3xl p-6 shadow-xl shadow-primary/5 hover:border-primary transition-all group">
+                                                        <div key={apt.id} className="bg-white border-2 border-primary/20 rounded-[28px] p-5 shadow-xl shadow-primary/5 hover:border-primary transition-all group">
                                                             <div className="flex justify-between items-start mb-4">
                                                                 <div className="flex items-center gap-3">
                                                                     <div className="p-3 bg-gray-50 rounded-2xl text-gray-900 group-hover:bg-primary group-hover:text-gray-900 transition-colors">
@@ -536,7 +552,7 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                             <div className="bg-gray-50/50 p-10 rounded-[2.5rem] border border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300">
                                                 <CalendarDays size={40} className="mb-3 opacity-20" />
                                                 <p className="text-sm font-black uppercase tracking-widest opacity-50">Không có lịch hẹn sắp tới</p>
-                                                <button onClick={() => onNavigate('appointments')} className="mt-4 text-[10px] font-black text-indigo-600 bg-white px-6 py-2 rounded-xl shadow-sm border border-gray-100 hover:bg-indigo-50 transition-all uppercase tracking-widest">
+                                                <button onClick={() => onNavigate('create_appointment')} className="mt-4 text-[10px] font-black text-indigo-600 bg-white px-6 py-2 rounded-xl shadow-sm border border-gray-100 hover:bg-indigo-50 transition-all uppercase tracking-widest">
                                                     Đặt lịch ngay
                                                 </button>
                                             </div>
@@ -545,15 +561,15 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
 
                                     {/* History Section */}
                                     <section>
-                                        <div className="flex items-center gap-3 mb-8 pt-10 border-t border-gold-light/20">
-                                            <div className="w-14 h-14 rounded-2xl bg-beige-soft/50 text-gold-muted flex items-center justify-center shadow-sm">
-                                                <ClipboardList size={28} strokeWidth={1.5} />
+                                        <div className="flex items-center gap-3 mb-8 pt-10 border-t border-gold-light/20 sticky top-16 bg-transparent z-10">
+                                            <div className="w-12 h-12 rounded-2xl bg-beige-soft/50 text-gold-muted flex items-center justify-center shadow-sm">
+                                                <ClipboardList size={24} strokeWidth={1.5} />
                                             </div>
-                                            <div>
-                                                <h3 className="text-lg font-serif italic text-text-main leading-tight">
+                                            <div className="bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl flex flex-col">
+                                                <h3 className="text-base font-serif italic text-text-main leading-none">
                                                     Lịch Hẹn
                                                 </h3>
-                                                <p className="text-[10px] font-black text-text-soft uppercase tracking-widest opacity-60">Lịch sử lịch hẹn</p>
+                                                <p className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-60">Lịch sử lịch hẹn</p>
                                             </div>
                                         </div>
 
@@ -562,10 +578,10 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                                 <table className="w-full text-left luxury-table border-collapse">
                                                     <thead>
                                                         <tr className="bg-beige-soft/30 border-b border-gold-light/10">
-                                                            <th className="px-10 py-6 text-[10px] font-black text-text-soft uppercase tracking-widest">Thời gian</th>
-                                                            <th className="px-10 py-6 text-[10px] font-black text-text-soft uppercase tracking-widest">Chi nhánh</th>
-                                                            <th className="px-10 py-6 text-[10px] font-black text-text-soft uppercase tracking-widest">Trạng thái</th>
-                                                            <th className="px-10 py-6 text-[10px] font-black text-text-soft uppercase tracking-widest">Ghi chú chuyên môn</th>
+                                                            <th className="px-6 py-4 text-[10px] font-black text-text-soft uppercase tracking-widest">Thời gian</th>
+                                                            <th className="px-6 py-4 text-[10px] font-black text-text-soft uppercase tracking-widest">Chi nhánh</th>
+                                                            <th className="px-6 py-4 text-[10px] font-black text-text-soft uppercase tracking-widest">Trạng thái</th>
+                                                            <th className="px-6 py-4 text-[10px] font-black text-text-soft uppercase tracking-widest">Ghi chú</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-gold-light/5">
@@ -575,23 +591,23 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                                                 const b = branches.find(b => b.id === apt.branchId);
                                                                 return (
                                                                     <tr key={apt.id} className="hover:bg-beige-soft/20 transition-colors group">
-                                                                        <td className="px-10 py-8">
-                                                                            <p className="text-[15px] font-serif font-black text-text-main tracking-tight group-hover:text-gold-muted transition-colors">{new Date(apt.appointmentDate).toLocaleDateString('vi-VN')}</p>
-                                                                            <p className="text-[10px] font-black text-gold-muted uppercase tracking-widest opacity-60">{apt.appointmentTime}</p>
+                                                                        <td className="px-6 py-4">
+                                                                            <p className="text-[14px] font-serif font-black text-text-main tracking-tight group-hover:text-gold-muted transition-colors">{new Date(apt.appointmentDate).toLocaleDateString('vi-VN')}</p>
+                                                                            <p className="text-[9px] font-black text-gold-muted uppercase tracking-widest opacity-60">{apt.appointmentTime}</p>
                                                                         </td>
-                                                                        <td className="px-10 py-8">
+                                                                        <td className="px-6 py-4">
                                                                             <div className="flex items-center gap-2">
-                                                                                <MapPin size={12} className="text-gold-muted/50" />
-                                                                                <p className="text-[12px] font-black text-text-main/70 uppercase tracking-wide">{b?.name || 'Hệ thống'}</p>
+                                                                                <MapPin size={11} className="text-gold-muted/50" />
+                                                                                <p className="text-[11px] font-black text-text-main/70 uppercase tracking-wide">{b?.name || 'Hệ thống'}</p>
                                                                             </div>
                                                                         </td>
-                                                                        <td className="px-10 py-8">
-                                                                            <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm ${config.color} inline-flex items-center gap-2`}>
-                                                                                <config.icon size={12} strokeWidth={2.5} />
+                                                                        <td className="px-6 py-4">
+                                                                            <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border shadow-sm ${config.color} inline-flex items-center gap-1.5`}>
+                                                                                <config.icon size={11} strokeWidth={2.5} />
                                                                                 {config.label}
                                                                             </span>
                                                                         </td>
-                                                                        <td className="px-10 py-8">
+                                                                        <td className="px-6 py-4">
                                                                             <div className="flex items-start gap-2 max-w-xs">
                                                                                 <MessageSquare size={12} className="text-gold-muted/30 mt-1 shrink-0" />
                                                                                 <p className="text-[13px] text-text-soft leading-relaxed line-clamp-2">{apt.notes || 'Không có ghi chú.'}</p>
@@ -606,7 +622,7 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                                                     <div className="flex flex-col items-center gap-4 opacity-20">
                                                                         <ClipboardList size={48} strokeWidth={1} />
                                                                         <p className="text-[12px] font-black text-text-soft uppercase tracking-[0.2em]">
-                                                                            Khách hàng chưa có lịch sử dịch vụ
+                                                                            Khách hàng chưa có lịch sử cuộc hẹn
                                                                         </p>
                                                                     </div>
                                                                 </td>
@@ -621,12 +637,17 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                             )}
 
                             {activeTab === 'liệu trình' && (
-                                <div className="space-y-10 animate-fade-in pb-10">
+                                <div className="space-y-10 animate-fade-in">
                                     <section>
-                                        <div className="flex justify-between items-center mb-8">
-                                            <h3 className="text-base font-black text-text-main flex items-center gap-3 uppercase tracking-widest">
-                                                Liệu trình hoạt động
-                                            </h3>
+                                        <div className="flex justify-between items-center mb-8 sticky top-16 bg-transparent z-10">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shadow-sm">
+                                                    <Flower size={20} />
+                                                </div>
+                                                <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
+                                                    Liệu trình hoạt động
+                                                </h3>
+                                            </div>
                                             <button
                                                 onClick={() => onNavigate('sales')}
                                                 className="px-6 py-2 bg-text-main text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gold-muted transition-all shadow-lg active:scale-95"
@@ -635,26 +656,26 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                             </button>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                             {customer.treatmentCards && customer.treatmentCards.length > 0 ? (
                                                 customer.treatmentCards.map(card => (
-                                                    <div key={card.id} className="bg-white border border-gold-light/20 rounded-[40px] p-8 hover:border-gold-muted/50 transition-all hover:shadow-luxury group relative overflow-hidden">
-                                                        <div className="flex items-center gap-5 relative z-10">
-                                                            <div className={`w-16 h-16 rounded-[20px] flex items-center justify-center shrink-0 shadow-inner ${card.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-beige-soft text-text-soft border border-gold-light/10'
+                                                    <div key={card.id} className="bg-white border border-gold-light/20 rounded-[32px] p-6 hover:border-gold-muted/50 transition-all hover:shadow-luxury group relative overflow-hidden">
+                                                        <div className="flex items-center gap-4 relative z-10">
+                                                            <div className={`w-14 h-14 rounded-[18px] flex items-center justify-center shrink-0 shadow-inner ${card.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-beige-soft text-text-soft border border-gold-light/10'
                                                                 }`}>
-                                                                <Flower size={28} strokeWidth={1.5} />
+                                                                <Flower size={24} strokeWidth={1.5} />
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-[15px] font-serif font-black text-text-main truncate tracking-tight group-hover:text-gold-muted transition-colors">{card.name}</p>
-                                                                <p className="text-[10px] text-text-soft font-black uppercase tracking-widest opacity-40">Ngày mua: {card.purchaseDate}</p>
+                                                                <p className="text-[14px] font-serif font-black text-text-main truncate tracking-tight group-hover:text-gold-muted transition-colors">{card.name}</p>
+                                                                <p className="text-[9px] text-text-soft font-black uppercase tracking-widest opacity-40">Ngày mua: {card.purchaseDate}</p>
                                                             </div>
                                                         </div>
-                                                        <div className="mt-10 flex items-end justify-between relative z-10">
+                                                        <div className="mt-8 flex items-end justify-between relative z-10">
                                                             <div className="space-y-1">
-                                                                <p className="text-[10px] font-black text-text-soft uppercase tracking-widest opacity-40">Số buổi còn lại</p>
-                                                                <p className="text-[13px] font-black text-text-main">Còn <span className="text-3xl font-serif font-black text-gold-muted italic">{card.remaining}</span>/{card.total} buổi</p>
+                                                                <p className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-40">Số buổi còn lại</p>
+                                                                <p className="text-[12px] font-black text-text-main">Còn <span className="text-2xl font-serif font-black text-gold-muted italic">{card.remaining}</span>/{card.total} buổi</p>
                                                             </div>
-                                                            <div className="w-24 h-2 bg-beige-soft rounded-full overflow-hidden border border-gold-light/10">
+                                                            <div className="w-20 h-1.5 bg-beige-soft rounded-full overflow-hidden border border-gold-light/10">
                                                                 <div
                                                                     className={`h-full rounded-full transition-all duration-1000 ${card.remaining > 2 ? 'bg-gold-muted' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}
                                                                     style={{ width: `${(card.remaining / card.total) * 100}%` }}
@@ -675,30 +696,51 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                             )}
 
                             {activeTab === 'điều trị' && (
-                                <div className="animate-fade-in py-10">
-                                    <div className="bg-white p-24 rounded-[40px] border border-dashed border-gold-light/20 flex flex-col items-center justify-center text-text-soft text-center shadow-luxury">
-                                        <History size={64} strokeWidth={1} className="mb-6 opacity-20 text-gold-muted" />
-                                        <p className="text-lg font-serif font-black text-text-main uppercase tracking-[0.2em]">Lịch sử điều trị</p>
+                                <div className="animate-fade-in">
+                                    <div className="flex items-center gap-3 mb-6 sticky top-16 bg-transparent z-10">
+                                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shadow-sm">
+                                            <History size={20} />
+                                        </div>
+                                        <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
+                                            Lịch sử điều trị
+                                        </h3>
+                                    </div>
+                                    <div className="bg-white p-20 rounded-[32px] border border-dashed border-gold-light/20 flex flex-col items-center justify-center text-text-soft text-center shadow-luxury">
+                                        <History size={48} strokeWidth={1} className="mb-6 opacity-20 text-gold-muted" />
                                         <p className="text-[11px] font-black text-text-soft uppercase tracking-widest mt-4 opacity-40">Hệ thống đang đồng bộ dữ liệu chuyên sâu...</p>
                                     </div>
                                 </div>
                             )}
 
                             {activeTab === 'thanh toán' && (
-                                <div className="animate-fade-in py-10">
-                                    <div className="bg-white p-24 rounded-[40px] border border-dashed border-gold-light/20 flex flex-col items-center justify-center text-text-soft text-center shadow-luxury">
-                                        <Wallet size={64} strokeWidth={1} className="mb-6 opacity-20 text-gold-muted" />
-                                        <p className="text-lg font-serif font-black text-text-main uppercase tracking-[0.2em]">Tài chính & Công nợ</p>
+                                <div className="animate-fade-in">
+                                    <div className="flex items-center gap-3 mb-6 sticky top-16 bg-transparent z-10">
+                                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shadow-sm">
+                                            <Wallet size={20} />
+                                        </div>
+                                        <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
+                                            Tài chính & Công nợ
+                                        </h3>
+                                    </div>
+                                    <div className="bg-white p-20 rounded-[32px] border border-dashed border-gold-light/20 flex flex-col items-center justify-center text-text-soft text-center shadow-luxury">
+                                        <Wallet size={48} strokeWidth={1} className="mb-6 opacity-20 text-gold-muted" />
                                         <p className="text-[11px] font-black text-text-soft uppercase tracking-widest mt-4 opacity-40">Vui lòng liên hệ bộ phận Kế toán để biết chi tiết</p>
                                     </div>
                                 </div>
                             )}
 
                             {activeTab === 'tương tác' && (
-                                <div className="animate-fade-in py-10">
-                                    <div className="bg-white p-24 rounded-[40px] border border-dashed border-gold-light/20 flex flex-col items-center justify-center text-text-soft text-center shadow-luxury">
-                                        <MessageSquare size={64} strokeWidth={1} className="mb-6 opacity-20 text-gold-muted" />
-                                        <p className="text-lg font-serif font-black text-text-main uppercase tracking-[0.2em]">Nhật ký chăm sóc</p>
+                                <div className="animate-fade-in">
+                                    <div className="flex items-center gap-3 mb-6 sticky top-16 bg-transparent z-10">
+                                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center shadow-sm">
+                                            <MessageSquare size={20} />
+                                        </div>
+                                        <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
+                                            Nhật ký chăm sóc
+                                        </h3>
+                                    </div>
+                                    <div className="bg-white p-20 rounded-[32px] border border-dashed border-gold-light/20 flex flex-col items-center justify-center text-text-soft text-center shadow-luxury">
+                                        <MessageSquare size={48} strokeWidth={1} className="mb-6 opacity-20 text-gold-muted" />
                                         <p className="text-[11px] font-black text-text-soft uppercase tracking-widest mt-4 opacity-40">Tổng hợp tương tác từ đa nền tảng...</p>
                                     </div>
                                 </div>

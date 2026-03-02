@@ -70,10 +70,12 @@ export default function ActivityPage() {
                                 }
 
                                 const baseColor = TYPE_COLORS[log.type]
-                                const semanticColorHex = isIncome ? '#059669' : isExpense ? '#dc2626' : (baseColor === 'var(--primary)' ? '#C5A059' : '#000000')
+                                const semanticColorHex = isIncome ? '#059669' : isExpense ? '#dc2626' : (log.type === 'create' ? '#10b981' : log.type === 'update' ? '#C5A059' : '#dc2626')
 
                                 const TypeIcon = TYPE_ICONS[log.type] || Edit
                                 const user = state.users.find(u => u.id === log.userId)
+                                const b = state.branches.find(br => br.id === user?.branchId)
+                                const branchName = b ? (b.name.toLowerCase().startsWith('cn') ? b.name : `CN ${b.name}`) : ''
                                 const time = new Date(log.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
                                 const date = fmtDate(log.createdAt)
 
@@ -81,10 +83,10 @@ export default function ActivityPage() {
                                     <div key={log.id} className="bg-white border border-gold-light/20 rounded-[24px] p-6 shadow-luxury hover:border-gold-muted/30 transition-all duration-300 group flex gap-6 items-center">
 
                                         <div className="relative flex-shrink-0">
-                                            <div className="w-14 h-14 rounded-2xl bg-beige-soft flex items-center justify-center text-gold-muted group-hover:bg-gold-light/20 transition-colors">
+                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:bg-opacity-80 transition-colors ${log.type === 'create' ? 'bg-emerald-50 text-emerald-600' : log.type === 'update' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
                                                 <Icon size={24} strokeWidth={1.5} style={{ color: semanticColorHex }} />
                                             </div>
-                                            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-lg shadow-sm border border-gold-light/20 flex items-center justify-center text-text-soft">
+                                            <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-lg shadow-sm border border-white flex items-center justify-center text-white ${log.type === 'create' ? 'bg-emerald-500' : log.type === 'update' ? 'bg-amber-500' : 'bg-rose-500'}`}>
                                                 <TypeIcon size={12} strokeWidth={2} />
                                             </div>
                                         </div>
@@ -95,8 +97,8 @@ export default function ActivityPage() {
                                                     {log.details}
                                                 </p>
                                                 <div className="flex items-center gap-4 mt-2">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-gold-muted opacity-80">
-                                                        {log.entityType || 'Hệ thống'} • {log.type}
+                                                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${log.type === 'create' ? 'bg-emerald-50 text-emerald-600' : log.type === 'update' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                        {log.entityType || 'Hệ thống'} • {log.type === 'create' ? 'Tạo mới' : log.type === 'update' ? 'Cập nhật' : 'Xóa'}
                                                     </span>
                                                     <div className="w-1 h-1 rounded-full bg-gold-light/50" />
                                                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-text-soft opacity-40">
@@ -106,11 +108,16 @@ export default function ActivityPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="flex-shrink-0 flex items-center gap-3 pl-4 border-l border-gold-light/10">
+                                            <div className="flex-shrink-0 flex items-center gap-3 pl-4 border-l border-gold-light/10 min-w-[120px]">
                                                 <div className="text-right">
                                                     <p className="text-[11px] font-black text-text-main uppercase tracking-tighter leading-none mb-1">
                                                         {user?.displayName || 'Hệ thống'}
                                                     </p>
+                                                    {branchName && (
+                                                        <p className="text-[9px] font-bold text-gold-muted uppercase tracking-widest leading-none mb-1">
+                                                            {branchName}
+                                                        </p>
+                                                    )}
                                                     <p className="text-[9px] font-bold text-text-soft/40 uppercase tracking-widest italic leading-none">
                                                         @{user?.username || 'system'}
                                                     </p>
