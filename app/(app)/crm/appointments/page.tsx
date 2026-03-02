@@ -2,8 +2,9 @@
 export const dynamic = 'force-dynamic'
 import { useState, useMemo, useEffect } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
-import { Appointment, Customer, AppointmentStatus, CustomerRank, AppointmentLog, CommissionLog } from '@/lib/types'
-import { saveAppointment, syncAppointment, saveCommissionLog, syncCommissionLog, saveLead, syncLead, getState, syncDeleteAppointment } from '@/lib/storage'
+import { Appointment, Customer, AppointmentStatus, CustomerRank, AppointmentLog, CommissionLog, AppState } from '@/lib/types'
+import { saveAppointment, syncAppointment, saveCommissionLog, syncCommissionLog, saveLead, syncLead, getState, syncDeleteAppointment, saveCustomer, syncCustomer } from '@/lib/storage'
+import { recalculateCustomerStats } from '@/lib/calculations'
 import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
 import { CalendarDays, Search, Store, ChevronLeft, ChevronRight, PlusCircle, Receipt, Loader2 } from 'lucide-react'
@@ -214,6 +215,22 @@ export default function AppointmentsPage() {
         try {
             await syncAppointment(updated)
 
+            // Re-calculate customer stats if appointment is completed
+            if (newStatus === 'completed' && a.status !== 'completed' && updated.customerId) {
+                const s = getState()
+                const customer = s.customers.find(c => c.id === updated.customerId)
+                if (customer) {
+                    const updatedCustomer = recalculateCustomerStats(customer, {
+                        ...s,
+                        appointments: (s.appointments || []).map(apt => apt.id === updated.id ? updated : apt)
+                    })
+                    if (updatedCustomer) {
+                        saveState(saveCustomer(updatedCustomer))
+                        await syncCustomer(updatedCustomer)
+                    }
+                }
+            }
+
             // XỬ LÝ TỰ ĐỘNG CHIA HOA HỒNG KHI KHÁCH ĐỀN (ARRIVED) HOẶC HOÀN THÀNH (COMPLETED)
             if (newStatus === 'arrived' && a.status !== 'arrived') {
                 const s = getState()
@@ -380,6 +397,22 @@ export default function AppointmentsPage() {
         setTimeout(async () => {
             try {
                 await syncAppointment(appointment)
+
+                // Re-calculate customer stats if appointment is completed
+                if (appointment.status === 'completed' && appointment.customerId) {
+                    const s = getState()
+                    const customer = s.customers.find(c => c.id === appointment.customerId)
+                    if (customer) {
+                        const updatedCustomer = recalculateCustomerStats(customer, {
+                            ...s,
+                            appointments: (s.appointments || []).map(apt => apt.id === appointment.id ? appointment : apt)
+                        })
+                        if (updatedCustomer) {
+                            saveState(saveCustomer(updatedCustomer))
+                            await syncCustomer(updatedCustomer)
+                        }
+                    }
+                }
                 showToast('Thành công', `Đã lưu lịch hẹn lúc ${appointment.appointmentTime}`)
                 setShowForm(false)
             } catch (e) {

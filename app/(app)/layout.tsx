@@ -29,6 +29,7 @@ const CRM_NAV = [
     { href: '/crm/appointments', label: 'Lịch hẹn & CSKH', icon: Calendar },
     { href: '/crm/service-orders', label: 'Phiếu dịch vụ', icon: Receipt },
     { href: '/crm/services', label: 'Danh mục dịch vụ', icon: ClipboardList },
+    { href: '/crm/membership-settings', label: 'Cấu hình Membership', icon: Award },
     { href: '/crm/sale-settings', label: 'Cấu hình Sale', icon: Settings2 },
 ]
 const HR_NAV = [

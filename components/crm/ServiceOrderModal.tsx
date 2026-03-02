@@ -2,8 +2,9 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
-import { ServiceOrder, ServiceLineItem, StaffSplit, Customer, Appointment, CustomerRank } from '@/lib/types'
-import { saveServiceOrder, syncServiceOrder } from '@/lib/storage'
+import { ServiceOrder, ServiceLineItem, StaffSplit, Customer, Appointment, CustomerRank, AppState } from '@/lib/types'
+import { saveServiceOrder, syncServiceOrder, syncCustomer, saveCustomer } from '@/lib/storage'
+import { recalculateCustomerStats } from '@/lib/calculations'
 import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
 import { searchCustomers } from '@/lib/supabaseFetch'
@@ -320,8 +321,27 @@ export default function ServiceOrderModal({
 
         try {
             await syncServiceOrder(order)
+
+            // Re-calculate customer stats if order is completed
+            if (order.status === 'completed') {
+                const currentState = (await import('@/lib/storage')).getState()
+                const customer = currentState.customers.find(c => c.id === order.customerId)
+                if (customer) {
+                    const updatedCustomer = recalculateCustomerStats(customer, {
+                        ...currentState,
+                        serviceOrders: (currentState.serviceOrders || []).map(o => o.id === order.id ? order : o)
+                    })
+
+                    if (updatedCustomer) {
+                        saveState(saveCustomer(updatedCustomer))
+                        await syncCustomer(updatedCustomer)
+                    }
+                }
+            }
+
             showToast('Thành công', `Đã lưu phiếu: ${order.code}`)
-        } catch {
+        } catch (error) {
+            console.error('Save error:', error)
             showToast('Thành công', 'Đã lưu offline')
         }
         onClose()

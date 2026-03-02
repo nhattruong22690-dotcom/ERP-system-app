@@ -13,6 +13,13 @@ export interface PermissionGroup {
 
 export const PERMISSION_GROUPS: PermissionGroup[] = [
     {
+        page: { value: '/crm/membership-settings', label: 'Cấu hình Membership' },
+        actions: [
+            { value: 'crm_membership_update', label: 'Cập nhật cấu hình Membership' }
+        ],
+        crud: { create: 'crm_membership_update', update: 'crm_membership_update', delete: 'crm_membership_update' }
+    },
+    {
         page: { value: '/dashboard', label: 'Tổng quan' },
         actions: [],
     },
@@ -101,13 +108,6 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
             { value: 'crm_service_delete', label: 'Xóa Dịch vụ' }
         ],
         crud: { create: 'crm_service_create', update: 'crm_service_update', delete: 'crm_service_delete' }
-    },
-    {
-        page: { value: '/crm/sale-settings', label: 'Cấu hình Sale' },
-        actions: [
-            { value: 'crm_config_update', label: 'Cập nhật cấu hình Sale' }
-        ],
-        crud: { update: 'crm_config_update' }
     },
     {
         page: { value: '/crm/attendance', label: 'Chấm công' },
@@ -220,6 +220,7 @@ export const PERM_OPTIONS = [
     { value: 'crm_service_create', label: 'Thêm Dịch vụ mới' },
     { value: 'crm_service_update', label: 'Sửa Dịch vụ' },
     { value: 'crm_service_delete', label: 'Xóa Dịch vụ' },
+    { value: 'crm_membership_update', label: 'Cập nhật cấu hình Membership' },
     { value: 'crm_config_update', label: 'Cập nhật cấu hình Sale' },
     { value: 'crm_attendance_view_all', label: 'Xem chấm công toàn chi nhánh' },
     { value: 'crm_attendance_update', label: 'Sửa dữ liệu chấm công' },

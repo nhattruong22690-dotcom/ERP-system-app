@@ -348,6 +348,15 @@ export interface CrmService {
   createdAt: string
 }
 
+
+export interface LoyaltySettings {
+  id: string
+  pointsPerVnd: number // e.g. 0.00001 (1 point for every 100,000 VND)
+  vndPerPoint: number  // e.g. 1000 (1 point = 1,000 VND for redemption)
+  isActive: boolean
+  updatedAt: string
+}
+
 export interface MembershipTier {
   id: string
   name: string
@@ -542,6 +551,7 @@ export interface AppState {
   salaryAdvances: SalaryAdvance[]
   payrollRosters: PayrollRoster[]
   serviceOrders: ServiceOrder[]
+  loyaltySettings?: LoyaltySettings
   currentUserId?: string
   dismissedAlerts: string[]
   starredAlerts: string[]

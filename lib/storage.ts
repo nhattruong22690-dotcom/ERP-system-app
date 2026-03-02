@@ -3,7 +3,7 @@ import {
     Transaction, ActivityLog, Customer, Appointment,
     CommissionSetting, Lead, CommissionLog, UserMission,
     JobTitle, Attendance, CrmService, MembershipTier, SalaryHistory,
-    Bonus, Deduction, SalaryAdvance, PayrollRoster
+    Bonus, Deduction, SalaryAdvance, PayrollRoster, LoyaltySettings
 } from './types'
 import { seedData } from './seed'
 import { supabase } from './supabase'
@@ -1115,6 +1115,22 @@ export function saveService(service: any) {
     })
 }
 
+export function saveLoyaltySettings(settings: LoyaltySettings) {
+    return (s: AppState): AppState => ({
+        ...s,
+        loyaltySettings: settings
+    })
+}
+
+export function saveMembershipTier(tier: MembershipTier) {
+    return (s: AppState): AppState => ({
+        ...s,
+        membershipTiers: s.membershipTiers.some(t => t.id === tier.id)
+            ? s.membershipTiers.map(t => t.id === tier.id ? tier : t)
+            : [...s.membershipTiers, tier]
+    })
+}
+
 export function saveServiceOrder(order: any) {
     return (s: AppState): AppState => ({
         ...s,
@@ -1190,3 +1206,32 @@ export async function updateAppointmentKpiStatus(id: string, updateData: any) {
     }
     return true
 }
+
+export async function syncMembershipTier(tier: MembershipTier) {
+    const { error } = await supabase.from('crm_membership_tiers').upsert({
+        id: tier.id,
+        name: tier.name,
+        subtext: tier.subtext,
+        min_spend: tier.minSpend,
+        max_spend: tier.maxSpend,
+        discount: tier.discount,
+        icon: tier.icon,
+        theme: tier.theme,
+        created_at: tier.createdAt
+    })
+    if (error) console.error('Supabase Error (MembershipTier):', error)
+    return null
+}
+
+export async function syncLoyaltySettings(settings: LoyaltySettings) {
+    const { error } = await supabase.from('crm_loyalty_settings').upsert({
+        id: settings.id,
+        points_per_vnd: settings.pointsPerVnd,
+        vnd_per_point: settings.vndPerPoint,
+        is_active: settings.isActive,
+        updated_at: settings.updatedAt
+    })
+    if (error) console.error('Supabase Error (LoyaltySettings):', error)
+    return null
+}
+

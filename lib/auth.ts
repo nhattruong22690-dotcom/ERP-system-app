@@ -274,6 +274,11 @@ export function isPageAllowed(user: User | undefined, href: string) {
     const baseHref = href.split('?')[0]
     if (baseHref === '/' || baseHref === '/profile') return true
 
+    // Cấu hình riêng cho trang membership-settings: Yêu cầu quyền cụ thể
+    if (baseHref === '/crm/membership-settings') {
+        return canManageMembership(user)
+    }
+
     // Check allowedPages if it has content
     if (Array.isArray(user.allowedPages) && user.allowedPages.length > 0) {
         return user.allowedPages.includes(baseHref)
@@ -301,6 +306,10 @@ export function isPageAllowed(user: User | undefined, href: string) {
 
 export function canEditPlan(user?: User) {
     return hasPermission(user, 'plan_update') || hasPermission(user, 'plan_create') || hasPermission(user, 'plan_edit')
+}
+
+export function canManageMembership(user?: User) {
+    return hasPermission(user, 'crm_membership_update')
 }
 
 export function canManageCategories(user?: User) {

@@ -58,7 +58,8 @@ export async function fetchAllData(): Promise<AppState | null> {
             supabase.from('crm_deductions').select('*'),
             supabase.from('crm_salary_advances').select('*'),
             supabase.from('crm_payroll_rosters').select('*'),
-            supabase.from('crm_service_orders').select('*')
+            supabase.from('crm_service_orders').select('*'),
+            supabase.from('crm_loyalty_settings').select('*')
         ])
 
         const [
@@ -89,7 +90,8 @@ export async function fetchAllData(): Promise<AppState | null> {
             resDeductionsRaw,
             resSalaryAdvancesRaw,
             resPayrollRostersRaw,
-            resServiceOrdersRaw
+            resServiceOrdersRaw,
+            resLoyaltySettingsRaw
         ] = batch2 as any;
 
         const rawQueries = [
@@ -363,6 +365,13 @@ export async function fetchAllData(): Promise<AppState | null> {
                 createdAt: o.created_at,
                 updatedAt: o.updated_at
             })),
+            loyaltySettings: resLoyaltySettingsRaw.data?.[0] ? {
+                id: resLoyaltySettingsRaw.data[0].id,
+                pointsPerVnd: Number(resLoyaltySettingsRaw.data[0].points_per_vnd || 0),
+                vndPerPoint: Number(resLoyaltySettingsRaw.data[0].vnd_per_point || 0),
+                isActive: resLoyaltySettingsRaw.data[0].is_active,
+                updatedAt: resLoyaltySettingsRaw.data[0].updated_at
+            } : undefined,
             customerStats: {
                 total: resCustomersAllCount.count || 0,
                 vip: resTotalVips.count || 0,

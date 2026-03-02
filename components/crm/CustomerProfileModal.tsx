@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useApp } from '@/lib/auth';
 import { Customer, CustomerRank, User, RoleDefinition, Branch, Appointment } from '@/lib/types';
 import {
     CalendarDays,
@@ -55,9 +56,39 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
     onDeleteTreatmentCard,
     appointments = []
 }) => {
+    const { state } = useApp();
     const [activeTab, setActiveTab] = useState('tổng quan');
     const currentMonth = new Date().getMonth();
     const isBirthdayMonth = customer.birthday && new Date(customer.birthday).getMonth() === currentMonth;
+
+    // Rank Progress Calculation
+    const rankProgress = useMemo(() => {
+        const tiers = [...(state.membershipTiers || [])].sort((a, b) => a.minSpend - b.minSpend);
+        if (tiers.length === 0) return { percent: 100, nextTierName: null, minForNext: 0 };
+
+        const currentTierIndex = tiers.findIndex(t => {
+            // Check if customer.rank matches tier name
+            // (Note: This is a bit loose, depends on how rank is stored/mapped)
+            return customer.totalSpent < (t.minSpend || 0);
+        });
+
+        // Current tier is the one before the first tier we haven't reached
+        const currentTierIdx = currentTierIndex === -1 ? tiers.length - 1 : currentTierIndex - 1;
+        const currentTier = currentTierIdx >= 0 ? tiers[currentTierIdx] : null;
+        const nextTier = currentTierIdx + 1 < tiers.length ? tiers[currentTierIdx + 1] : null;
+
+        if (!nextTier) return { percent: 100, nextTierName: null, minForNext: 0 };
+
+        const min = currentTier ? currentTier.minSpend : 0;
+        const max = nextTier.minSpend;
+        const progress = ((customer.totalSpent - min) / (max - min)) * 100;
+
+        return {
+            percent: Math.min(100, Math.max(0, progress)),
+            nextTierName: nextTier.name,
+            minForNext: nextTier.minSpend
+        };
+    }, [customer.totalSpent, state.membershipTiers]);
 
     // Standardize ID: branchCode_xxxxxx_xxxx
     const branch = branches.find(b => b.id === customer.branchId);
@@ -404,11 +435,18 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                                 <div className="mt-16 pt-8 border-t border-white/10">
                                                     <div className="flex justify-between items-end mb-4">
                                                         <span className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em]">Hạng thành viên</span>
-                                                        <span className="text-[10px] font-black text-gold-muted tracking-widest">TIẾN TRÌNH: 75%</span>
+                                                        <span className="text-[10px] font-black text-gold-muted tracking-widest uppercase">
+                                                            {rankProgress.nextTierName ? `LÊN ${rankProgress.nextTierName}: ${Math.round(rankProgress.percent)}%` : 'HẠNG TỐI ĐA'}
+                                                        </span>
                                                     </div>
                                                     <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                                                        <div className="h-full bg-gold-muted shadow-[0_0_20px_rgba(197,160,89,0.5)] rounded-full transition-all duration-1000" style={{ width: '75%' }}></div>
+                                                        <div className="h-full bg-gold-muted shadow-[0_0_20px_rgba(197,160,89,0.5)] rounded-full transition-all duration-1000" style={{ width: `${rankProgress.percent}%` }}></div>
                                                     </div>
+                                                    {rankProgress.nextTierName && (
+                                                        <p className="text-[9px] text-white/30 font-bold uppercase mt-3 tracking-wider">
+                                                            Còn thiếu {(rankProgress.minForNext - customer.totalSpent).toLocaleString()}đ để thăng hạng
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </section>

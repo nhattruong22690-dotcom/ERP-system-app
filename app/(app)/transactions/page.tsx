@@ -137,8 +137,9 @@ export default function TransactionsPage() {
 
             const available = initial + currentActual + received
             if (available < (form.amount || 0)) {
-                await showAlert(`Số dư hiện tại (${fmtVND(available)}) không đủ để thực hiện giao dịch này.`)
-                return
+                if (!(await showConfirm(`Số dư hiện tại (${fmtVND(available)}) không đủ để thực hiện giao dịch này. Bạn vẫn muốn tiếp tục?`))) {
+                    return
+                }
             }
         }
 
@@ -895,6 +896,7 @@ function BulkTransactionModal({ onClose, onSave, branches, categories, accounts,
             }
         }
 
+        const insufficient: string[] = []
         for (const [accId, spent] of Object.entries(accUsage)) {
             const acc = accounts.find(a => a.id === accId)
             const initial = acc?.initialBalance || 0
@@ -906,9 +908,13 @@ function BulkTransactionModal({ onClose, onSave, branches, categories, accounts,
             })
 
             if (currentBalance < spent) {
-                await showAlert(`Tài khoản "${acc?.name}" không đủ số dư. Hiện có: ${fmtVND(currentBalance)}, Cần chi: ${fmtVND(spent)}`)
-                return
+                insufficient.push(`- ${acc?.name}: Hiện có ${fmtVND(currentBalance)}, Cần chi: ${fmtVND(spent)}`)
             }
+        }
+
+        if (insufficient.length > 0) {
+            const msg = `Phát hiện các tài khoản không đủ số dư để thực hiện toàn bộ giao dịch:\n${insufficient.join('\n')}\n\nBạn vẫn muốn tiếp tục chi vượt số dư?`
+            if (!(await showConfirm(msg))) return
         }
 
         const now = new Date().toISOString()

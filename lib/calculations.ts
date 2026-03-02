@@ -1,4 +1,4 @@
-import { Category, MonthlyPlan, CategoryPlan, CashFlowRow, Transaction, AlertItem, Branch, Lead, CommissionSetting, Tier } from './types'
+import { Category, MonthlyPlan, CategoryPlan, CashFlowRow, Transaction, AlertItem, Branch, Lead, CommissionSetting, Tier, Customer, ServiceOrder, Appointment, MembershipTier, AppState, CustomerRank } from './types'
 
 // Tính plannedAmount từ rate hoặc fixedAmount
 export function calcPlannedAmount(cp: CategoryPlan, kpiRevenue: number): number {
@@ -493,6 +493,71 @@ export function calculateKpiTieredCommissions(
     return {
         bonusKpi, commissionAmount, kpiPct, targetKpi, actualKpi, details,
         matchedLeads: processedLeads, matchedAppointments: processedAppointments
+    }
+}
+
+/**
+ * Re-calculates customer statistics (Total Spent, Points, Last Visit, Rank)
+ * based on completed Service Orders and Appointments.
+ */
+export function recalculateCustomerStats(customer: Customer, state: AppState): Customer {
+    const orders = (state.serviceOrders || []).filter(o => o.customerId === customer.id && o.status === 'completed')
+    const appointments = (state.appointments || []).filter(a => a.customerId === customer.id && a.status === 'completed')
+
+    // 1. Total Spent (Completed Service Orders only)
+    const totalSpent = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+
+    // 2. Loyalty Points
+    // Default 1 point for every 100,000 VND spent unless configured
+    const settings = state.loyaltySettings || { pointsPerVnd: 0.00001, isActive: true }
+    let points = customer.points || 0
+    if (settings.isActive) {
+        // Simple earning logic: points = floor(totalSpent * conversion)
+        // Note: This logic assumes points are earned. 
+        // If points can be REDEEMED (spent), we'd need a Transaction log for points.
+        // For now, let's treat it as cumulative points earned.
+        points = Math.floor(totalSpent * (settings.pointsPerVnd || 0.00001))
+    }
+
+    // 3. Last Visit (Most recent date from completed orders or appointments)
+    const lastOrderDate = orders.length > 0
+        ? [...orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0].createdAt
+        : null
+    const lastApptDate = appointments.length > 0
+        ? [...appointments].sort((a, b) => b.appointmentDate.localeCompare(a.appointmentDate))[0].appointmentDate
+        : null
+
+    let lastVisit = customer.lastVisit || 'Chưa có'
+    if (lastOrderDate || lastApptDate) {
+        const dates = [lastOrderDate, lastApptDate].filter(Boolean) as string[]
+        // Take the latest ISO date string
+        lastVisit = dates.sort().reverse()[0]
+    }
+
+    // 4. Rank Determination
+    // Sort tiers by minSpend descending (highest spend requirement first)
+    const tiers = [...(state.membershipTiers || [])].sort((a, b) => b.minSpend - a.minSpend)
+    let rank = CustomerRank.MEMBER
+    for (const tier of tiers) {
+        if (totalSpent >= tier.minSpend) {
+            // Check if tier.name matches common VN rank names
+            if (tier.name === 'Kim Cương') rank = CustomerRank.DIAMOND
+            else if (tier.name === 'Bạch Kim') rank = CustomerRank.PLATINUM
+            else if (tier.name === 'Vàng') rank = CustomerRank.GOLD
+            else if (tier.name === 'Bạc') rank = CustomerRank.SILVER
+            else if (tier.name === 'Đồng') rank = CustomerRank.BRONZE
+            else rank = CustomerRank.MEMBER
+            break
+        }
+    }
+
+    return {
+        ...customer,
+        totalSpent,
+        points,
+        lastVisit,
+        rank,
+        updatedAt: new Date().toISOString()
     }
 }
 
