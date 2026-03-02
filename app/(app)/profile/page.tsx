@@ -88,10 +88,11 @@ export default function ProfilePage() {
     const ROLE_CONFIG: Record<string, { label: string; color: string }> = {
         admin: { label: 'Admin', color: '#7c3aed' },
         director: { label: 'Giám đốc', color: '#0891b2' },
+        manager: { label: 'Quản lý', color: '#ea580c' },
         accountant: { label: 'Kế toán', color: '#059669' },
         staff: { label: 'Nhân viên', color: '#d97706' },
     }
-    const roleInfo = ROLE_CONFIG[currentUser?.role || 'staff']
+    const roleInfo = ROLE_CONFIG[currentUser?.role || 'staff'] || { label: 'Thành viên', color: '#6b7280' }
 
     async function handleUpdateInfo() {
         if (!currentUser) return
