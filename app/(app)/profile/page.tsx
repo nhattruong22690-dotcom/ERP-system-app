@@ -85,14 +85,12 @@ export default function ProfilePage() {
         }
     }
 
-    const ROLE_CONFIG: Record<string, { label: string; color: string }> = {
-        admin: { label: 'Admin', color: '#7c3aed' },
-        director: { label: 'Giám đốc', color: '#0891b2' },
-        manager: { label: 'Quản lý', color: '#ea580c' },
-        accountant: { label: 'Kế toán', color: '#059669' },
-        staff: { label: 'Nhân viên', color: '#d97706' },
-    }
-    const roleInfo = ROLE_CONFIG[currentUser?.role || 'staff'] || { label: 'Thành viên', color: '#6b7280' }
+    let roleLabel = 'Thành viên'
+    if (currentUser?.role === 'admin') roleLabel = 'Admin'
+    else if (currentUser?.role === 'director') roleLabel = 'Giám đốc'
+    else if (currentUser?.role === 'manager') roleLabel = 'Quản lý'
+    else if (currentUser?.role === 'accountant') roleLabel = 'Kế toán'
+    else if (currentUser?.role === 'staff') roleLabel = 'Nhân viên'
 
     async function handleUpdateInfo() {
         if (!currentUser) return
@@ -203,7 +201,7 @@ export default function ProfilePage() {
                                     <p className="text-[11px] font-bold text-text-soft uppercase tracking-widest opacity-40 mb-2">Đăng nhập tài khoản</p>
                                     <p className="text-lg font-serif italic text-text-main font-bold">@{currentUser.username}</p>
                                     <div className="mt-4 inline-flex items-center gap-2 px-6 py-2 rounded-full border border-gold-light/30 bg-gold-light/10 text-gold-muted text-[10px] font-black uppercase tracking-widest">
-                                        <CheckCircle2 size={12} strokeWidth={1.5} /> {roleInfo?.label || 'Thành viên'}
+                                        <CheckCircle2 size={12} strokeWidth={1.5} /> {roleLabel}
                                     </div>
                                 </div>
                             </div>
