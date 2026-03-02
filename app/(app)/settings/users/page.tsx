@@ -135,7 +135,7 @@ export default function UsersPage() {
             displayName: form.displayName!,
             password: form.password ? form.password : editing!.password,
             allowedPages: form.allowedPages ?? editing?.allowedPages ?? [],
-            permissions: form.permissions ?? editing?.permissions ?? [],
+            permissions: (form.permissions ?? editing?.permissions ?? []).filter(p => p !== 'branch_view_all'),
             role: form.role as UserRole,
             branchId: form.branchId || undefined,
             title: form.title,

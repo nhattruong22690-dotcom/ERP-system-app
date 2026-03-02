@@ -326,7 +326,11 @@ export function canViewAllBranches(user?: User) {
     const isGlobalDept = user.departmentType === 'admin' || user.departmentType === 'hq';
     if (user.role === 'admin' || isGlobalDept) return true;
 
-    // Nếu user được gán quyền "Xem tất cả chi nhánh" trong Settings
+    // Ưu tiên cao nhất check cờ boolean rõ ràng từ giao diện
+    if (user.viewAllBranches === true) return true;
+    if (user.viewAllBranches === false) return false;
+
+    // Legacy fallback cho data người dùng phiên bản cũ
     return hasPermission(user, 'branch_view_all')
 }
 
