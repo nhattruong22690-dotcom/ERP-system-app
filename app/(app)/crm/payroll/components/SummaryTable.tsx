@@ -20,6 +20,7 @@ interface SummaryProps {
     searchTerm?: string
     setSearchTerm?: (term: string) => void
     branches?: any[]
+    canViewAll?: boolean
 
     formatVND: (amount: number) => string
 }
@@ -33,6 +34,7 @@ export function SummaryHeader({
     searchTerm,
     setSearchTerm,
     branches,
+    canViewAll,
     monthStr
 }: Partial<SummaryProps>) {
     return (
@@ -44,7 +46,9 @@ export function SummaryHeader({
                 </div>
                 <div className="flex gap-3 ml-auto w-full md:w-auto items-center">
                     <div className="flex gap-1 p-1 bg-[#F9F6F2] rounded-xl overflow-x-auto">
-                        <button onClick={() => setSelectedBranch?.('all')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedBranch === 'all' ? 'bg-white text-[#C5A059] shadow-sm' : 'text-[#8E8E8E] hover:text-[#3A3A3A]'}`}>Tất cả</button>
+                        {canViewAll && (
+                            <button onClick={() => setSelectedBranch?.('all')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedBranch === 'all' ? 'bg-white text-[#C5A059] shadow-sm' : 'text-[#8E8E8E] hover:text-[#3A3A3A]'}`}>Tất cả</button>
+                        )}
                         {branches?.map(b => (
                             <button key={b.id} onClick={() => setSelectedBranch?.(b.id)} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedBranch === b.id ? 'bg-white text-[#C5A059] shadow-sm' : 'text-[#8E8E8E] hover:text-[#3A3A3A]'}`}>{b.name}</button>
                         ))}

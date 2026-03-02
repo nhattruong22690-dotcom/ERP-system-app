@@ -1,6 +1,6 @@
 'use client'
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { useApp } from '@/lib/auth'
+import { useApp, canViewAllBranches } from '@/lib/auth'
 import { useToast } from '@/components/ToastProvider'
 import { calculateLeadCommission, calculateKpiTieredCommissions, calculateAppointmentCommissions } from '@/lib/calculations'
 import {
@@ -28,6 +28,12 @@ export default function PayrollPage() {
     const [selectedDate, setSelectedDate] = useState(new Date())
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedBranch, setSelectedBranch] = useState('all')
+
+    useEffect(() => {
+        if (currentUser?.branchId && !canViewAllBranches(currentUser)) {
+            setSelectedBranch(currentUser.branchId)
+        }
+    }, [currentUser])
     const [activeTab, setActiveTab] = useState<'summary' | 'bonus' | 'deduction' | 'advance' | 'commission_approval'>('summary')
     const [showBonusModal, setShowBonusModal] = useState(false)
     const [showDeductionModal, setShowDeductionModal] = useState(false)
@@ -47,8 +53,12 @@ export default function PayrollPage() {
         // Lấy danh sách Roster của tháng
         const currentRosterUserIds = state.payrollRosters?.filter(r => r.period === monthStr).map(r => r.userId) || []
 
-        // CHỈ LẤY những nhân viên có trong Roster
-        const usersInRoster = state.users.filter(u => currentRosterUserIds.includes(u.id))
+        // CHỈ LẤY những nhân viên có trong Roster (và thuộc chi nhánh nếu bị hạn chế)
+        const canViewAll = canViewAllBranches(currentUser)
+        const usersInRoster = state.users.filter(u =>
+            currentRosterUserIds.includes(u.id) &&
+            (canViewAll || u.branchId === currentUser?.branchId)
+        )
 
         return usersInRoster.map(user => {
             const userAttendance = (state.attendance || []).filter(a => a.userId === user.id && a.date.startsWith(monthStr))
@@ -158,13 +168,17 @@ export default function PayrollPage() {
     state.leads, state.userMissions, state.commissionSettings, monthStr])
 
     const userOptionsForSelect = useMemo(() => {
-        return state.users.filter(u => u.workStatus !== 'resigned').map(u => ({
-            id: u.id,
-            name: u.displayName,
-            username: u.username,
-            subtitle: state.jobTitles?.find(jt => jt.id === u.jobTitleId)?.name || 'Chưa có chức vụ/phòng ban'
-        }))
-    }, [state.users, state.jobTitles])
+        const canViewAll = canViewAllBranches(currentUser)
+        return state.users
+            .filter(u => u.workStatus !== 'resigned')
+            .filter(u => canViewAll || u.branchId === currentUser?.branchId)
+            .map(u => ({
+                id: u.id,
+                name: u.displayName,
+                username: u.username,
+                subtitle: state.jobTitles?.find(jt => jt.id === u.jobTitleId)?.name || 'Chưa có chức vụ/phòng ban'
+            }))
+    }, [state.users, state.jobTitles, currentUser])
 
     const activeRosterUserOptions = useMemo(() => {
         return userOptionsForSelect.filter(o =>
@@ -176,9 +190,13 @@ export default function PayrollPage() {
 
     const filteredData = useMemo(() => payrollData.filter(item => {
         const matchesSearch = item.user.displayName.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesBranch = selectedBranch === 'all' || item.user.branchId === selectedBranch
+
+        const canViewAll = canViewAllBranches(currentUser)
+        const branchRestrict = !canViewAll ? item.user.branchId === currentUser?.branchId : true
+
+        const matchesBranch = selectedBranch === 'all' ? branchRestrict : item.user.branchId === selectedBranch
         return matchesSearch && matchesBranch
-    }), [payrollData, searchTerm, selectedBranch])
+    }), [payrollData, searchTerm, selectedBranch, currentUser])
 
     const totalPayout = filteredData.reduce((acc, cur) => acc + cur.netPay, 0)
 
@@ -191,8 +209,11 @@ export default function PayrollPage() {
         setIsSubmitting(true)
         try {
             const storage = await import('@/lib/storage')
-            // Lấy toàn bộ user đang đi làm (không tính resigned)
-            const activeUsersForInit = state.users.filter(u => u.workStatus !== 'resigned')
+            // Lấy toàn bộ user đang đi làm (không tính resigned) và thuộc chi nhánh cho phép
+            const canViewAll = canViewAllBranches(currentUser)
+            const activeUsersForInit = state.users
+                .filter(u => u.workStatus !== 'resigned')
+                .filter(u => canViewAll || u.branchId === currentUser?.branchId)
 
             const newRosters: import('@/lib/types').PayrollRoster[] = activeUsersForInit.map(u => ({
                 id: crypto.randomUUID(),
@@ -527,13 +548,20 @@ export default function PayrollPage() {
         } catch (e) { showToast('Lỗi', 'Không thể xử lý.', 'error' as any) }
     }
 
+    const canViewAll = canViewAllBranches(currentUser)
+    const allowedUserIds = new Set(state.users.filter(u => canViewAll || u.branchId === currentUser?.branchId).map(u => u.id))
+
     // Data for adjustment tabs
-    const monthBonuses = useMemo(() => (state.bonuses || []).filter(b => b.period === monthStr), [state.bonuses, monthStr])
-    const monthDeductions = useMemo(() => (state.deductions || []).filter(d => d.period === monthStr), [state.deductions, monthStr])
-    const allAdvances = useMemo(() => (state.salaryAdvances || []).filter(a => a.period === monthStr), [state.salaryAdvances, monthStr])
+    const monthBonuses = useMemo(() => (state.bonuses || []).filter(b => b.period === monthStr && allowedUserIds.has(b.userId)), [state.bonuses, monthStr, allowedUserIds])
+    const monthDeductions = useMemo(() => (state.deductions || []).filter(d => d.period === monthStr && allowedUserIds.has(d.userId)), [state.deductions, monthStr, allowedUserIds])
+    const allAdvances = useMemo(() => (state.salaryAdvances || []).filter(a => a.period === monthStr && allowedUserIds.has(a.userId)), [state.salaryAdvances, monthStr, allowedUserIds])
     const pendingAdvances = allAdvances.filter(a => a.status === 'pending')
 
-    const pendingCommissions = useMemo(() => (state.commissionLogs || []).filter(c => c.status === 'pending' && c.createdAt?.startsWith(monthStr.substring(0, 7))), [state.commissionLogs, monthStr])
+    const pendingCommissions = useMemo(() => (state.commissionLogs || []).filter(c =>
+        c.status === 'pending' &&
+        c.createdAt?.startsWith(monthStr.substring(0, 7)) &&
+        allowedUserIds.has(c.userId)
+    ), [state.commissionLogs, monthStr, allowedUserIds])
 
     const getUserName = (id: string) => state.users.find(u => u.id === id)?.displayName || id
 
@@ -629,7 +657,8 @@ export default function PayrollPage() {
                                 setSelectedBranch={setSelectedBranch}
                                 searchTerm={searchTerm}
                                 setSearchTerm={setSearchTerm}
-                                branches={state.branches}
+                                branches={canViewAllBranches(currentUser) ? state.branches : state.branches.filter(b => b.id === currentUser?.branchId)}
+                                canViewAll={canViewAllBranches(currentUser)}
                             />
                         )}
                     </div>
