@@ -272,10 +272,7 @@ export function isPageAllowed(user: User | undefined, href: string) {
     if (user.role === 'admin') return true
 
     const baseHref = href.split('?')[0]
-    if (baseHref === '/dashboard' || baseHref === '/' || baseHref === '/profile') return true
-
-    // If they have explicitly denied everything (empty array), but they are not admin,
-    // we should still allow Dashboard (done above).
+    if (baseHref === '/' || baseHref === '/profile') return true
 
     // Check allowedPages if it has content
     if (Array.isArray(user.allowedPages) && user.allowedPages.length > 0) {
@@ -296,9 +293,7 @@ export function isPageAllowed(user: User | undefined, href: string) {
 
     // If allowedPages is an empty array, it means "restricted from everything except defaults"
     if (Array.isArray(user.allowedPages) && user.allowedPages.length === 0) {
-        // Staff are restricted by default from planning and cashflow if list is empty
-        const staffRestricted = ['/planning', '/cashflow']
-        if (user.role === 'staff' && staffRestricted.includes(baseHref)) return false
+        return false
     }
 
     return true
