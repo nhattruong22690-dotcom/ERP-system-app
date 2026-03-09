@@ -7,17 +7,22 @@ export async function GET(
 ) {
     try {
         const resolvedParams = await params;
-        let id = resolvedParams?.id;
+        let customerId: string | undefined = resolvedParams?.id;
 
-        if (!id || id === 'undefined' || id === 'null') {
+        // Fallback for ID extraction if params is empty
+        if (!customerId || customerId === 'undefined' || customerId === 'null') {
             const url = new URL(request.url);
             const pathParts = url.pathname.split('/');
-            id = pathParts.pop() || pathParts.pop();
+            const lastPart = pathParts.pop();
+            const secondLastPart = pathParts.pop();
+            customerId = lastPart || secondLastPart;
         }
 
-        if (!id || id === 'undefined' || id === 'null') {
+        if (!customerId || customerId === 'undefined' || customerId === 'null') {
             return NextResponse.json({ error: 'Thiếu ID khách hàng' }, { status: 400 })
         }
+
+        const id: string = customerId;
 
         // 1. Tìm khách hàng - Lấy đầy đủ các trường như trong CRM Modal
         const { data: customer, error: customerError } = await supabase
