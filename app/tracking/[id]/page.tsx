@@ -131,6 +131,12 @@ export default function TrackingPage({ params: paramsPromise }: { params: Promis
     return (
         <div className="min-h-screen bg-[#020617] text-slate-200 selection:bg-amber-500/30 overflow-x-hidden">
             <style jsx global>{`
+                html, body {
+                    overflow: auto !important;
+                    height: auto !important;
+                    min-height: 100% !important;
+                    position: relative !important;
+                }
                 @keyframes floating { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
                 .float-animation { animation: floating 3s ease-in-out infinite; }
                 .luxury-tracking-page h1, .luxury-tracking-page h2, .luxury-tracking-page h3, .luxury-tracking-page .font-serif { 
@@ -206,8 +212,8 @@ export default function TrackingPage({ params: paramsPromise }: { params: Promis
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`min-w-[70px] flex-1 flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl text-[9px] font-black tracking-widest transition-all shrink-0 ${activeTab === tab.id
-                                        ? 'bg-amber-500 text-[#020617] shadow-lg'
-                                        : 'text-slate-400 hover:text-white'
+                                    ? 'bg-amber-500 text-[#020617] shadow-lg'
+                                    : 'text-slate-400 hover:text-white'
                                     }`}
                             >
                                 <tab.icon size={16} />
