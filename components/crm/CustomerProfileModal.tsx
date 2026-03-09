@@ -790,8 +790,12 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                             <div className="aspect-square w-full bg-[#FAF8F6] rounded-[32px] border-2 border-dashed border-gold-muted/20 flex items-center justify-center p-6 mb-8 relative group overflow-hidden">
                                 {/* Simplified Mock QR - Real one would need qrcode library */}
                                 <div className="absolute inset-0 bg-gradient-to-br from-gold-muted/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                <div className="w-full h-full relative z-10 p-4 bg-white rounded-2xl shadow-inner flex flex-col items-center justify-center border border-gold-muted/10">
-                                    <QrCode size={160} className="text-text-main opacity-90" />
+                                <div className="w-full h-full relative z-10 p-4 bg-white rounded-2xl shadow-inner flex flex-col items-center justify-center border border-gold-muted/10 overflow-hidden">
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== 'undefined' ? `${window.location.origin}/tracking/${customer.id}` : '')}`}
+                                        alt="Tracking QR Code"
+                                        className="w-full h-full object-contain"
+                                    />
                                 </div>
                             </div>
 
