@@ -28,7 +28,10 @@ import {
     Users,
     Mars,
     Venus,
-    Rainbow
+    Rainbow,
+    QrCode,
+    Copy,
+    ExternalLink
 } from 'lucide-react';
 import RankAvatar from './RankAvatar';
 
@@ -58,6 +61,8 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
 }) => {
     const { state } = useApp();
     const [activeTab, setActiveTab] = useState('tổng quan');
+    const [showQrModal, setShowQrModal] = useState(false);
+    const [copySuccess, setCopySuccess] = useState(false);
     const currentMonth = new Date().getMonth();
     const isBirthdayMonth = customer.birthday && new Date(customer.birthday).getMonth() === currentMonth;
 
@@ -180,6 +185,13 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
             >
                 {/* Actions Top-Right - Fixed Position */}
                 <div className="absolute top-4 right-4 md:top-6 md:right-8 flex items-center gap-2 md:gap-4 z-[120]">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setShowQrModal(true); }}
+                        className="h-10 px-4 md:h-11 md:px-6 rounded-2xl bg-gold-muted text-text-main flex items-center justify-center gap-2 transition-all backdrop-blur-lg border border-white/20 active:scale-95 group shadow-lg font-black text-[10px] md:text-[12px] uppercase tracking-widest"
+                    >
+                        <QrCode size={18} className="md:w-5 md:h-5 text-text-main" />
+                        <span className="hidden sm:inline">QR Theo dõi</span>
+                    </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); onEdit(); }}
                         className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition-all backdrop-blur-lg border border-white/20 active:scale-90 group shadow-lg"
@@ -749,6 +761,67 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* QR Tracking Modal */}
+            {showQrModal && (
+                <div
+                    className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in"
+                    onClick={() => setShowQrModal(false)}
+                >
+                    <div
+                        className="bg-white rounded-[40px] max-w-sm w-full p-8 shadow-2xl animate-modal-up border border-white/20 relative"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => setShowQrModal(false)}
+                            className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+
+                        <div className="flex flex-col items-center">
+                            <div className="w-16 h-16 bg-gold-muted/10 rounded-3xl flex items-center justify-center text-gold-muted mb-6">
+                                <QrCode size={32} />
+                            </div>
+
+                            <h2 className="text-xl font-bold text-gray-900 mb-2">QR Code Theo dõi</h2>
+                            <p className="text-sm text-gray-500 text-center mb-8">Khách hàng scan mã này để xem liệu trình & lịch hẹn cá nhân</p>
+
+                            <div className="aspect-square w-full bg-[#FAF8F6] rounded-[32px] border-2 border-dashed border-gold-muted/20 flex items-center justify-center p-6 mb-8 relative group overflow-hidden">
+                                {/* Simplified Mock QR - Real one would need qrcode library */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-gold-muted/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                <div className="w-full h-full relative z-10 p-4 bg-white rounded-2xl shadow-inner flex flex-col items-center justify-center border border-gold-muted/10">
+                                    <QrCode size={160} className="text-text-main opacity-90" />
+                                </div>
+                            </div>
+
+                            <div className="w-full space-y-3">
+                                <button
+                                    onClick={() => {
+                                        const url = `${window.location.origin}/tracking/${customer.id}`;
+                                        navigator.clipboard.writeText(url);
+                                        setCopySuccess(true);
+                                        setTimeout(() => setCopySuccess(false), 2000);
+                                    }}
+                                    className="w-full py-4 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 text-gray-900 font-bold text-sm flex items-center justify-center gap-3 transition-all active:scale-95"
+                                >
+                                    {copySuccess ? <CheckCircle2 size={18} className="text-emerald-500" /> : <Copy size={18} className="text-gray-400" />}
+                                    {copySuccess ? 'Đã sao chép link' : 'Sao chép link theo dõi'}
+                                </button>
+
+                                <a
+                                    href={`/tracking/${customer.id}`}
+                                    target="_blank"
+                                    className="w-full py-4 bg-text-main text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-gold-muted transition-all shadow-lg active:scale-95"
+                                >
+                                    <ExternalLink size={18} />
+                                    Xem thử giao diện khách
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

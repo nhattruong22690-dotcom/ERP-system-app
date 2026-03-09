@@ -1,0 +1,79 @@
+import { NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
+
+export async function GET(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> | { id: string } }
+) {
+    try {
+        const resolvedParams = await params;
+        let id = resolvedParams?.id;
+
+        if (!id || id === 'undefined' || id === 'null') {
+            const url = new URL(request.url);
+            const pathParts = url.pathname.split('/');
+            id = pathParts.pop() || pathParts.pop();
+        }
+
+        if (!id || id === 'undefined' || id === 'null') {
+            return NextResponse.json({ error: 'Thiếu ID khách hàng' }, { status: 400 })
+        }
+
+        // 1. Tìm khách hàng - Lấy đầy đủ các trường như trong CRM Modal
+        const { data: customer, error: customerError } = await supabase
+            .from('crm_customers')
+            .select('*')
+            .eq('id', id)
+            .single()
+
+        if (customerError || !customer) {
+            console.error('Customer not found:', id, customerError);
+            return NextResponse.json({ error: 'Không tìm thấy khách hàng' }, { status: 404 })
+        }
+
+        // 2. Lấy danh sách thẻ liệu trình
+        const { data: treatmentCards, error: cardsError } = await supabase
+            .from('crm_treatment_cards')
+            .select('*')
+            .eq('customer_id', id)
+            .order('created_at', { ascending: false })
+
+        // 3. Lấy danh sách lịch hẹn
+        const { data: appointments, error: appointmentsError } = await supabase
+            .from('crm_appointments')
+            .select('*')
+            .eq('customer_id', id)
+            .order('appointment_date', { ascending: false })
+
+        // 4. Lấy membership tiers để tính toán rank progress (giống modal)
+        const { data: tiers } = await supabase
+            .from('crm_membership_tiers')
+            .select('*')
+            .order('min_spend', { ascending: true })
+
+        return NextResponse.json({
+            status: 'success',
+            data: {
+                customer: {
+                    fullName: customer.full_name,
+                    phone: customer.phone,
+                    birthday: customer.birthday,
+                    gender: customer.gender,
+                    rank: customer.rank,
+                    points: customer.points,
+                    totalSpent: customer.total_spent,
+                    lastVisit: customer.last_visit,
+                    professionalNotes: customer.professional_notes,
+                    avatar: customer.avatar,
+                    isVip: customer.is_vip
+                },
+                treatmentCards: treatmentCards || [],
+                appointments: appointments || [],
+                membershipTiers: tiers || []
+            }
+        })
+    } catch (error: any) {
+        console.error('Tracking API Error:', error)
+        return NextResponse.json({ error: 'Lỗi hệ thống', detail: error.message }, { status: 500 })
+    }
+}
