@@ -91,12 +91,12 @@ export default function TrackingPage({ params: paramsPromise }: { params: Promis
 
     if (error) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6">
+            <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6 text-slate-200">
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-[40px] text-center max-w-md w-full shadow-2xl">
                     <div className="w-16 h-16 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
                         <UserIcon size={32} />
                     </div>
-                    <h1 className="text-white text-xl font-black mb-2 tracking-tight">Thông báo</h1>
+                    <h1 className="text-xl font-black mb-2 tracking-tight">Thông báo</h1>
                     <p className="text-slate-400 mb-8 font-medium">{error}</p>
                     <button onClick={() => window.location.reload()} className="w-full py-4 bg-amber-500 text-[#020617] font-black rounded-2xl shadow-lg active:scale-95 transition-all text-xs tracking-widest uppercase">
                         Thử lại
@@ -129,7 +129,7 @@ export default function TrackingPage({ params: paramsPromise }: { params: Promis
     };
 
     return (
-        <div className="min-h-screen bg-[#020617] text-slate-200 selection:bg-amber-500/30">
+        <div className="min-h-screen bg-[#020617] text-slate-200 selection:bg-amber-500/30 overflow-x-hidden">
             <style jsx global>{`
                 @keyframes floating { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
                 .float-animation { animation: floating 3s ease-in-out infinite; }
@@ -139,11 +139,15 @@ export default function TrackingPage({ params: paramsPromise }: { params: Promis
                 .luxury-tracking-page {
                     font-family: var(--font-inter), sans-serif !important;
                 }
+                /* Custom Scrollbar for better UI */
+                ::-webkit-scrollbar { width: 4px; }
+                ::-webkit-scrollbar-track { background: transparent; }
+                ::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.2); border-radius: 10px; }
             `}</style>
 
-            <div className="luxury-tracking-page">
+            <div className="luxury-tracking-page relative flex flex-col min-h-screen">
                 {/* Header Area */}
-                <div className="relative overflow-hidden bg-gradient-to-b from-slate-900 to-[#020617] pb-32 pt-16 px-6">
+                <div className="relative overflow-hidden bg-gradient-to-b from-slate-900 to-[#020617] pb-24 pt-16 px-6 shrink-0">
                     <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 blur-[120px] rounded-full -mr-40 -mt-40"></div>
                     <div className="max-w-xl mx-auto relative z-10 flex flex-col items-center">
                         <div className="relative mb-8 text-center">
@@ -160,7 +164,7 @@ export default function TrackingPage({ params: paramsPromise }: { params: Promis
                             </div>
                         </div>
 
-                        <h1 className="text-3xl font-black text-white mb-2 tracking-tighter flex items-center gap-3">
+                        <h1 className="text-3xl font-black text-white mb-2 tracking-tight flex items-center gap-3">
                             {customer.fullName}
                             {customer.gender === 'nam' ? <Mars className="text-blue-400" size={24} /> : customer.gender === 'nu' ? <Venus className="text-rose-400" size={24} /> : <Rainbow className="text-amber-400" size={20} />}
                         </h1>
@@ -188,9 +192,9 @@ export default function TrackingPage({ params: paramsPromise }: { params: Promis
                     </div>
                 </div>
 
-                {/* Tab Navigation */}
-                <div className="max-w-xl mx-auto px-4 sticky top-4 z-[50]">
-                    <div className="bg-slate-900/90 backdrop-blur-3xl p-1.5 rounded-[28px] border border-white/10 shadow-3xl flex overflow-x-auto luxury-scrollbar scroll-smooth">
+                {/* Tab Navigation - Use relative/sticky that doesn't block scroll */}
+                <div className="max-w-xl mx-auto px-4 sticky top-4 z-[50] w-full shrink-0">
+                    <div className="bg-slate-900/95 backdrop-blur-3xl p-1.5 rounded-[28px] border border-white/10 shadow-3xl flex overflow-x-auto no-scrollbar scroll-smooth">
                         {[
                             { id: 'tổng quan', label: 'HỒ SƠ', icon: UserIcon },
                             { id: 'liệu trình', label: 'GÓI', icon: CreditCard },
@@ -201,7 +205,7 @@ export default function TrackingPage({ params: paramsPromise }: { params: Promis
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`min-w-[70px] flex-1 flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl text-[9px] font-black tracking-widest transition-all ${activeTab === tab.id
+                                className={`min-w-[70px] flex-1 flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl text-[9px] font-black tracking-widest transition-all shrink-0 ${activeTab === tab.id
                                         ? 'bg-amber-500 text-[#020617] shadow-lg'
                                         : 'text-slate-400 hover:text-white'
                                     }`}
@@ -213,8 +217,8 @@ export default function TrackingPage({ params: paramsPromise }: { params: Promis
                     </div>
                 </div>
 
-                {/* Main Content Sections */}
-                <div className="max-w-xl mx-auto px-6 py-10 pb-32">
+                {/* Main Content Sections - Ensure this can scroll freely */}
+                <div className="max-w-xl mx-auto w-full px-6 py-10 flex-grow">
 
                     {activeTab === 'tổng quan' && (
                         <div className="space-y-8 animate-fade-in">
@@ -376,8 +380,8 @@ export default function TrackingPage({ params: paramsPromise }: { params: Promis
                     )}
                 </div>
 
-                {/* Branding */}
-                <div className="fixed bottom-0 left-0 right-0 bg-[#020617] border-t border-white/5 py-8 text-center px-6">
+                {/* Footer Branding - Changed from fixed to relative to avoid scroll hijacking */}
+                <div className="w-full bg-[#020617] border-t border-white/5 py-12 text-center px-6 shrink-0 mt-auto">
                     <p className="text-[9px] font-black text-amber-500/40 uppercase tracking-[0.6em] mb-2">XINH GROUP ERP SYSTEM</p>
                     <p className="text-[8px] text-slate-700 font-black uppercase tracking-widest">Aesthetic Medical System</p>
                 </div>
