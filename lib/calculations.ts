@@ -1,4 +1,4 @@
-import { Category, MonthlyPlan, CategoryPlan, CashFlowRow, Transaction, AlertItem, Branch, Lead, CommissionSetting, Tier, Customer, ServiceOrder, Appointment, MembershipTier, AppState, CustomerRank } from './types'
+import { Category, MonthlyPlan, CategoryPlan, CashFlowRow, Transaction, AlertItem, Branch, Lead, CommissionSetting, Tier, Customer, ServiceOrder, Appointment, MembershipTier, AppState, CustomerRank, TreatmentCard } from './types'
 
 // Tính plannedAmount từ rate hoặc fixedAmount
 export function calcPlannedAmount(cp: CategoryPlan, kpiRevenue: number): number {
@@ -19,21 +19,29 @@ export function recalcPlan(plan: MonthlyPlan): MonthlyPlan {
     }
 }
 
-// Lấy tổng thực tế của 1 category trong 1 tháng tại 1 chi nhánh
+// Lấy tổng thực tế của 1 category trong 1 khoảng thời gian hoặc theo tháng tại 1 chi nhánh
 export function getActualForCategory(
     transactions: Transaction[],
     branchId: string,
     categoryId: string,
     year: number,
-    month: number
+    month: number,
+    fromDate?: string,
+    toDate?: string
 ): number {
     return transactions
-        .filter(tx =>
-            tx.branchId === branchId &&
-            tx.categoryId === categoryId &&
-            new Date(tx.date).getFullYear() === year &&
-            new Date(tx.date).getMonth() + 1 === month
-        )
+        .filter(tx => {
+            if (tx.branchId !== branchId) return false
+            if (tx.categoryId !== categoryId) return false
+
+            const txDate = tx.date.split('T')[0]
+            if (fromDate && toDate) {
+                return txDate >= fromDate && txDate <= toDate
+            } else {
+                return new Date(tx.date).getFullYear() === year &&
+                    new Date(tx.date).getMonth() + 1 === month
+            }
+        })
         .reduce((sum, tx) => sum + tx.amount, 0)
 }
 
@@ -41,14 +49,16 @@ export function getActualForCategory(
 export function buildCashFlowRows(
     plan: MonthlyPlan,
     categories: Category[],
-    transactions: Transaction[]
+    transactions: Transaction[],
+    fromDate?: string,
+    toDate?: string
 ): CashFlowRow[] {
     return plan.categoryPlans
         .filter(cp => !cp.disabled)
         .map(cp => {
             const cat = categories.find(c => c.id === cp.categoryId)
             if (!cat) return null
-            const actual = getActualForCategory(transactions, plan.branchId, cp.categoryId, plan.year, plan.month)
+            const actual = getActualForCategory(transactions, plan.branchId, cp.categoryId, plan.year, plan.month, fromDate, toDate)
             const planned = cp.plannedAmount
             const delta = actual - planned
             const pct = planned > 0 ? (actual / planned) * 100 : actual > 0 ? 999 : 0
@@ -90,11 +100,13 @@ export function buildAlerts(
     categories: Category[],
     transactions: Transaction[],
     branches: Branch[],
-    includeAll: boolean = false
+    includeAll: boolean = false,
+    fromDate?: string,
+    toDate?: string
 ): AlertItem[] {
     const alerts: AlertItem[] = []
     for (const plan of plans) {
-        const rows = buildCashFlowRows(plan, categories, transactions)
+        const rows = buildCashFlowRows(plan, categories, transactions, fromDate, toDate)
         for (const row of rows) {
             if (includeAll || row.status === 'warning' || row.status === 'exceeded') {
                 const branch = branches.find(b => b.id === plan.branchId)
@@ -551,12 +563,56 @@ export function recalculateCustomerStats(customer: Customer, state: AppState): C
         }
     }
 
+    // 5. Treatment Cards & Wallet Balance
+    let walletBalance = 0
+    const treatmentCards: TreatmentCard[] = []
+
+    orders.forEach(order => {
+        order.lineItems.forEach((item: any) => {
+            // Cards: top up logic
+            if (item.serviceType === 'card') {
+                walletBalance += (item.cardWalletValue || item.price || 0)
+            }
+            // Packages & Singles: Treatment Cards
+            else if (item.serviceType === 'package' || item.serviceType === 'single') {
+                const totalSessions = item.serviceType === 'single' ? 1 : item.totalSessions || 1
+                const remaining = totalSessions // Default to all remaining if new order
+
+                // Determine status based on dates and sessions
+                let status: TreatmentCard['status'] = 'active'
+                const today = new Date().toISOString().split('T')[0]
+
+                if (item.expiryDate && item.expiryDate < today) {
+                    status = 'expired'
+                } else if (remaining <= 0) {
+                    status = 'completed'
+                }
+
+                treatmentCards.push({
+                    id: `${order.id}_${item.id || Math.random().toString(36).substr(2, 9)}`,
+                    name: item.serviceName,
+                    type: item.serviceType === 'package' ? 'package' : 'retail',
+                    total: totalSessions,
+                    used: 0,
+                    remaining: remaining,
+                    status: status,
+                    expiryDate: item.expiryDate,
+                    warrantyExpiryDate: item.warrantyExpiryDate,
+                    purchaseDate: new Date(order.createdAt).toLocaleDateString('vi-VN'),
+                    createdAt: order.createdAt
+                })
+            }
+        })
+    })
+
     return {
         ...customer,
         totalSpent,
         points,
         lastVisit,
         rank,
+        walletBalance,
+        treatmentCards,
         updatedAt: new Date().toISOString()
     }
 }

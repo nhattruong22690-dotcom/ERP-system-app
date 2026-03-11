@@ -7,7 +7,7 @@ import { saveAppointment, syncAppointment, saveCommissionLog, syncCommissionLog,
 import { recalculateCustomerStats } from '@/lib/calculations'
 import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
-import { CalendarDays, Search, Store, ChevronLeft, ChevronRight, PlusCircle, Receipt, Loader2 } from 'lucide-react'
+import { CalendarDays, Search, Store, ChevronLeft, ChevronRight, PlusCircle, Receipt, Loader2, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/PageHeader'
 import ServiceOrderModal from '@/components/crm/ServiceOrderModal'
@@ -383,9 +383,17 @@ export default function AppointmentsPage() {
     }
 
     async function handleSave() {
-        if (!form.customerId || !form.appointmentDate || !form.appointmentTime) {
+        if ((!form.customerId && !form.customerPhone) || !form.appointmentDate || !form.appointmentTime) {
             await showAlert('Vui lòng chọn Khách hàng, Ngày và Giờ hẹn')
             return
+        }
+
+        let finalCustomerId = form.customerId
+        if (!finalCustomerId && form.customerPhone) {
+            const found = state.customers?.find(c => c.phone?.replace(/[^0-9]/g, '').slice(-9) === form.customerPhone?.replace(/[^0-9]/g, '').slice(-9))
+            if (found) {
+                finalCustomerId = found.id
+            }
         }
 
         setIsSaving(true)
@@ -394,15 +402,32 @@ export default function AppointmentsPage() {
 
         if (isNew) {
             logs.push(createLog('created', 'Tạo mới lịch hẹn'))
-        } else if (editing?.notes !== form.notes) {
-            logs.push(createLog('note_added', `Cập nhật ghi chú: ${form.notes}`))
+        } else {
+            // Log changes
+            if (editing && editing.notes !== form.notes) {
+                logs.push(createLog('note_added', `Cập nhật ghi chú: ${form.notes || '(Trống)'}`))
+            }
+            if (editing && editing.appointmentDate !== form.appointmentDate) {
+                logs.push(createLog('date_changed', `Thay đổi ngày hẹn từ ${editing.appointmentDate} sang ${form.appointmentDate}`))
+            }
+            if (editing && editing.appointmentTime !== form.appointmentTime) {
+                logs.push(createLog('time_changed', `Thay đổi giờ hẹn từ ${editing.appointmentTime} sang ${form.appointmentTime}`))
+            }
+            if (editing && editing.status !== form.status && form.status) {
+                logs.push(createLog('status_changed', `Thay đổi trạng thái từ ${STATUS_CONFIG[editing.status as AppointmentStatus]?.label} sang ${STATUS_CONFIG[form.status as AppointmentStatus]?.label}`, editing.status as AppointmentStatus, form.status as AppointmentStatus))
+            }
+            if (editing && editing.branchId !== form.branchId) {
+                const oldBranch = state.branches.find(b => b.id === editing.branchId)?.name || 'N/A'
+                const newBranch = state.branches.find(b => b.id === form.branchId)?.name || 'N/A'
+                logs.push(createLog('branch_changed', `Thay đổi chi nhánh từ ${oldBranch} sang ${newBranch}`))
+            }
         }
 
         const autoSource = editing?.leadId ? 'lead' as const : (currentUser?.departmentType === 'sale' ? 'tele' as const : 'branch' as const)
 
         const appointment: Appointment = {
             id: editing?.id || crypto.randomUUID(),
-            customerId: form.customerId,
+            customerId: finalCustomerId || '',
             customerName: form.customerName || editing?.customerName || customerSearch,
             customerPhone: form.customerPhone || editing?.customerPhone,
             customerRank: form.customerRank || editing?.customerRank,
@@ -593,6 +618,10 @@ export default function AppointmentsPage() {
                                                         const config = STATUS_CONFIG[a.status as AppointmentStatus] || STATUS_CONFIG.pending
                                                         const isVip = a.customerRank === CustomerRank.PLATINUM || a.customerRank === CustomerRank.GOLD
                                                         const hasRedFlag = (a.customerRedFlags && a.customerRedFlags.length > 0)
+                                                        const customer = state.customers?.find(c =>
+                                                            (a.customerId && c.id == a.customerId) ||
+                                                            (a.customerPhone && c.phone?.replace(/[^0-9]/g, '').slice(-9) === a.customerPhone?.replace(/[^0-9]/g, '').slice(-9))
+                                                        )
 
                                                         const isMenuOpen = actionMenuId === a.id
 
@@ -610,9 +639,8 @@ export default function AppointmentsPage() {
                                                             >
                                                                 <span className="material-icons-round absolute -right-6 -bottom-6 text-9xl opacity-[0.05] group-hover/item:scale-110 transition-transform text-white">{config.icon}</span>
 
-
-                                                                <div className="flex items-center gap-4 shrink-0">
-                                                                    <div className="relative">
+                                                                <div className="flex items-center gap-4 shrink-0 max-w-full">
+                                                                    <div className="relative shrink-0">
                                                                         {/* Status Badge above avatar */}
                                                                         <div className="absolute -top-10 left-0 right-0 flex justify-center z-20">
                                                                             <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border-2 border-dashed shadow-sm whitespace-nowrap ${config.bg}`}>
@@ -622,7 +650,7 @@ export default function AppointmentsPage() {
 
                                                                         <img
                                                                             src={a.customerAvatar || `https://ui-avatars.com/api/?name=${a.customerName}&background=random`}
-                                                                            className={`w-14 h-14 rounded-2xl object-cover ring-4 ring-white shadow-md ${isVip ? 'ring-amber-200' : 'ring-gray-100'}`}
+                                                                            className={`w-14 h-14 rounded-2xl object-cover ring-4 ring-white shadow-md transition-all ${isVip ? 'ring-amber-200' : 'ring-gray-100'}`}
                                                                             alt=""
                                                                         />
                                                                         {isVip && (
@@ -631,12 +659,27 @@ export default function AppointmentsPage() {
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <div>
-                                                                        <p className="text-lg font-black text-gray-900">{a.customerName || 'Khách vãng lai'}</p>
-                                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                                    <div className="min-w-0">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <p className="text-lg font-black truncate text-gray-900">{a.customerName || 'Khách vãng lai'}</p>
+                                                                            {customer && (
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        setSelectedCustomerForProfile(customer);
+                                                                                        setShowProfileCustomer(true);
+                                                                                    }}
+                                                                                    className="shrink-0 w-8 h-8 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-110 shadow-lg shadow-emerald-200/50 active:scale-95 transition-all duration-300 flex items-center justify-center border border-emerald-500"
+                                                                                    title="Xem hồ sơ khách hàng"
+                                                                                >
+                                                                                    <User size={14} strokeWidth={2.5} />
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                                                             <span className="text-[10px] bg-white px-2 py-0.5 rounded-md font-black text-gray-900 uppercase tracking-widest border border-gray-200">{a.appointmentTime}</span>
                                                                             <span className="text-[9px] bg-gray-100 px-2 py-0.5 rounded-md font-black text-gray-500 uppercase tracking-widest">LH-{a.appointmentDate.replace(/-/g, '').slice(2)}</span>
-                                                                            <span className="text-xs text-gray-600 font-bold">{a.customerPhone}</span>
+                                                                            <span className="text-xs text-gray-600 font-bold truncate max-w-[120px] block">{a.customerPhone}</span>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -774,16 +817,34 @@ export default function AppointmentsPage() {
                                             </div>
                                             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {dayAppointments.map(a => {
-                                                    const customer = state.customers.find(c => c.id === a.customerId)
+                                                    const customer = state.customers?.find(c =>
+                                                        (a.customerId && c.id == a.customerId) ||
+                                                        (a.customerPhone && c.phone?.replace(/[^0-9]/g, '').slice(-9) === a.customerPhone?.replace(/[^0-9]/g, '').slice(-9))
+                                                    )
                                                     const config = STATUS_CONFIG[a.status as AppointmentStatus] || STATUS_CONFIG.pending
                                                     return (
                                                         <div key={a.id} onClick={() => openEdit(a)} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-3">
                                                             <div className="w-2 h-10 rounded-full" style={{ backgroundColor: config.color }}></div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-xs font-black text-gray-900 truncate">{customer?.fullName || 'Khách vãng lai'}</p>
-                                                                <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest mt-0.5">{a.appointmentTime}</p>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <p className="text-xs font-black truncate text-gray-900">{customer?.fullName || 'Khách vãng lai'}</p>
+                                                                    {customer && (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                setSelectedCustomerForProfile(customer)
+                                                                                setShowProfileCustomer(true)
+                                                                            }}
+                                                                            className="shrink-0 w-8 h-8 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-110 shadow-lg shadow-emerald-200/50 active:scale-95 transition-all duration-300 flex items-center justify-center border border-emerald-500"
+                                                                            title="Xem hồ sơ khách hàng"
+                                                                        >
+                                                                            <User size={14} strokeWidth={2.5} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest mt-0.5">{a.appointmentTime} - {a.customerPhone || ''}</p>
                                                             </div>
-                                                            <span className="material-icons-round text-sm text-gray-400">{config.icon}</span>
+                                                            <span className="material-icons-round text-sm text-gray-400 shrink-0">{config.icon}</span>
                                                         </div>
                                                     )
                                                 })}
@@ -856,42 +917,6 @@ export default function AppointmentsPage() {
                         )}
                     </div>
                 </div>
-
-                {showProfileCustomer && selectedCustomerForProfile && currentUser && (
-                    <CustomerProfileModal
-                        customer={selectedCustomerForProfile}
-                        onClose={() => setShowProfileCustomer(false)}
-                        onNavigate={(tab: string) => {
-                            setShowProfileCustomer(false);
-                            if (tab === 'sales') {
-                                setShowServiceOrderForm(true);
-                            } else if (tab === 'appointments' || tab === 'create_appointment') {
-                                setForm({
-                                    customerId: selectedCustomerForProfile.id,
-                                    customerName: selectedCustomerForProfile.fullName,
-                                    customerPhone: selectedCustomerForProfile.phone,
-                                    customerRank: selectedCustomerForProfile.rank,
-                                    customerAvatar: selectedCustomerForProfile.avatar,
-                                    appointmentDate: new Date().toISOString().split('T')[0],
-                                    appointmentTime: '09:00',
-                                    status: 'pending',
-                                    branchId: selectedCustomerForProfile.branchId || currentUser?.branchId || (state.branches.find(b => b.type !== 'hq' && !b.isHeadquarter)?.id || state.branches[0]?.id)
-                                });
-                                setCustomerSearch(`${selectedCustomerForProfile.fullName} - ${selectedCustomerForProfile.phone}`);
-                                setEditing(null);
-                                setShowForm(true);
-                            } else {
-                                router.push(`/crm/${tab}`);
-                            }
-                        }}
-                        onEdit={() => {
-                            setShowProfileCustomer(false);
-                        }}
-                        currentUser={currentUser}
-                        branches={state.branches}
-                        appointments={state.appointments}
-                    />
-                )}
             </div>
 
             {/* Modal Form */}
@@ -968,19 +993,38 @@ export default function AppointmentsPage() {
                                                             setSelectedCustomerForProfile(c)
                                                             setShowProfileCustomer(true)
                                                         }}
-                                                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all bg-gray-50 text-gray-400 opacity-0 group-hover/cust:opacity-100 hover:bg-primary/10 hover:text-primary shrink-0"
+                                                        className="w-8 h-8 rounded-xl flex items-center justify-center transition-all bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-110 shadow-lg shadow-emerald-200/50 active:scale-95 border border-emerald-500 shrink-0"
                                                         title="Xem hồ sơ"
                                                     >
-                                                        <span className="material-icons-round text-lg">person</span>
+                                                        <User size={14} strokeWidth={2.5} />
                                                     </button>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
                                     {form.customerId && (
-                                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-black">
-                                            <span className="material-icons-round text-[14px]">check_circle</span>
-                                            Đã chọn: {form.customerName} - {form.customerPhone}
+                                        <div className="mt-3 flex items-center justify-between px-3 py-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+                                            <div className="flex items-center gap-2 text-xs font-black">
+                                                <span className="material-icons-round text-[14px]">check_circle</span>
+                                                Đã chọn: {form.customerName} - {form.customerPhone}
+                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const customer = state.customers?.find(c =>
+                                                        (form.customerId && c.id == form.customerId) ||
+                                                        (form.customerPhone && c.phone?.replace(/[^0-9]/g, '').slice(-9) === form.customerPhone?.replace(/[^0-9]/g, '').slice(-9))
+                                                    );
+                                                    if (customer) {
+                                                        setSelectedCustomerForProfile(customer);
+                                                        setShowProfileCustomer(true);
+                                                    }
+                                                }}
+                                                className="w-8 h-8 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-110 shadow-lg shadow-emerald-200/50 active:scale-95 transition-all duration-300 flex items-center justify-center border border-emerald-500"
+                                                title="Xem hồ sơ"
+                                            >
+                                                <User size={14} strokeWidth={2.5} />
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -1154,14 +1198,19 @@ export default function AppointmentsPage() {
                 initialCustomerId={serviceOrderInitialData.customerId}
                 initialBranchId={serviceOrderInitialData.branchId}
             />
-            {showProfileCustomer && selectedCustomerForProfile && currentUser && (
+
+            {showProfileCustomer && selectedCustomerForProfile && (
                 <CustomerProfileModal
                     customer={selectedCustomerForProfile}
                     onClose={() => setShowProfileCustomer(false)}
-                    onNavigate={(tab: string) => {
-                        setShowProfileCustomer(false);
+                    onNavigate={(tab) => {
+                        setShowProfileCustomer(false)
                         if (tab === 'sales') {
-                            setShowServiceOrderForm(true);
+                            setServiceOrderInitialData({
+                                customerId: selectedCustomerForProfile.id,
+                                branchId: selectedCustomerForProfile.branchId || currentUser?.branchId || ''
+                            })
+                            setShowServiceOrderForm(true)
                         } else if (tab === 'appointments' || tab === 'create_appointment') {
                             setForm({
                                 customerId: selectedCustomerForProfile.id,
@@ -1178,13 +1227,13 @@ export default function AppointmentsPage() {
                             setEditing(null);
                             setShowForm(true);
                         } else {
-                            router.push(`/crm/${tab}`);
+                            router.push(`/crm/${tab}`)
                         }
                     }}
                     onEdit={() => {
-                        setShowProfileCustomer(false);
+                        setShowProfileCustomer(false)
                     }}
-                    currentUser={currentUser}
+                    currentUser={currentUser as any}
                     branches={state.branches}
                     appointments={state.appointments}
                 />

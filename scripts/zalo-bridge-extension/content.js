@@ -1,6 +1,6 @@
 console.log('ERP Zalo Bridge: Đã được kích hoạt');
 
-const ERP_API_URL = 'http://localhost:3000/api/zalo/tracking';
+const ERP_API_URL = 'https://xinhgroup.vercel.app/api/zalo/tracking';
 let monitoredRooms = [];
 const trackingCache = {}; // Cache dữ liệu để không gọi API khi Zalo re-render
 

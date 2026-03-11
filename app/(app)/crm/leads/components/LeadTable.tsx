@@ -1,5 +1,5 @@
 import React from 'react'
-import { MapPinOff, CalendarDays, ExternalLink, Phone } from 'lucide-react'
+import { MapPinOff, CalendarDays, ExternalLink, Phone, User } from 'lucide-react'
 
 interface LeadTableProps {
     filteredLeads: any[]
@@ -8,6 +8,7 @@ interface LeadTableProps {
     getEffectiveStatus: (lead: any) => string
     openCare: (lead: any) => void
     statusChips: Record<string, { label: string; color: string }>
+    onViewCustomer?: (customer: any) => void
 }
 
 export const LeadTable: React.FC<LeadTableProps> = ({
@@ -16,7 +17,8 @@ export const LeadTable: React.FC<LeadTableProps> = ({
     getRowColor,
     getEffectiveStatus,
     openCare,
-    statusChips
+    statusChips,
+    onViewCustomer
 }) => {
     return (
         <div className="bg-white rounded-[40px] border border-gold-light/20 shadow-luxury overflow-hidden">
@@ -35,6 +37,10 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                         {filteredLeads.map(lead => {
                             const latestLog = lead.careLogs?.[0]
                             const rowStyle = getRowColor(lead.effectiveStatus)
+                            const customer = state.customers?.find((c: any) =>
+                                (lead.customerId && c.id == lead.customerId) ||
+                                (lead.phone && c.phone?.replace(/[^0-9]/g, '').slice(-9) === lead.phone?.replace(/[^0-9]/g, '').slice(-9))
+                            )
 
                             return (
                                 <tr
@@ -57,14 +63,26 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                                     </td>
                                     <td className="px-10 py-6">
                                         <div className="flex items-center gap-5">
-                                            <div className="w-12 h-12 rounded-[18px] bg-gold-light/20 flex items-center justify-center text-gold-muted font-serif font-black text-lg border border-gold-light/30 shadow-sm group-hover:scale-110 transition-transform">
+                                            <div className="w-12 h-12 rounded-[18px] bg-gold-light/20 flex items-center justify-center text-gold-muted font-serif font-black text-lg border border-gold-light/30 shadow-sm group-hover:scale-110 transition-transform shrink-0">
                                                 {lead.name.charAt(0)}
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <div className="text-[14px] font-black text-text-main group-hover:text-gold-muted transition-colors italic">
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                    <div className="text-[14px] font-black text-text-main group-hover:text-gold-muted transition-colors italic truncate">
                                                         {lead.name}
                                                     </div>
+                                                    {customer && onViewCustomer && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                onViewCustomer(customer)
+                                                            }}
+                                                            className="shrink-0 w-7 h-7 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-110 shadow-lg shadow-emerald-200/50 active:scale-95 transition-all duration-300 flex items-center justify-center border border-emerald-500"
+                                                            title="Hồ sơ khách hàng"
+                                                        >
+                                                            <User size={14} strokeWidth={2.5} />
+                                                        </button>
+                                                    )}
                                                     {(() => {
                                                         const isAppointmentRelated = ['booked', 'arrived', 'completed', 'no_show', 'cancelled', 'pending', 'confirmed', 'recare'].includes(lead.status);
                                                         if (!isAppointmentRelated) return null;

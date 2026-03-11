@@ -260,6 +260,7 @@ export interface TreatmentCard {
   used: number
   remaining: number
   expiryDate?: string
+  warrantyExpiryDate?: string
   status: 'active' | 'expired' | 'completed'
   purchaseDate: string
   createdAt: string
@@ -285,6 +286,7 @@ export interface Customer {
   medicalNotes?: string
   professionalNotes?: string;
   isVip?: boolean;
+  walletBalance?: number; // Số dư thẻ tiền nạp
   treatmentCards?: TreatmentCard[]
   createdAt: string
   updatedAt: string
@@ -495,7 +497,12 @@ export interface ServiceOrder {
   appointmentId?: string          // Liên kết lịch hẹn → lấy leadId, salePageId, saleTeleId
   lineItems: ServiceLineItem[]
   totalAmount: number
+  actualAmount?: number
+  debtAmount?: number
   status: 'draft' | 'confirmed' | 'completed' | 'cancelled'
+  customerName?: string           // Joined from crm_customers
+  customerPhone?: string          // Joined from crm_customers
+  customerAvatar?: string         // Joined
   createdBy: string
   createdAt: string
   updatedAt: string

@@ -37,6 +37,7 @@ export default function TransactionsPage() {
     const [filterCat, setFilterCat] = useState('')
     const [filterAccount, setFilterAccount] = useState('')
     const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
+    const [initialFormStateRef] = useState<{ snapshot: string }>({ snapshot: '' })
 
     const visibleBranches = canViewAllBranches(currentUser)
         ? state.branches
@@ -95,6 +96,28 @@ export default function TransactionsPage() {
         setForm(EMPTY_TX())
         setEditingTx(null)
         setIsHQPaying(false)
+        initialFormStateRef.snapshot = ''
+    }
+
+    // Capture initial state for dirty check
+    if (showForm && !initialFormStateRef.snapshot) {
+        initialFormStateRef.snapshot = JSON.stringify({ form, isHQPaying })
+    }
+
+    const isDirty = useMemo(() => {
+        if (!showForm || !initialFormStateRef.snapshot) return false
+        return JSON.stringify({ form, isHQPaying }) !== initialFormStateRef.snapshot
+    }, [showForm, form, isHQPaying, initialFormStateRef.snapshot])
+
+    const handleBackdropClick = async (e: React.MouseEvent) => {
+        if (e.target !== e.currentTarget) return
+        if (isDirty) {
+            if (await showConfirm('Bạn có chắc chắn muốn đóng? Dữ liệu đang nhập sẽ bị mất.')) {
+                handleCloseModal()
+            }
+        } else {
+            handleCloseModal()
+        }
     }
 
     function openNew() {
@@ -501,7 +524,7 @@ export default function TransactionsPage() {
 
             {/* Luxury Transaction Form Modal */}
             {showForm && (
-                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-6 bg-black/40 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer md:left-[280px]" onClick={async e => { if (e.target === e.currentTarget && await showConfirm('Bạn có chắc chắn muốn đóng? Dữ liệu đang nhập sẽ bị mất.')) handleCloseModal() }}>
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-6 bg-black/40 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer md:left-[280px]" onClick={handleBackdropClick}>
                     <div className="bg-white w-full max-w-2xl h-fit rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
 
                         {/* Left Side Branding */}

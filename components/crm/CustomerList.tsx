@@ -23,7 +23,8 @@ import {
     Calendar,
     Fingerprint,
     Loader2,
-    RefreshCw
+    RefreshCw,
+    User as UserIcon
 } from 'lucide-react';
 import RankAvatar from './RankAvatar';
 
@@ -441,7 +442,14 @@ const CustomerList: React.FC<CustomerListProps> = ({
                                 </td>
 
                                 <td className="px-6 py-6 text-right md:px-10">
-                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center justify-end gap-2">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onViewCustomer(customer); }}
+                                            className="w-10 h-10 flex items-center justify-center bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl transition-all shadow-lg shadow-emerald-200/50 active:scale-90 border border-emerald-500"
+                                            title="Xem hồ sơ"
+                                        >
+                                            <UserIcon size={16} strokeWidth={2.5} />
+                                        </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onOpenForm(customer); }}
                                             className="w-10 h-10 flex items-center justify-center bg-white text-gold-muted hover:bg-gold-light/10 border border-transparent hover:border-gold-light/30 rounded-xl transition-all shadow-sm active:scale-90"

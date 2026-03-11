@@ -82,11 +82,15 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
         const currentTier = currentTierIdx >= 0 ? tiers[currentTierIdx] : null;
         const nextTier = currentTierIdx + 1 < tiers.length ? tiers[currentTierIdx + 1] : null;
 
-        if (!nextTier) return { percent: 100, nextTierName: null, minForNext: 0 };
+        if (!nextTier || !nextTier.minSpend) return { percent: 100, nextTierName: null, minForNext: 0 };
 
-        const min = currentTier ? currentTier.minSpend : 0;
+        const min = currentTier ? (currentTier.minSpend || 0) : 0;
         const max = nextTier.minSpend;
-        const progress = ((customer.totalSpent - min) / (max - min)) * 100;
+
+        if (max <= min) return { percent: 100, nextTierName: nextTier.name, minForNext: max };
+
+        const currentSpent = customer.totalSpent || 0;
+        const progress = ((currentSpent - min) / (max - min)) * 100;
 
         return {
             percent: Math.min(100, Math.max(0, progress)),
@@ -98,7 +102,8 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
     // Standardize ID: branchCode_xxxxxx_xxxx
     const branch = branches.find(b => b.id === customer.branchId);
     const branchCode = branch?.code || 'HQ';
-    const formattedId = `${branchCode}_${customer.id.replace(/-/g, '').slice(0, 8)}_${customer.id.slice(-4)}`;
+    const customerIdStr = String(customer.id);
+    const formattedId = `${branchCode}_${customerIdStr.replace(/-/g, '').slice(0, 8)}_${customerIdStr.slice(-4)}`;
 
     const tabs = [
         { id: 'tổng quan', label: 'Thông tin', icon: UserIcon },
@@ -109,7 +114,7 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
         { id: 'tương tác', label: 'CSKH', icon: MessageSquare },
     ];
 
-    const customerAppointments = appointments.filter(a => a.customerId === customer.id)
+    const customerAppointments = appointments.filter(a => String(a.customerId || '') == String(customer.id))
         .sort((a, b) => {
             const dateA = `${a.appointmentDate}T${a.appointmentTime}`
             const dateB = `${b.appointmentDate}T${b.appointmentTime}`
@@ -452,6 +457,10 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                                                     </div>
                                                                 </div>
                                                                 <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                                                    <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-2">Số dư ví (Thẻ tiền nạp)</p>
+                                                                    <span className="text-[18px] font-black text-white italic">{(customer.walletBalance || 0).toLocaleString()}đ</span>
+                                                                </div>
+                                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5 col-span-2 text-center mt-[-1rem]">
                                                                     <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-2">Lần cuối ghé</p>
                                                                     <p className="text-[14px] font-black text-white italic">{customer.lastVisit || 'Chưa có'}</p>
                                                                 </div>
@@ -651,13 +660,13 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                             {activeTab === 'liệu trình' && (
                                 <div className="space-y-10 animate-fade-in">
                                     <section>
-                                        <div className="flex justify-between items-center mb-8 sticky top-16 bg-transparent z-10">
+                                        <div className="flex justify-between items-center mb-8 sticky top-16 bg-transparent z-10 py-2">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shadow-sm">
                                                     <Flower size={20} />
                                                 </div>
                                                 <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
-                                                    Liệu trình hoạt động
+                                                    Liệu trình & Dịch vụ
                                                 </h3>
                                             </div>
                                             <button
@@ -670,32 +679,84 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                             {customer.treatmentCards && customer.treatmentCards.length > 0 ? (
-                                                customer.treatmentCards.map(card => (
-                                                    <div key={card.id} className="bg-white border border-gold-light/20 rounded-[32px] p-6 hover:border-gold-muted/50 transition-all hover:shadow-luxury group relative overflow-hidden">
-                                                        <div className="flex items-center gap-4 relative z-10">
-                                                            <div className={`w-14 h-14 rounded-[18px] flex items-center justify-center shrink-0 shadow-inner ${card.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-beige-soft text-text-soft border border-gold-light/10'
-                                                                }`}>
-                                                                <Flower size={24} strokeWidth={1.5} />
+                                                [...customer.treatmentCards]
+                                                    .sort((a, b) => {
+                                                        // Sort by status activity first, then by remaining sessions
+                                                        const statusWeight = { active: 0, expired: 2, completed: 1 };
+                                                        if (statusWeight[a.status] !== statusWeight[b.status]) {
+                                                            return statusWeight[a.status] - statusWeight[b.status];
+                                                        }
+                                                        return b.remaining - a.remaining;
+                                                    })
+                                                    .map(card => {
+                                                        const isExpiring = card.status === 'active' && card.remaining <= 2;
+                                                        const isExpired = card.status === 'expired' || (card.expiryDate && new Date(card.expiryDate) < new Date());
+
+                                                        return (
+                                                            <div key={card.id} className="bg-white border border-gold-light/20 rounded-[32px] p-6 hover:border-gold-muted/50 transition-all hover:shadow-luxury group relative overflow-hidden flex flex-col h-full">
+                                                                {/* Status Badge */}
+                                                                <div className="absolute top-4 right-4 z-20">
+                                                                    <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-sm ${card.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                                        card.status === 'expired' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                                                                            'bg-gray-50 text-gray-400 border border-gray-100'
+                                                                        }`}>
+                                                                        {card.status === 'active' ? 'Đang dùng' : card.status === 'expired' ? 'Hết hạn' : 'Hoàn thành'}
+                                                                    </span>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-4 relative z-10 mb-6">
+                                                                    <div className={`w-14 h-14 rounded-[18px] flex items-center justify-center shrink-0 shadow-inner ${card.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                                        'bg-beige-soft text-text-soft border border-gold-light/10'
+                                                                        }`}>
+                                                                        <Flower size={24} strokeWidth={1.5} className={card.status === 'active' ? 'animate-pulse-subtle' : ''} />
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0 pr-12">
+                                                                        <p className="text-[14px] font-serif font-black text-text-main truncate tracking-tight group-hover:text-gold-muted transition-colors leading-tight">{card.name}</p>
+                                                                        <p className="text-[9px] text-text-soft font-black uppercase tracking-widest opacity-40 mt-1">Loại: {card.type === 'package' ? 'Gói liệu trình' : 'Dịch vụ lẻ'}</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex-1 space-y-4">
+                                                                    <div className="bg-beige-soft/30 rounded-2xl p-4 border border-gold-light/5">
+                                                                        <div className="flex justify-between items-end mb-2">
+                                                                            <div className="space-y-0.5">
+                                                                                <p className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-40">Tiến độ sử dụng</p>
+                                                                                <p className="text-[14px] font-black text-text-main">Còn <span className="text-2xl font-serif font-black text-gold-muted italic">{card.remaining}</span>/{card.total} buổi</p>
+                                                                            </div>
+                                                                            <div className="text-right">
+                                                                                <p className="text-[14px] font-black text-text-main opacity-20">{Math.round((card.used / card.total) * 100)}%</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="w-full h-2 bg-white/50 rounded-full overflow-hidden border border-gold-light/10">
+                                                                            <div
+                                                                                className={`h-full rounded-full transition-all duration-1000 ${isExpired ? 'bg-gray-300' :
+                                                                                    isExpiring ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.4)]' :
+                                                                                        'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                                                                                    }`}
+                                                                                style={{ width: `${(card.remaining / card.total) * 100}%` }}
+                                                                            ></div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="grid grid-cols-2 gap-3">
+                                                                        <div className="p-3 bg-white/40 rounded-xl border border-gold-light/10">
+                                                                            <p className="text-[8px] font-black text-text-soft uppercase tracking-widest opacity-40 mb-1">Ngày mua</p>
+                                                                            <p className="text-[10px] font-bold text-text-main">{card.purchaseDate}</p>
+                                                                        </div>
+                                                                        <div className="p-3 bg-white/40 rounded-xl border border-gold-light/10">
+                                                                            <p className="text-[8px] font-black text-text-soft uppercase tracking-widest opacity-40 mb-1">Hết hạn/BH</p>
+                                                                            <p className={`text-[10px] font-bold ${isExpired ? 'text-rose-500' : 'text-text-main'}`}>
+                                                                                {card.expiryDate || card.warrantyExpiryDate || 'Không thời hạn'}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Decorative elements */}
+                                                                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-gold-light/5 rounded-full blur-2xl group-hover:bg-gold-muted/10 transition-all"></div>
                                                             </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-[14px] font-serif font-black text-text-main truncate tracking-tight group-hover:text-gold-muted transition-colors">{card.name}</p>
-                                                                <p className="text-[9px] text-text-soft font-black uppercase tracking-widest opacity-40">Ngày mua: {card.purchaseDate}</p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="mt-8 flex items-end justify-between relative z-10">
-                                                            <div className="space-y-1">
-                                                                <p className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-40">Số buổi còn lại</p>
-                                                                <p className="text-[12px] font-black text-text-main">Còn <span className="text-2xl font-serif font-black text-gold-muted italic">{card.remaining}</span>/{card.total} buổi</p>
-                                                            </div>
-                                                            <div className="w-20 h-1.5 bg-beige-soft rounded-full overflow-hidden border border-gold-light/10">
-                                                                <div
-                                                                    className={`h-full rounded-full transition-all duration-1000 ${card.remaining > 2 ? 'bg-gold-muted' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}
-                                                                    style={{ width: `${(card.remaining / card.total) * 100}%` }}
-                                                                ></div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))
+                                                        );
+                                                    })
                                             ) : (
                                                 <div className="lg:col-span-3 bg-beige-soft/20 p-24 rounded-[40px] border border-dashed border-gold-light/30 flex flex-col items-center justify-center text-text-soft text-center opacity-40">
                                                     <Flower size={64} strokeWidth={1} className="mb-6" />
@@ -734,9 +795,26 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                             Tài chính & Công nợ
                                         </h3>
                                     </div>
-                                    <div className="bg-white p-20 rounded-[32px] border border-dashed border-gold-light/20 flex flex-col items-center justify-center text-text-soft text-center shadow-luxury">
-                                        <Wallet size={48} strokeWidth={1} className="mb-6 opacity-20 text-gold-muted" />
-                                        <p className="text-[11px] font-black text-text-soft uppercase tracking-widest mt-4 opacity-40">Vui lòng liên hệ bộ phận Kế toán để biết chi tiết</p>
+                                    <div className="bg-white p-10 lg:p-14 rounded-[32px] border border-gold-light/20 flex flex-col md:flex-row items-center justify-between gap-10 text-text-soft text-center md:text-left shadow-luxury">
+                                        <div className="flex flex-col items-center md:items-start">
+                                            <Wallet size={48} strokeWidth={1.5} className="mb-6 text-gold-muted" />
+                                            <p className="text-[12px] font-black text-text-soft uppercase tracking-widest opacity-60">Số dư thẻ tiền nạp</p>
+                                            <p className="text-4xl lg:text-5xl font-serif font-black text-text-main mt-4">
+                                                {(customer.walletBalance || 0).toLocaleString()}
+                                                <span className="text-xl lg:text-2xl font-sans lg:ml-2 font-normal opacity-40">VNĐ</span>
+                                            </p>
+                                            <div className="mt-6 flex gap-2 w-full md:w-auto">
+                                                <button className="flex-1 md:flex-none px-6 py-2.5 bg-text-main text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gold-muted transition-all shadow-lg active:scale-95">Nạp tiền</button>
+                                                <button className="flex-1 md:flex-none px-6 py-2.5 bg-beige-soft text-text-main text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gold-light transition-all shadow-sm active:scale-95">Biến động</button>
+                                            </div>
+                                        </div>
+                                        <div className="w-full md:w-1/2 bg-text-main p-8 rounded-3xl text-white relative overflow-hidden shadow-inner hidden md:block">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-gold-muted/10 rounded-full translate-x-10 -translate-y-10 blur-xl"></div>
+                                            <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-6">Thẻ tiền trả trước</h4>
+                                            <p className="text-sm font-serif italic text-white/80 leading-relaxed">
+                                                Việc nạp tiền trước vào thẻ giúp Khách hàng không cần mang theo tiền mặt hoặc thẻ tín dụng mỗi lần ghé qua, đồng thời tận hưởng trọn vẹn đặc quyền chuyên biệt tại thẩm mỹ viện.
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             )}

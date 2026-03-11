@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, CustomerRank } from '@/lib/types';
+import { useModal } from '@/components/ModalProvider';
 import {
     User,
     Phone,
@@ -36,22 +37,41 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
     branches
 }) => {
     const [formData, setFormData] = useState<Partial<Customer>>({});
+    const { showConfirm } = useModal();
+    const initialFormStateRef = React.useRef<string>('');
 
     useEffect(() => {
-        if (customer) {
-            setFormData(customer);
-        } else {
-            setFormData({
+        if (isOpen && !initialFormStateRef.current) {
+            const initialData: Partial<Customer> = customer ? { ...customer } : {
                 fullName: '',
                 phone: '',
-                gender: 'nu',
+                gender: 'nu' as const,
                 rank: CustomerRank.MEMBER,
                 points: 0,
                 totalSpent: 0,
                 isVip: false
-            });
+            };
+            setFormData(initialData);
+            initialFormStateRef.current = JSON.stringify(initialData);
+        } else if (!isOpen) {
+            initialFormStateRef.current = '';
         }
     }, [customer, isOpen]);
+
+    const isDirty = React.useMemo(() => {
+        if (!isOpen || !initialFormStateRef.current) return false;
+        return JSON.stringify(formData) !== initialFormStateRef.current;
+    }, [formData, isOpen]);
+
+    const handleCloseInternal = async () => {
+        if (isDirty) {
+            if (await showConfirm('Dữ liệu khách hàng chưa được lưu. Bạn có chắc chắn muốn đóng?')) {
+                onClose();
+            }
+        } else {
+            onClose();
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -61,7 +81,7 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={onClose}>
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={handleCloseInternal}>
             <div className="bg-white w-full max-w-7xl h-fit rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-scale-up border border-gold-light/20 my-auto cursor-default" onClick={(e) => e.stopPropagation()}>
 
                 {/* Left Side: Compact Branding Sidebar */}
@@ -84,7 +104,7 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                 <div className="flex-1 bg-[#FAF7F2]/30 flex flex-col relative min-w-0">
                     {/* Compact Close Button */}
                     <button
-                        onClick={onClose}
+                        onClick={handleCloseInternal}
                         className="absolute top-6 right-6 z-[120] w-10 h-10 rounded-xl bg-white/80 hover:bg-white text-text-soft hover:text-rose-500 flex items-center justify-center transition-all shadow-sm border border-gold-light/20 active:scale-90"
                     >
                         <X size={18} strokeWidth={2.5} />
@@ -296,7 +316,7 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                     <div className="px-6 py-8 md:px-10 md:py-8 border-t border-gold-muted/10 bg-white/50 backdrop-blur-md flex justify-end gap-4 shrink-0">
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleCloseInternal}
                             className="px-7 py-3 bg-white border border-gold-light/30 rounded-xl text-[9px] font-black uppercase tracking-widest text-text-soft hover:text-text-main hover:border-gold-muted/40 transition-all active:scale-95 shadow-sm"
                         >
                             Hủy

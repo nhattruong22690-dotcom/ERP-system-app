@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import React from 'react'
 import { useApp } from '@/lib/auth'
 import { JobTitle, DepartmentType, UserRole } from '@/lib/types'
 import { saveJobTitle, deleteJobTitleDB, removeJobTitleState } from '@/lib/storage'
@@ -58,6 +59,30 @@ export default function JobTitlesModal({ onClose }: { onClose: () => void }) {
         permissions: []
     })
     const [expandPerms, setExpandPerms] = useState(false)
+    const initialFormStateRef = React.useRef<string>('')
+
+    React.useEffect(() => {
+        if (showForm && !initialFormStateRef.current) {
+            initialFormStateRef.current = JSON.stringify(form)
+        } else if (!showForm) {
+            initialFormStateRef.current = ''
+        }
+    }, [showForm, form])
+
+    const isDirty = React.useMemo(() => {
+        if (!showForm || !initialFormStateRef.current) return false
+        return JSON.stringify(form) !== initialFormStateRef.current
+    }, [showForm, form])
+
+    const handleCloseForm = async () => {
+        if (isDirty) {
+            if (await showConfirm('Thay đổi chưa được lưu. Bạn có chắc chắn muốn đóng?')) {
+                setShowForm(false)
+            }
+        } else {
+            setShowForm(false)
+        }
+    }
 
     const jobTitles = state.jobTitles || []
 
@@ -273,7 +298,7 @@ export default function JobTitlesModal({ onClose }: { onClose: () => void }) {
                                     </h3>
                                     <p className="text-[10px] font-black text-text-soft/40 uppercase tracking-widest mt-1">Hồ sơ định nghĩa cơ cấu</p>
                                 </div>
-                                <button onClick={() => setShowForm(false)} className="w-10 h-10 rounded-xl bg-white border border-gold-light/10 text-text-soft hover:text-rose-500 transition-all flex items-center justify-center shadow-sm active:scale-95">
+                                <button onClick={handleCloseForm} className="w-10 h-10 rounded-xl bg-white border border-gold-light/10 text-text-soft hover:text-rose-500 transition-all flex items-center justify-center shadow-sm active:scale-95">
                                     <X size={18} strokeWidth={2.5} />
                                 </button>
                             </div>
@@ -465,7 +490,7 @@ export default function JobTitlesModal({ onClose }: { onClose: () => void }) {
                             </div>
 
                             <div className="p-8 bg-beige-soft/30 border-t border-gold-light/10 flex gap-4">
-                                <button onClick={() => setShowForm(false)} className="flex-1 py-4 rounded-2xl bg-white text-text-soft/60 text-[11px] font-black uppercase tracking-widest border border-gold-light/20 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-95 italic">
+                                <button onClick={handleCloseForm} className="flex-1 py-4 rounded-2xl bg-white text-text-soft/60 text-[11px] font-black uppercase tracking-widest border border-gold-light/20 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-95 italic">
                                     Hủy bỏ
                                 </button>
                                 <button onClick={handleSave} className="flex-[2] py-4 rounded-2xl bg-text-main text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-muted transition-all active:scale-95 flex items-center justify-center gap-3 italic shadow-lg">

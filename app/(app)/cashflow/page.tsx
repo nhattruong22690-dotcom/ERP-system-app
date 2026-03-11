@@ -36,6 +36,12 @@ export default function CashflowPage() {
         const p = searchParams.get('month')
         return p ? parseInt(p) : now.getMonth() + 1
     })
+
+    // Thêm Date Picker
+    const [fromDate, setFromDate] = useState(() => searchParams.get('fromDate') || '')
+    const [toDate, setToDate] = useState(() => searchParams.get('toDate') || '')
+    const [useDateFilter, setUseDateFilter] = useState(() => !!(searchParams.get('fromDate') && searchParams.get('toDate')))
+
     const [highlightedCat, setHighlightedCat] = useState<string | null>(
         searchParams.get('highlight')
     )
@@ -67,13 +73,17 @@ export default function CashflowPage() {
 
     const rows = useMemo(() => {
         if (!plan) return []
-        return buildCashFlowRows(plan, state.categories, state.transactions)
-    }, [plan, state.categories, state.transactions])
+        const activeFromDate = useDateFilter && fromDate ? fromDate : undefined
+        const activeToDate = useDateFilter && toDate ? toDate : undefined
+        return buildCashFlowRows(plan, state.categories, state.transactions, activeFromDate, activeToDate)
+    }, [plan, state.categories, state.transactions, useDateFilter, fromDate, toDate])
 
-    const alerts = useMemo(() =>
-        buildAlerts(state.plans, state.categories, state.transactions, state.branches)
+    const alerts = useMemo(() => {
+        const activeFromDate = useDateFilter && fromDate ? fromDate : undefined
+        const activeToDate = useDateFilter && toDate ? toDate : undefined
+        return buildAlerts(state.plans, state.categories, state.transactions, state.branches, false, activeFromDate, activeToDate)
             .filter(a => (!selectedBranch || a.branchId === selectedBranch) && a.year === year && a.month === month)
-        , [state, selectedBranch, year, month])
+    }, [state, selectedBranch, year, month, useDateFilter, fromDate, toDate])
 
     function scrollToCategory(catId: string) {
         setHighlightedCat(catId)
@@ -127,12 +137,12 @@ export default function CashflowPage() {
                 subtitle="& Kế hoạch"
                 description="Phân tích tài chính & Hiệu suất kinh doanh"
                 actions={
-                    <div className="flex items-center gap-3 bg-white p-2 rounded-[24px] border border-gold-light/30 shadow-sm">
+                    <div className="flex items-center gap-4 bg-white p-2.5 rounded-[30px] border border-gold-light/30 shadow-sm">
                         {canViewAllBranches(currentUser) && (
-                            <div className="flex items-center gap-2 pl-4">
-                                <span className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-40">Chi nhánh:</span>
+                            <div className="flex items-center gap-2 pl-5">
+                                <span className="text-[11px] font-black text-text-soft uppercase tracking-widest opacity-40">Chi nhánh:</span>
                                 <select
-                                    className="bg-transparent border-none text-[12px] font-bold text-text-main py-2 px-3 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors font-sans"
+                                    className="bg-transparent border-none text-[15px] font-bold text-text-main py-2.5 px-4 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors font-sans"
                                     value={selectedBranch}
                                     onChange={e => setSelectedBranch(e.target.value)}
                                 >
@@ -141,24 +151,51 @@ export default function CashflowPage() {
                                 </select>
                             </div>
                         )}
-                        <div className="flex items-center gap-2 px-4 border-l border-gold-light/20">
-                            <span className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-40">Chu kỳ:</span>
-                            <div className="flex items-center gap-1">
-                                <select
-                                    className="bg-transparent border-none text-[12px] font-bold text-text-main py-2 pl-2 pr-1 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors"
-                                    value={month}
-                                    onChange={e => setMonth(+e.target.value)}
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 px-4 border-l border-gold-light/20">
+                            <div className="flex items-center justify-between w-full md:w-auto mb-1 md:mb-0">
+                                <span className="text-[11px] font-black text-text-soft uppercase tracking-widest opacity-40">Chu kỳ:</span>
+                                <button
+                                    onClick={() => setUseDateFilter(!useDateFilter)}
+                                    className="md:ml-3 text-[12px] font-bold text-gold-muted hover:text-gold-light transition-colors underline decoration-gold-light/40 underline-offset-4"
                                 >
-                                    {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-                                </select>
-                                <select
-                                    className="bg-transparent border-none text-[12px] font-bold text-text-main py-2 pl-1 pr-2 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors"
-                                    value={year}
-                                    onChange={e => setYear(+e.target.value)}
-                                >
-                                    {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
+                                    {useDateFilter ? 'Xem theo Tháng' : 'Lọc từ ngày'}
+                                </button>
                             </div>
+
+                            {!useDateFilter ? (
+                                <div className="flex items-center gap-1.5 bg-beige-soft/50 rounded-xl pr-3">
+                                    <select
+                                        className="bg-transparent border-none text-[15px] font-bold text-text-main py-2 pl-3 pr-1.5 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors"
+                                        value={month}
+                                        onChange={e => setMonth(+e.target.value)}
+                                    >
+                                        {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                                    </select>
+                                    <select
+                                        className="bg-transparent border-none text-[15px] font-bold text-text-main py-2 pl-1.5 pr-2 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors"
+                                        value={year}
+                                        onChange={e => setYear(+e.target.value)}
+                                    >
+                                        {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                                    </select>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2.5 bg-beige-soft/50 rounded-xl px-3 py-1.5">
+                                    <input
+                                        type="date"
+                                        className="bg-transparent border-none text-[14px] font-bold text-text-main py-1.5 px-2 focus:ring-0 cursor-pointer w-[135px]"
+                                        value={fromDate}
+                                        onChange={e => setFromDate(e.target.value)}
+                                    />
+                                    <span className="text-text-soft opacity-40 text-[12px]">đến</span>
+                                    <input
+                                        type="date"
+                                        className="bg-transparent border-none text-[14px] font-bold text-text-main py-1.5 px-2 focus:ring-0 cursor-pointer w-[135px]"
+                                        value={toDate}
+                                        onChange={e => setToDate(e.target.value)}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                 }
@@ -422,11 +459,17 @@ export default function CashflowPage() {
                                 </thead>
                                 <tbody>
                                     {state.accounts.filter(a => !a.branchId || a.branchId === selectedBranch).map(acc => {
-                                        const txs = state.transactions.filter(tx =>
-                                            tx.paymentAccountId === acc.id &&
-                                            new Date(tx.date).getFullYear() === year &&
-                                            new Date(tx.date).getMonth() + 1 === month
-                                        )
+                                        const txs = state.transactions.filter(tx => {
+                                            if (tx.paymentAccountId !== acc.id) return false
+
+                                            if (useDateFilter && fromDate && toDate) {
+                                                const txDate = tx.date.split('T')[0]
+                                                return txDate >= fromDate && txDate <= toDate
+                                            } else {
+                                                return new Date(tx.date).getFullYear() === year &&
+                                                    new Date(tx.date).getMonth() + 1 === month
+                                            }
+                                        })
                                         const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
                                         const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
                                         if (income === 0 && expense === 0) return null

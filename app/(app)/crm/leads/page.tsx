@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 import { useState, useMemo } from 'react'
 import { useApp, canViewAllBranches, hasPermission } from '@/lib/auth'
-import { Lead, User, LeadCareLog, Appointment } from '@/lib/types'
+import { Lead, User, LeadCareLog, Appointment, Customer } from '@/lib/types'
 import { saveLead, syncLead, saveAppointment, syncAppointment, saveCustomer, syncCustomer } from '@/lib/storage'
 import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
@@ -13,6 +13,7 @@ import {
     MessageSquare, History, Send, Zap, MapPinOff,
     CalendarDays, ExternalLink, Pencil, Save, X
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 // Import components
 import { LeadStats } from './components/LeadStats'
@@ -20,6 +21,7 @@ import { LeadFilters } from './components/LeadFilters'
 import { LeadTable } from './components/LeadTable'
 import { LeadModals } from './components/LeadModals'
 import PageHeader from '@/components/PageHeader'
+import CustomerProfileModal from '@/components/crm/CustomerProfileModal'
 
 const SOURCES = ['Facebook', 'Zalo', 'Hotline', 'Website', 'TikTok', 'Khác']
 
@@ -75,11 +77,13 @@ export default function LeadsPage() {
     const { currentUser, state, saveState } = useApp()
     const { showAlert, showConfirm } = useModal()
     const { showToast } = useToast()
+    const router = useRouter()
 
     const [showForm, setShowForm] = useState(false)
     const [showCareModal, setShowCareModal] = useState(false)
     const [showBookingModal, setShowBookingModal] = useState(false)
     const [activeLead, setActiveLead] = useState<Lead | null>(null)
+    const [viewCustomer, setViewCustomer] = useState<Customer | null>(null)
 
     const [form, setForm] = useState<Partial<Lead>>(EMPTY_LEAD(currentUser?.id))
     const [careForm, setCareForm] = useState<Partial<LeadCareLog>>({
@@ -475,6 +479,7 @@ export default function LeadsPage() {
                     getEffectiveStatus={getEffectiveStatus}
                     openCare={openCare}
                     statusChips={STATUS_CHIPS}
+                    onViewCustomer={setViewCustomer}
                 />
             </div>
 
@@ -505,7 +510,24 @@ export default function LeadsPage() {
                 bookingForm={bookingForm}
                 setBookingForm={setBookingForm}
                 handleBooking={handleBooking}
+                customers={state.customers}
+                onViewCustomer={setViewCustomer}
             />
+
+            {viewCustomer && currentUser && (
+                <CustomerProfileModal
+                    customer={viewCustomer}
+                    onClose={() => setViewCustomer(null)}
+                    onNavigate={(tab) => {
+                        setViewCustomer(null)
+                        router.push(`/crm/${tab}`)
+                    }}
+                    onEdit={() => { }}
+                    currentUser={currentUser as any}
+                    branches={state.branches}
+                    appointments={state.appointments}
+                />
+            )}
 
             <style jsx global>{`
                 @keyframes modal-up { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }

@@ -3,12 +3,12 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
 import { ServiceOrder, ServiceLineItem, StaffSplit, Customer, Appointment, CustomerRank, AppState } from '@/lib/types'
-import { saveServiceOrder, syncServiceOrder, syncCustomer, saveCustomer } from '@/lib/storage'
+import { saveServiceOrder, syncServiceOrder, syncCustomer, saveCustomer, syncAppointment } from '@/lib/storage'
 import { recalculateCustomerStats } from '@/lib/calculations'
 import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
 import { searchCustomers } from '@/lib/supabaseFetch'
-import { X, Plus, Receipt, Trash2, Edit2, Search, Loader2, Wrench, Package, CreditCard, MessageSquare, PlusSquare, Calendar, Users, ChevronDown, Eye, PlusCircle } from 'lucide-react'
+import { X, Plus, Receipt, Trash2, Edit2, Search, Loader2, Wrench, Package, CreditCard, MessageSquare, PlusSquare, Calendar, Users, ChevronDown, Eye, PlusCircle, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import CustomerProfileModal from '@/components/crm/CustomerProfileModal'
 
@@ -103,6 +103,8 @@ export default function ServiceOrderModal({
     const [formAppointmentId, setFormAppointmentId] = useState('')
     const [formLineItems, setFormLineItems] = useState<ServiceLineItem[]>([])
     const [formStatus, setFormStatus] = useState<ServiceOrder['status']>('draft')
+    const [formActualAmount, setFormActualAmount] = useState<number>(0)
+    const [initialFormStateRef] = useState<{ snapshot: string }>({ snapshot: '' })
     const [editingNoteIdx, setEditingNoteIdx] = useState<number | null>(null)
 
     // Search dropdowns
@@ -112,8 +114,10 @@ export default function ServiceOrderModal({
     const [staffSearchText, setStaffSearchText] = useState('')
     const [serviceSearchIndex, setServiceSearchIndex] = useState<number | null>(null)
     const [serviceSearchText, setServiceSearchText] = useState('')
+    const [selectedCustomerData, setSelectedCustomerData] = useState<Customer | null>(null)
     const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([])
     const [isSearchingCustomers, setIsSearchingCustomers] = useState(false)
+    const [hasInitialized, setHasInitialized] = useState(false)
 
     const orders = state.serviceOrders || []
     const customers = state.customers || []
@@ -130,37 +134,106 @@ export default function ServiceOrderModal({
 
     // Initialize/Reset form
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !hasInitialized) {
             if (editingOrder) {
                 setFormCustomerId(editingOrder.customerId)
                 setFormBranchId(editingOrder.branchId)
                 setFormAppointmentId(editingOrder.appointmentId || '')
                 setFormLineItems([...editingOrder.lineItems])
                 setFormStatus(editingOrder.status)
-                // When editing, we should have the customer in our suggestions list initially if possible
-                // or at least show their name in the search box
-                const cust = customers.find(c => c.id === editingOrder.customerId)
+                setFormActualAmount(editingOrder.actualAmount || 0)
+
+                let cust = customers.find(c => c.id === editingOrder.customerId)
+                if (!cust && editingOrder.customerName) {
+                    cust = {
+                        id: editingOrder.customerId,
+                        fullName: editingOrder.customerName,
+                        phone: editingOrder.customerPhone || 'N/A',
+                        avatar: editingOrder.customerAvatar,
+                        rank: CustomerRank.MEMBER,
+                        points: 0,
+                        totalSpent: 0,
+                        lastVisit: 'Chưa có',
+                        branchId: editingOrder.branchId,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    } as Customer
+                }
+
                 if (cust) {
-                    setCustomerSearch(cust.fullName)
-                    setCustomerSuggestions([cust])
+                    setCustomerSearch(`${cust.fullName} - ${cust.phone}`)
+                    setSelectedCustomerData(cust)
                 }
             } else {
                 setFormCustomerId(initialCustomerId)
-                setFormBranchId(initialBranchId || currentUser?.branchId || '')
                 setFormAppointmentId(initialAppointmentId)
 
-                const isNew = initialCustomerId ? isCustomerNewAtBranch(initialCustomerId, initialBranchId || currentUser?.branchId || '') : true
+                let cust = customers.find(c => c.id === initialCustomerId)
+
+                // If not found in customers list (likely because customers aren't all pre-loaded)
+                // try to find in appointments if initialAppointmentId is provided
+                if (!cust && (initialAppointmentId || initialCustomerId)) {
+                    const apt = appointments.find(a => a.id === initialAppointmentId || (a.customerId === initialCustomerId))
+                    if (apt && (apt.customerId === initialCustomerId || !initialCustomerId)) {
+                        cust = {
+                            id: apt.customerId,
+                            fullName: apt.customerName || 'Khách vãng lai',
+                            phone: apt.customerPhone || 'N/A',
+                            avatar: apt.customerAvatar,
+                            rank: apt.customerRank || CustomerRank.MEMBER,
+                            points: 0,
+                            totalSpent: 0,
+                            lastVisit: 'Chưa có',
+                            branchId: apt.branchId,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        } as Customer
+                    }
+                }
+
+                const targetBranch = initialBranchId || cust?.branchId || currentUser?.branchId || ''
+                setFormBranchId(targetBranch)
+
+                const isNew = initialCustomerId ? isCustomerNewAtBranch(initialCustomerId, targetBranch) : true
                 setFormLineItems([createEmptyLineItem(0, isNew)])
                 setFormStatus('draft')
 
-                const cust = customers.find(c => c.id === initialCustomerId)
                 if (cust) {
-                    setCustomerSearch(cust.fullName)
-                    setCustomerSuggestions([cust])
+                    setCustomerSearch(`${cust.fullName} - ${cust.phone}`)
+                    setSelectedCustomerData(cust)
+                    if (!initialCustomerId) setFormCustomerId(cust.id)
                 }
+                setFormActualAmount(0)
             }
+            setHasInitialized(true)
         }
-    }, [isOpen, editingOrder, initialCustomerId, initialBranchId, initialAppointmentId, currentUser?.branchId, customers, isCustomerNewAtBranch])
+
+        // Capture initial state AFTER first render initialization
+        if (isOpen && hasInitialized && !initialFormStateRef.snapshot) {
+            const stateToCapture = {
+                customerId: formCustomerId,
+                branchId: formBranchId,
+                appointmentId: formAppointmentId,
+                lineItems: formLineItems,
+                status: formStatus,
+                actualAmount: formActualAmount
+            }
+            initialFormStateRef.snapshot = JSON.stringify(stateToCapture)
+        }
+
+        if (!isOpen && hasInitialized) {
+            setHasInitialized(false)
+            setFormCustomerId('')
+            setFormBranchId('')
+            setFormAppointmentId('')
+            setFormLineItems([])
+            setFormActualAmount(0)
+            initialFormStateRef.snapshot = ''
+            setCustomerSearch('')
+            setSelectedCustomerData(null)
+            setCustomerSuggestions([])
+        }
+    }, [isOpen, editingOrder, initialCustomerId, initialBranchId, initialAppointmentId, currentUser, customers, isCustomerNewAtBranch, hasInitialized, formCustomerId, formBranchId, formAppointmentId, formLineItems, formStatus, formActualAmount, initialFormStateRef])
 
     // Server-side customer search
     useEffect(() => {
@@ -198,9 +271,12 @@ export default function ServiceOrderModal({
     }, [customerSearch, isOpen]);
 
     const selectedCustomer = useMemo(() => {
-        // Since state.customers might be empty, we look in our suggestions first
-        return customerSuggestions.find(c => c.id === formCustomerId) || customers.find(c => c.id === formCustomerId)
-    }, [formCustomerId, customerSuggestions, customers])
+        return selectedCustomerData ||
+            customerSuggestions?.find(c => c.id == formCustomerId) ||
+            customers?.find(c => c.id == formCustomerId) ||
+            customers?.find(c => formCustomerId && c.id?.toString() === formCustomerId?.toString()) ||
+            null
+    }, [formCustomerId, customerSuggestions, customers, selectedCustomerData])
 
     const customerAppointments = useMemo(() => {
         if (!formCustomerId) return []
@@ -221,13 +297,17 @@ export default function ServiceOrderModal({
     }, [serviceSearchText, services])
 
     const isFormChanged = useCallback(() => {
-        if (!editingOrder) {
-            return !!formCustomerId || !!formBranchId || formLineItems.some(li => li.serviceName || li.price > 0 || li.note)
+        const currentData = {
+            customerId: formCustomerId,
+            branchId: formBranchId,
+            appointmentId: formAppointmentId,
+            lineItems: formLineItems,
+            status: formStatus,
+            actualAmount: formActualAmount
         }
-        const currentData = { customerId: formCustomerId, branchId: formBranchId, appointmentId: formAppointmentId, lineItems: formLineItems, status: formStatus }
-        const originalData = { customerId: editingOrder.customerId, branchId: editingOrder.branchId, appointmentId: editingOrder.appointmentId || '', lineItems: editingOrder.lineItems, status: editingOrder.status }
-        return JSON.stringify(currentData) !== JSON.stringify(originalData)
-    }, [editingOrder, formCustomerId, formBranchId, formAppointmentId, formLineItems, formStatus])
+        const currentStateJson = JSON.stringify(currentData)
+        return initialFormStateRef.snapshot !== '' && currentStateJson !== initialFormStateRef.snapshot
+    }, [formCustomerId, formBranchId, formAppointmentId, formLineItems, formStatus, formActualAmount, initialFormStateRef])
 
     const handleCloseInternal = useCallback(async () => {
         if (isFormChanged()) {
@@ -304,23 +384,50 @@ export default function ServiceOrderModal({
             appointmentId: formAppointmentId || undefined,
             lineItems: formLineItems,
             totalAmount,
+            actualAmount: formActualAmount,
+            debtAmount: totalAmount - formActualAmount,
             status: formStatus,
+            customerName: selectedCustomerData?.fullName,
+            customerPhone: selectedCustomerData?.phone,
+            customerAvatar: selectedCustomerData?.avatar,
             createdBy: currentUser?.id || '',
             createdAt: editingOrder?.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         }
 
+        const isNewOrder = !editingOrder
+        const log = {
+            id: crypto.randomUUID(),
+            userId: currentUser?.id || 'system',
+            userDisplayName: currentUser?.displayName || 'Hệ thống',
+            action: isNewOrder ? 'service_order_created' : 'service_order_updated',
+            details: `${isNewOrder ? 'Tạo mới' : 'Cập nhật'} phiếu dịch vụ ${order.code} - Tổng tiền: ${formatCurrency(totalAmount)}đ`,
+            createdAt: new Date().toISOString()
+        }
+
         saveState(saveServiceOrder(order))
 
-        if (order.appointmentId && order.status !== 'draft') {
+        if (order.appointmentId) {
             saveState(s => ({
                 ...s,
-                appointments: s.appointments.map(a => a.id === order.appointmentId ? { ...a, price: totalAmount } : a)
+                appointments: (s.appointments || []).map(a =>
+                    a.id === order.appointmentId
+                        ? { ...a, price: totalAmount, logs: [log, ...(a.logs || [])] }
+                        : a
+                )
             }))
         }
 
         try {
             await syncServiceOrder(order)
+
+            // If linked to appointment, sync appointment as well
+            if (order.appointmentId) {
+                const updatedApt = (await import('@/lib/storage')).getState().appointments.find(a => a.id === order.appointmentId)
+                if (updatedApt) {
+                    await syncAppointment(updatedApt)
+                }
+            }
 
             // Re-calculate customer stats if order is completed
             if (order.status === 'completed') {
@@ -386,9 +493,22 @@ export default function ServiceOrderModal({
                                         )}
                                     </div>
                                     {selectedCustomer && (
-                                        <div className="mt-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-[11px] font-bold text-emerald-700 flex items-center justify-between">
-                                            <span>{selectedCustomer.fullName} — {selectedCustomer.phone}</span>
-                                            <button onClick={() => { setFormCustomerId(''); setCustomerSearch('') }} className="text-emerald-400 hover:text-red-500"><X size={14} /></button>
+                                        <div className="mt-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-[11px] font-bold text-emerald-700 flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-3">
+                                                <span>{selectedCustomer.fullName} — {selectedCustomer.phone}</span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedCustomerForProfile(selectedCustomer);
+                                                        setShowProfileCustomer(true);
+                                                    }}
+                                                    className="w-7 h-7 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-110 shadow-md shadow-emerald-200/50 active:scale-95 transition-all flex items-center justify-center border border-emerald-500"
+                                                    title="Xem hồ sơ"
+                                                >
+                                                    <User size={13} strokeWidth={2.5} />
+                                                </button>
+                                            </div>
+                                            <button onClick={() => { setFormCustomerId(''); setSelectedCustomerData(null); setCustomerSearch('') }} className="text-emerald-400 hover:text-red-500"><X size={14} /></button>
                                         </div>
                                     )}
                                     {showCustomerDropdown && customerSuggestions.length > 0 && !selectedCustomer && (
@@ -397,6 +517,7 @@ export default function ServiceOrderModal({
                                                 <div key={c.id} className="w-full px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-4 cursor-pointer group/cust"
                                                     onClick={() => {
                                                         setFormCustomerId(c.id);
+                                                        setSelectedCustomerData(c);
                                                         setCustomerSearch(`${c.fullName} - ${c.phone}`);
                                                         setShowCustomerDropdown(false);
                                                         if (!formAppointmentId && c.branchId) setFormBranchId(c.branchId)
@@ -417,10 +538,10 @@ export default function ServiceOrderModal({
                                                             setSelectedCustomerForProfile(c)
                                                             setShowProfileCustomer(true)
                                                         }}
-                                                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all bg-gray-50 text-gray-400 opacity-0 group-hover/cust:opacity-100 hover:bg-primary/10 hover:text-primary shrink-0"
+                                                        className="w-8 h-8 rounded-xl flex items-center justify-center transition-all bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-110 shadow-lg shadow-emerald-200/50 active:scale-95 border border-emerald-500 shrink-0"
                                                         title="Xem hồ sơ"
                                                     >
-                                                        <span className="material-icons-round text-lg">person</span>
+                                                        <User size={14} strokeWidth={2.5} />
                                                     </button>
                                                 </div>
                                             ))}
@@ -638,10 +759,30 @@ export default function ServiceOrderModal({
                     </div>
 
                     {/* Modal Footer */}
-                    <div className="px-5 py-4 sm:px-8 sm:py-6 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0 shrink-0">
-                        <div className="text-center sm:text-left">
-                            <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase">Tổng dự kiến</p>
-                            <p className="text-xl sm:text-2xl font-black text-primary">{formatCurrency(formLineItems.reduce((s, li) => s + li.price, 0))}đ</p>
+                    <div className="px-5 py-6 sm:px-8 sm:py-8 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-end sm:items-center justify-between gap-6 shrink-0">
+                        <div className="flex flex-wrap items-center gap-6 sm:gap-10 w-full sm:w-auto">
+                            <div>
+                                <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase mb-1">Tổng cộng hóa đơn</p>
+                                <p className="text-xl sm:text-2xl font-black text-gray-900">{formatCurrency(formLineItems.reduce((s, li) => s + li.price, 0))}đ</p>
+                            </div>
+                            <div className="w-px h-10 bg-gray-200 hidden sm:block"></div>
+                            <div className="flex-1 sm:flex-none min-w-[140px]">
+                                <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase mb-1">Thực thu (Khách trả)</p>
+                                <div className="relative">
+                                    <input
+                                        className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl font-black text-lg text-emerald-600 outline-none focus:ring-4 focus:ring-emerald-100 transition-all pr-10"
+                                        value={formatCurrency(formActualAmount)}
+                                        onChange={e => setFormActualAmount(parseCurrency(e.target.value))}
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-300">đ</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase mb-1">Còn nợ</p>
+                                <p className={`text-lg sm:text-xl font-black ${formLineItems.reduce((s, li) => s + li.price, 0) - formActualAmount > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                                    {formatCurrency(formLineItems.reduce((s, li) => s + li.price, 0) - formActualAmount)}đ
+                                </p>
+                            </div>
                         </div>
                         <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                             <button onClick={handleCloseInternal} className="flex-1 sm:flex-none sm:px-8 py-3.5 sm:py-4 bg-white border border-gray-200 rounded-2xl font-black text-[10px] sm:text-[11px] text-gray-400 uppercase tracking-widest hover:bg-gray-50 hover:text-gray-600 transition-all">Hủy bỏ</button>
