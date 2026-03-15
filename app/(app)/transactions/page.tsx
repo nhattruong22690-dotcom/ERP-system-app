@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 import { useApp, canEditTransaction, canViewAllBranches, canLockTransaction, hasPermission } from '@/lib/auth'
 import { fmtVND } from '@/lib/calculations'
 import { saveTransaction, deleteTransaction } from '@/lib/storage'
-import { Transaction } from '@/lib/types'
+import { Transaction, ActivityLog, AppState } from '@/lib/types'
 import { useModal } from '@/components/ModalProvider'
 import { useToast } from '@/components/ToastProvider'
 import UserAvatar from '@/components/UserAvatar'
@@ -171,7 +171,7 @@ export default function TransactionsPage() {
             id: editingTx?.id ?? uid(),
             branchId: form.branchId!,
             date: form.date!,
-            type: form.type as any,
+            type: form.type as Transaction['type'],
             categoryId: form.categoryId!,
             amount: form.amount!,
             paymentAccountId: form.paymentAccountId!,
@@ -243,7 +243,7 @@ export default function TransactionsPage() {
     const totalExpense = filteredTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={Database}
                 title="Sổ cái"
@@ -499,7 +499,7 @@ export default function TransactionsPage() {
                             // 2. Side effects for all new transactions
                             import('@/lib/storage').then(m => {
                                 Promise.all(txs.map(tx => m.syncTransaction(tx, currentUser?.id, true))).then(logs => {
-                                    const validLogs = logs.filter(l => !!l) as any[]
+                                    const validLogs = logs.filter(l => !!l) as ActivityLog[]
                                     if (validLogs.length > 0) {
                                         saveState(s => ({
                                             ...s,
@@ -737,9 +737,9 @@ function TransactionDetailModal({ txId, onClose }: { txId: string; onClose: () =
     const handleToggleLock = () => {
         const newStatus: 'locked' | 'open' = tx.status === 'locked' ? 'open' : 'locked'
         const updatedTx: Transaction = { ...tx, status: newStatus, updatedAt: new Date().toISOString() }
-        saveState((s: any) => ({
+        saveState((s: AppState) => ({
             ...s,
-            transactions: s.transactions.map((t: any) => t.id === txId ? updatedTx : t)
+            transactions: s.transactions.map((t: Transaction) => t.id === txId ? updatedTx : t)
         }))
         // sync to db
         import('@/lib/storage').then(m => m.syncTransaction(updatedTx, state.currentUserId, false))

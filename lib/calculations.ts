@@ -19,29 +19,21 @@ export function recalcPlan(plan: MonthlyPlan): MonthlyPlan {
     }
 }
 
-// Lấy tổng thực tế của 1 category trong 1 khoảng thời gian hoặc theo tháng tại 1 chi nhánh
+// Lấy tổng thực tế của 1 category trong 1 tháng tại 1 chi nhánh
 export function getActualForCategory(
     transactions: Transaction[],
     branchId: string,
     categoryId: string,
     year: number,
-    month: number,
-    fromDate?: string,
-    toDate?: string
+    month: number
 ): number {
     return transactions
-        .filter(tx => {
-            if (tx.branchId !== branchId) return false
-            if (tx.categoryId !== categoryId) return false
-
-            const txDate = tx.date.split('T')[0]
-            if (fromDate && toDate) {
-                return txDate >= fromDate && txDate <= toDate
-            } else {
-                return new Date(tx.date).getFullYear() === year &&
-                    new Date(tx.date).getMonth() + 1 === month
-            }
-        })
+        .filter(tx =>
+            tx.branchId === branchId &&
+            tx.categoryId === categoryId &&
+            new Date(tx.date).getFullYear() === year &&
+            new Date(tx.date).getMonth() + 1 === month
+        )
         .reduce((sum, tx) => sum + tx.amount, 0)
 }
 
@@ -49,16 +41,14 @@ export function getActualForCategory(
 export function buildCashFlowRows(
     plan: MonthlyPlan,
     categories: Category[],
-    transactions: Transaction[],
-    fromDate?: string,
-    toDate?: string
+    transactions: Transaction[]
 ): CashFlowRow[] {
     return plan.categoryPlans
         .filter(cp => !cp.disabled)
         .map(cp => {
             const cat = categories.find(c => c.id === cp.categoryId)
             if (!cat) return null
-            const actual = getActualForCategory(transactions, plan.branchId, cp.categoryId, plan.year, plan.month, fromDate, toDate)
+            const actual = getActualForCategory(transactions, plan.branchId, cp.categoryId, plan.year, plan.month)
             const planned = cp.plannedAmount
             const delta = actual - planned
             const pct = planned > 0 ? (actual / planned) * 100 : actual > 0 ? 999 : 0
@@ -100,13 +90,11 @@ export function buildAlerts(
     categories: Category[],
     transactions: Transaction[],
     branches: Branch[],
-    includeAll: boolean = false,
-    fromDate?: string,
-    toDate?: string
+    includeAll: boolean = false
 ): AlertItem[] {
     const alerts: AlertItem[] = []
     for (const plan of plans) {
-        const rows = buildCashFlowRows(plan, categories, transactions, fromDate, toDate)
+        const rows = buildCashFlowRows(plan, categories, transactions)
         for (const row of rows) {
             if (includeAll || row.status === 'warning' || row.status === 'exceeded') {
                 const branch = branches.find(b => b.id === plan.branchId)
@@ -513,25 +501,23 @@ export function calculateKpiTieredCommissions(
  * based on completed Service Orders and Appointments.
  */
 export function recalculateCustomerStats(customer: Customer, state: AppState): Customer {
-    const orders = (state.serviceOrders || []).filter(o => o.customerId === customer.id && o.status === 'completed')
+    // Include both completed and confirmed orders for financial and treatment tracking
+    const orders = (state.serviceOrders || []).filter(o =>
+        o.customerId === customer.id && (o.status === 'completed' || o.status === 'confirmed')
+    )
     const appointments = (state.appointments || []).filter(a => a.customerId === customer.id && a.status === 'completed')
 
-    // 1. Total Spent (Completed Service Orders only)
-    const totalSpent = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+    // 1. Total Spent (Actual amount paid across all orders)
+    const totalSpent = orders.reduce((sum, o) => sum + (o.actualAmount || 0), 0)
 
     // 2. Loyalty Points
-    // Default 1 point for every 100,000 VND spent unless configured
     const settings = state.loyaltySettings || { pointsPerVnd: 0.00001, isActive: true }
     let points = customer.points || 0
     if (settings.isActive) {
-        // Simple earning logic: points = floor(totalSpent * conversion)
-        // Note: This logic assumes points are earned. 
-        // If points can be REDEEMED (spent), we'd need a Transaction log for points.
-        // For now, let's treat it as cumulative points earned.
         points = Math.floor(totalSpent * (settings.pointsPerVnd || 0.00001))
     }
 
-    // 3. Last Visit (Most recent date from completed orders or appointments)
+    // 3. Last Visit
     const lastOrderDate = orders.length > 0
         ? [...orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0].createdAt
         : null
@@ -542,17 +528,14 @@ export function recalculateCustomerStats(customer: Customer, state: AppState): C
     let lastVisit = customer.lastVisit || 'Chưa có'
     if (lastOrderDate || lastApptDate) {
         const dates = [lastOrderDate, lastApptDate].filter(Boolean) as string[]
-        // Take the latest ISO date string
         lastVisit = dates.sort().reverse()[0]
     }
 
     // 4. Rank Determination
-    // Sort tiers by minSpend descending (highest spend requirement first)
     const tiers = [...(state.membershipTiers || [])].sort((a, b) => b.minSpend - a.minSpend)
     let rank = CustomerRank.MEMBER
     for (const tier of tiers) {
         if (totalSpent >= tier.minSpend) {
-            // Check if tier.name matches common VN rank names
             if (tier.name === 'Kim Cương') rank = CustomerRank.DIAMOND
             else if (tier.name === 'Bạch Kim') rank = CustomerRank.PLATINUM
             else if (tier.name === 'Vàng') rank = CustomerRank.GOLD
@@ -567,18 +550,17 @@ export function recalculateCustomerStats(customer: Customer, state: AppState): C
     let walletBalance = 0
     const treatmentCards: TreatmentCard[] = []
 
+    // Map existing cards by a unique property if we want to preserve 'used' (not fully possible with just orders)
+    // For now, recreate them accurately from history
     orders.forEach(order => {
         order.lineItems.forEach((item: any) => {
-            // Cards: top up logic
             if (item.serviceType === 'card') {
                 walletBalance += (item.cardWalletValue || item.price || 0)
             }
-            // Packages & Singles: Treatment Cards
             else if (item.serviceType === 'package' || item.serviceType === 'single') {
                 const totalSessions = item.serviceType === 'single' ? 1 : item.totalSessions || 1
-                const remaining = totalSessions // Default to all remaining if new order
+                const remaining = totalSessions
 
-                // Determine status based on dates and sessions
                 let status: TreatmentCard['status'] = 'active'
                 const today = new Date().toISOString().split('T')[0]
 
@@ -589,7 +571,7 @@ export function recalculateCustomerStats(customer: Customer, state: AppState): C
                 }
 
                 treatmentCards.push({
-                    id: `${order.id}_${item.id || Math.random().toString(36).substr(2, 9)}`,
+                    id: `card_${order.id.slice(0, 8)}_${item.id?.slice(0, 8) || Math.random().toString(36).substr(2, 4)}`,
                     name: item.serviceName,
                     type: item.serviceType === 'package' ? 'package' : 'retail',
                     total: totalSessions,
@@ -603,6 +585,15 @@ export function recalculateCustomerStats(customer: Customer, state: AppState): C
                 })
             }
         })
+
+        // Deduct used wallet balance
+        if ((order as any).payments) {
+            (order as any).payments.forEach((p: any) => {
+                if (p.method === 'wallet') {
+                    walletBalance -= (p.amount || 0)
+                }
+            })
+        }
     })
 
     return {

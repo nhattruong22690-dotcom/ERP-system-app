@@ -77,6 +77,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 {toasts.map(toast => (
                     <div
                         key={toast.id}
+                        role={toast.type === 'error' ? 'alert' : 'status'}
+                        aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
                         style={{
                             pointerEvents: 'all',
                             minWidth: '320px',
@@ -101,7 +103,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                             alignItems: 'center',
                             justifyContent: 'center',
                             boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                        }}>
+                        }} aria-hidden="true">
                             {getIcon(toast.type)}
                         </div>
 
@@ -129,6 +131,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                                 justifyContent: 'center',
                                 borderRadius: '6px'
                             }}
+                            aria-label={`Đóng thông báo: ${toast.message}`}
                             onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
                             onMouseLeave={e => e.currentTarget.style.background = 'none'}
                         >

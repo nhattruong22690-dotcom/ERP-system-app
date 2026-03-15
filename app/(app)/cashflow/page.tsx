@@ -130,7 +130,7 @@ export default function CashflowPage() {
     const actualProfitAfterTax = actualProfit - actualTax
 
     return (
-        <div className="page-container bg-[#FAF8F6] min-h-screen">
+        <div className="page-container">
             <PageHeader
                 icon={Activity}
                 title="Dòng tiền"

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/lib/auth';
 import { Customer, CustomerRank, User, RoleDefinition, Branch, Appointment } from '@/lib/types';
 import {
@@ -31,8 +31,10 @@ import {
     Rainbow,
     QrCode,
     Copy,
-    ExternalLink
+    ExternalLink,
+    Loader2
 } from 'lucide-react';
+import { getCustomerDossier } from '@/lib/customerDossier';
 import RankAvatar from './RankAvatar';
 
 interface CustomerProfileModalProps {
@@ -43,9 +45,9 @@ interface CustomerProfileModalProps {
     currentUser: User;
     roles?: RoleDefinition[];
     branches: Branch[];
+    appointments?: Appointment[];
     onUpdateTreatmentCard?: (customerId: string, updatedCard: any) => void;
     onDeleteTreatmentCard?: (customerId: string, cardId: string) => void;
-    appointments?: Appointment[];
 }
 
 const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
@@ -63,8 +65,57 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
     const [activeTab, setActiveTab] = useState('tổng quan');
     const [showQrModal, setShowQrModal] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
+    const [loadingDossier, setLoadingDossier] = useState(false);
+    const [dossier, setDossier] = useState<{
+        customer: any;
+        serviceOrders: any[];
+        treatmentCards: any[];
+        appointments: any[];
+    } | null>(null);
+
     const currentMonth = new Date().getMonth();
-    const isBirthdayMonth = customer.birthday && new Date(customer.birthday).getMonth() === currentMonth;
+    const activeCustomer = useMemo(() => dossier?.customer || customer, [dossier?.customer, customer]);
+    const isBirthdayMonth = activeCustomer.birthday && new Date(activeCustomer.birthday).getMonth() === currentMonth;
+
+    // Fetch Dossier
+    useEffect(() => {
+        if (customer.id) {
+            setLoadingDossier(true);
+            getCustomerDossier(String(customer.id))
+                .then(data => {
+                    if (data) setDossier(data);
+                })
+                .finally(() => setLoadingDossier(false));
+        }
+    }, [customer.id]);
+
+    // Financial Summary Derived from Dossier (Fallback if customer record is stale)
+    const derivedStats = useMemo(() => {
+        if (!dossier?.serviceOrders) return { totalSpent: activeCustomer.totalSpent || 0, totalDebt: 0, walletBalance: activeCustomer.walletBalance || 0 };
+
+        const orders = dossier.serviceOrders;
+        // Only count 'confirmed' or 'completed' for spent/wallet
+        const validOrders = orders.filter((o: any) => o.status === 'confirmed' || o.status === 'completed');
+
+        const calcSpent = validOrders.reduce((sum: number, o: any) => sum + (o.actual_amount || o.actualAmount || 0), 0);
+        const calcDebt = orders.reduce((sum: number, o: any) => sum + (o.debt_amount || o.debtAmount || 0), 0);
+
+        // Wallet top-ups from line items
+        let calcWallet = 0;
+        validOrders.forEach((order: any) => {
+            (order.line_items || order.lineItems || []).forEach((item: any) => {
+                if (item.serviceType === 'card') {
+                    calcWallet += (item.cardWalletValue || item.price || 0);
+                }
+            });
+        });
+
+        return {
+            totalSpent: Math.max(activeCustomer.totalSpent || 0, calcSpent),
+            totalDebt: calcDebt,
+            walletBalance: Math.max(activeCustomer.walletBalance || 0, calcWallet)
+        };
+    }, [dossier?.serviceOrders, activeCustomer.totalSpent, activeCustomer.walletBalance]);
 
     // Rank Progress Calculation
     const rankProgress = useMemo(() => {
@@ -72,37 +123,32 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
         if (tiers.length === 0) return { percent: 100, nextTierName: null, minForNext: 0 };
 
         const currentTierIndex = tiers.findIndex(t => {
-            // Check if customer.rank matches tier name
-            // (Note: This is a bit loose, depends on how rank is stored/mapped)
-            return customer.totalSpent < (t.minSpend || 0);
+            return (derivedStats.totalSpent) < (t.minSpend || 0);
         });
 
-        // Current tier is the one before the first tier we haven't reached
         const currentTierIdx = currentTierIndex === -1 ? tiers.length - 1 : currentTierIndex - 1;
-        const currentTier = currentTierIdx >= 0 ? tiers[currentTierIdx] : null;
         const nextTier = currentTierIdx + 1 < tiers.length ? tiers[currentTierIdx + 1] : null;
 
         if (!nextTier || !nextTier.minSpend) return { percent: 100, nextTierName: null, minForNext: 0 };
 
-        const min = currentTier ? (currentTier.minSpend || 0) : 0;
+        const min = currentTierIdx >= 0 ? (tiers[currentTierIdx].minSpend || 0) : 0;
         const max = nextTier.minSpend;
 
         if (max <= min) return { percent: 100, nextTierName: nextTier.name, minForNext: max };
 
-        const currentSpent = customer.totalSpent || 0;
-        const progress = ((currentSpent - min) / (max - min)) * 100;
+        const progress = ((derivedStats.totalSpent - min) / (max - min)) * 100;
 
         return {
             percent: Math.min(100, Math.max(0, progress)),
             nextTierName: nextTier.name,
             minForNext: nextTier.minSpend
         };
-    }, [customer.totalSpent, state.membershipTiers]);
+    }, [derivedStats.totalSpent, state.membershipTiers]);
 
     // Standardize ID: branchCode_xxxxxx_xxxx
-    const branch = branches.find(b => b.id === customer.branchId);
+    const branch = branches.find(b => b.id === activeCustomer.branchId);
     const branchCode = branch?.code || 'HQ';
-    const customerIdStr = String(customer.id);
+    const customerIdStr = String(activeCustomer.id);
     const formattedId = `${branchCode}_${customerIdStr.replace(/-/g, '').slice(0, 8)}_${customerIdStr.slice(-4)}`;
 
     const tabs = [
@@ -114,12 +160,19 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
         { id: 'tương tác', label: 'CSKH', icon: MessageSquare },
     ];
 
-    const customerAppointments = appointments.filter(a => String(a.customerId || '') == String(customer.id))
-        .sort((a, b) => {
-            const dateA = `${a.appointmentDate}T${a.appointmentTime}`
-            const dateB = `${b.appointmentDate}T${b.appointmentTime}`
-            return new Date(dateB).getTime() - new Date(dateA).getTime()
-        });
+    const allAppointments = useMemo(() => {
+        const merged = [...(appointments || []), ...(dossier?.appointments || [])];
+        // Remove duplicates by ID
+        const unique = Array.from(new Map(merged.map(a => [a.id, a])).values());
+        return unique.filter(a => String(a.customerId || '') == String(activeCustomer.id))
+            .sort((a, b) => {
+                const dateA = `${a.appointmentDate}T${a.appointmentTime || '00:00'}`
+                const dateB = `${b.appointmentDate}T${b.appointmentTime || '00:00'}`
+                return new Date(dateB).getTime() - new Date(dateA).getTime()
+            });
+    }, [appointments, dossier?.appointments, activeCustomer.id]);
+
+    const customerAppointments = allAppointments;
 
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
@@ -225,8 +278,8 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                             <div className="relative shrink-0">
                                 <div className="relative group/avatar">
                                     <RankAvatar
-                                        src={customer.avatar || `https://ui-avatars.com/api/?name=${customer.fullName}&background=FAF7F2&color=C5A059&size=200&bold=true`}
-                                        rank={customer.rank}
+                                        src={activeCustomer.avatar || `https://ui-avatars.com/api/?name=${activeCustomer.fullName}&background=FAF7F2&color=C5A059&size=200&bold=true`}
+                                        rank={activeCustomer.rank}
                                         size={140}
                                     />
 
@@ -234,7 +287,7 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                     <div className="absolute bottom-6 right-6 w-8 h-8 rounded-full bg-emerald-500 border-4 border-white shadow-lg z-20 animate-pulse"></div>
 
                                     {/* VIP Badge image - Perfectly positioned overlapping the frame */}
-                                    {customer.isVip && (
+                                    {activeCustomer.isVip && (
                                         <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 z-[150] w-32 h-32 md:w-40 md:h-40 flex items-center justify-center">
                                             <img
                                                 src="/images/vip-badge-luxury.png"
@@ -259,12 +312,12 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                 <div className="flex flex-col">
                                     <div className="flex items-center gap-6 justify-center xl:justify-start">
                                         <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-serif font-black text-text-main tracking-tighter drop-shadow-sm group-hover:text-gold-muted transition-all duration-500 italic pb-2 break-words">
-                                            {customer.fullName}
+                                            {activeCustomer.fullName}
                                         </h1>
 
                                         {/* Art Gender Icon - Next to Name */}
                                         <div className="shrink-0">
-                                            {customer.gender === 'nam' ? (
+                                            {activeCustomer.gender === 'nam' ? (
                                                 <div
                                                     className="text-blue-300 transition-all duration-700"
                                                     style={{
@@ -274,7 +327,7 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                                 >
                                                     <Mars size={48} strokeWidth={3} />
                                                 </div>
-                                            ) : customer.gender === 'nu' ? (
+                                            ) : activeCustomer.gender === 'nu' ? (
                                                 <div
                                                     className="text-pink-400 transition-all duration-700"
                                                     style={{
@@ -328,22 +381,21 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                 <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-gold-muted/10">
                                     <div className="flex items-center gap-3 bg-white px-6 py-3 rounded-2xl border border-gold-muted/10 text-gold-muted shadow-sm hover:border-gold-muted/30 transition-all">
                                         <Phone size={16} strokeWidth={2.5} />
-                                        <span className="text-[15px] font-black tracking-tight">{customer.phone}</span>
+                                        <span className="text-[15px] font-black tracking-tight">{activeCustomer.phone}</span>
                                     </div>
 
                                     <div className="flex items-center gap-3 bg-white px-6 py-3 rounded-2xl border border-gold-muted/10 text-gold-muted shadow-sm hover:border-gold-muted/30 transition-all">
                                         <Calendar size={16} strokeWidth={2.5} />
-                                        <span className="text-[15px] font-black tracking-tight">{formatBirthday(customer.birthday)}</span>
-                                        {calculateAge(customer.birthday) && (
+                                        <span className="text-[15px] font-black tracking-tight">{formatBirthday(activeCustomer.birthday)}</span>
+                                        {calculateAge(activeCustomer.birthday) && (
                                             <span className="bg-gold-muted/10 text-gold-muted text-[10px] font-black px-3 py-1 rounded-xl ml-1 border border-gold-muted/20">
-                                                {calculateAge(customer.birthday)} TUỔI
+                                                {calculateAge(activeCustomer.birthday)} TUỔI
                                             </span>
                                         )}
                                     </div>
-
-                                    {customer.zalo && (
+                                    {activeCustomer.zalo && (
                                         <a
-                                            href={`https://zalo.me/${customer.zalo.replace(/\D/g, '') || customer.phone.replace(/\D/g, '')}`}
+                                            href={`https://zalo.me/${activeCustomer.zalo.replace(/\D/g, '') || activeCustomer.phone.replace(/\D/g, '')}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="flex items-center justify-center w-12 h-12 bg-white rounded-2xl border border-gold-muted/10 text-sky-500 hover:bg-sky-50 transition-all shadow-sm hover:scale-110 active:scale-95 cursor-pointer"
@@ -354,9 +406,9 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                         </a>
                                     )}
 
-                                    {customer.facebook && (
+                                    {activeCustomer.facebook && (
                                         <a
-                                            href={customer.facebook.startsWith('http') ? customer.facebook : `https://facebook.com/${customer.facebook}`}
+                                            href={activeCustomer.facebook.startsWith('http') ? activeCustomer.facebook : `https://facebook.com/${activeCustomer.facebook}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="flex items-center justify-center w-12 h-12 bg-white rounded-2xl border border-gold-muted/10 text-blue-600 hover:bg-blue-50 transition-all shadow-sm hover:scale-110 active:scale-95 cursor-pointer"
@@ -372,8 +424,8 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                     <div className="flex items-center gap-2 text-gold-muted/60">
                                         <div className="w-1.5 h-1.5 rounded-full bg-gold-muted/40 animate-pulse"></div>
                                         <span className="text-[11px] font-black uppercase tracking-widest italic">
-                                            Lần cuối đến Xinh:  {customer.lastVisit && customer.lastVisit !== 'Chưa có' ?
-                                                (customer.lastVisit.includes('-') ? customer.lastVisit.split('-').reverse().join('-') : customer.lastVisit)
+                                            Lần cuối đến Xinh:  {activeCustomer.lastVisit && activeCustomer.lastVisit !== 'Chưa có' ?
+                                                (activeCustomer.lastVisit.includes('-') ? activeCustomer.lastVisit.split('-').reverse().join('-') : activeCustomer.lastVisit)
                                                 : 'chưa có dữ liệu'}
                                         </span>
                                     </div>
@@ -443,7 +495,7 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                                             <div>
                                                                 <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-2 opacity-60">Tổng chi tiêu</p>
                                                                 <p className="text-3xl md:text-5xl font-serif font-black text-white italic tracking-tighter">
-                                                                    {(customer.totalSpent || 0).toLocaleString('vi-VN')}
+                                                                    {(activeCustomer.totalSpent || 0).toLocaleString('vi-VN')}
                                                                     <span className="text-xl ml-2 font-sans font-normal opacity-30 not-italic">VNĐ</span>
                                                                 </p>
                                                             </div>
@@ -453,16 +505,16 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                                                     <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-2">Loyalty Points</p>
                                                                     <div className="flex items-center gap-2">
                                                                         <Sparkles size={14} className="text-gold-muted" />
-                                                                        <span className="text-[18px] font-black text-white">{(customer.points || 0).toLocaleString()}</span>
+                                                                        <span className="text-[18px] font-black text-white">{(activeCustomer.points || 0).toLocaleString()}</span>
                                                                     </div>
                                                                 </div>
                                                                 <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                                                                     <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-2">Số dư ví (Thẻ tiền nạp)</p>
-                                                                    <span className="text-[18px] font-black text-white italic">{(customer.walletBalance || 0).toLocaleString()}đ</span>
+                                                                    <span className="text-[18px] font-black text-white italic">{(activeCustomer.walletBalance || 0).toLocaleString()}đ</span>
                                                                 </div>
                                                                 <div className="bg-white/5 p-4 rounded-2xl border border-white/5 col-span-2 text-center mt-[-1rem]">
                                                                     <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-2">Lần cuối ghé</p>
-                                                                    <p className="text-[14px] font-black text-white italic">{customer.lastVisit || 'Chưa có'}</p>
+                                                                    <p className="text-[14px] font-black text-white italic">{activeCustomer.lastVisit || 'Chưa có'}</p>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -479,7 +531,7 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                                             </div>
                                                             {rankProgress.nextTierName && (
                                                                 <p className="text-[9px] text-white/30 font-bold uppercase mt-3 tracking-wider">
-                                                                    Còn thiếu {(rankProgress.minForNext - customer.totalSpent).toLocaleString()}đ để thăng hạng
+                                                                    Còn thiếu {(rankProgress.minForNext - activeCustomer.totalSpent).toLocaleString()}đ để thăng hạng
                                                                 </p>
                                                             )}
                                                         </div>
@@ -501,7 +553,7 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                                         <MessageSquare size={80} strokeWidth={1} />
                                                     </div>
                                                     <p className="text-[18px] md:text-[22px] text-text-main leading-relaxed font-serif italic relative z-10 flex-1 opacity-80 decoration-gold-muted/20 underline underline-offset-8">
-                                                        "{customer.professionalNotes || 'Chưa có ghi chú chuyên sâu từ đội ngũ chuyên gia/KTV.'}"
+                                                        "{activeCustomer.professionalNotes || 'Chưa có ghi chú chuyên sâu từ đội ngũ chuyên gia/KTV.'}"
                                                     </p>
                                                     <div className="mt-10 flex items-center gap-6">
                                                         <div className="flex -space-x-3">
@@ -593,7 +645,6 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                                 <p className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-60">Lịch sử lịch hẹn</p>
                                             </div>
                                         </div>
-
                                         <div className="bg-white rounded-[40px] border border-gold-light/20 shadow-luxury overflow-hidden">
                                             <div className="overflow-x-auto luxury-scrollbar">
                                                 <table className="w-full text-left luxury-table border-collapse">
@@ -655,256 +706,382 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                         </div>
                                     </section>
                                 </div>
-                            )}
+                            )
+                            }
 
-                            {activeTab === 'liệu trình' && (
-                                <div className="space-y-10 animate-fade-in">
-                                    <section>
-                                        <div className="flex justify-between items-center mb-8 sticky top-16 bg-transparent z-10 py-2">
+                            {
+                                activeTab === 'liệu trình' && (
+                                    <div className="space-y-10 animate-fade-in">
+                                        <section>
+                                            <div className="flex justify-between items-center mb-8 sticky top-16 bg-transparent z-10 py-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shadow-sm">
+                                                        <Flower size={20} />
+                                                    </div>
+                                                    <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
+                                                        Liệu trình & Dịch vụ
+                                                    </h3>
+                                                </div>
+                                                <button
+                                                    onClick={() => onNavigate('sales')}
+                                                    className="px-6 py-2 bg-text-main text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gold-muted transition-all shadow-lg active:scale-95"
+                                                >
+                                                    + Mua thêm dịch vụ
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                {loadingDossier ? (
+                                                    <div className="lg:col-span-3 flex flex-col items-center justify-center py-20 bg-beige-soft/10 rounded-[40px] border border-dashed border-gold-muted/20">
+                                                        <Loader2 size={40} className="animate-spin text-gold-muted mb-4" />
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-gold-muted/60">Đang tải dữ liệu liệu trình...</p>
+                                                    </div>
+                                                ) : (customer.treatmentCards && customer.treatmentCards.length > 0) || (dossier?.treatmentCards && dossier.treatmentCards.length > 0) ? (
+                                                    [...(customer.treatmentCards || []), ...(dossier?.treatmentCards || [])]
+                                                        // Filter unique by ID
+                                                        .reduce((acc: any[], curr) => {
+                                                            if (!acc.find(x => x.id === curr.id)) acc.push(curr);
+                                                            return acc;
+                                                        }, [])
+                                                        .sort((a, b) => {
+                                                            // Sort by status activity first, then by remaining sessions
+                                                            const statusWeight: Record<string, number> = { active: 0, expired: 2, completed: 1 };
+                                                            const weightA = statusWeight[a.status] ?? 3;
+                                                            const weightB = statusWeight[b.status] ?? 3;
+                                                            if (weightA !== weightB) {
+                                                                return weightA - weightB;
+                                                            }
+                                                            return b.remaining - a.remaining;
+                                                        })
+                                                        .map(card => {
+                                                            const isExpiring = card.status === 'active' && card.remaining <= 2;
+                                                            const isExpired = card.status === 'expired' || (card.expiryDate && new Date(card.expiryDate) < new Date());
+
+                                                            return (
+                                                                <div key={card.id} className="bg-white border border-gold-light/20 rounded-[32px] p-6 hover:border-gold-muted/50 transition-all hover:shadow-luxury group relative overflow-hidden flex flex-col h-full">
+                                                                    {/* Status Badge */}
+                                                                    <div className="absolute top-4 right-4 z-20">
+                                                                        <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-sm ${card.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                                            card.status === 'expired' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                                                                                'bg-gray-50 text-gray-400 border border-gray-100'
+                                                                            }`}>
+                                                                            {card.status === 'active' ? 'Đang dùng' : card.status === 'expired' ? 'Hết hạn' : 'Hoàn thành'}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-4 relative z-10 mb-6">
+                                                                        <div className={`w-14 h-14 rounded-[18px] flex items-center justify-center shrink-0 shadow-inner ${card.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                                            'bg-beige-soft text-text-soft border border-gold-light/10'
+                                                                            }`}>
+                                                                            <Flower size={24} strokeWidth={1.5} className={card.status === 'active' ? 'animate-pulse-subtle' : ''} />
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0 pr-12">
+                                                                            <p className="text-[14px] font-serif font-black text-text-main truncate tracking-tight group-hover:text-gold-muted transition-colors leading-tight">{card.name}</p>
+                                                                            <p className="text-[9px] text-text-soft font-black uppercase tracking-widest opacity-40 mt-1">Loại: {card.type === 'package' ? 'Gói liệu trình' : 'Dịch vụ lẻ'}</p>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex-1 space-y-4">
+                                                                        <div className="bg-beige-soft/30 rounded-2xl p-4 border border-gold-light/5">
+                                                                            <div className="flex justify-between items-end mb-2">
+                                                                                <div className="space-y-0.5">
+                                                                                    <p className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-40">Tiến độ sử dụng</p>
+                                                                                    <p className="text-[14px] font-black text-text-main">Còn <span className="text-2xl font-serif font-black text-gold-muted italic">{card.remaining}</span>/{card.total} buổi</p>
+                                                                                </div>
+                                                                                <div className="text-right">
+                                                                                    <p className="text-[14px] font-black text-text-main opacity-20">{Math.round((card.used / card.total) * 100)}%</p>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="w-full h-2 bg-white/50 rounded-full overflow-hidden border border-gold-light/10">
+                                                                                <div
+                                                                                    className={`h-full rounded-full transition-all duration-1000 ${isExpired ? 'bg-gray-300' :
+                                                                                        isExpiring ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.4)]' :
+                                                                                            'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                                                                                        }`}
+                                                                                    style={{ width: `${(card.remaining / card.total) * 100}%` }}
+                                                                                ></div>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div className="grid grid-cols-2 gap-3">
+                                                                            <div className="p-3 bg-white/40 rounded-xl border border-gold-light/10">
+                                                                                <p className="text-[8px] font-black text-text-soft uppercase tracking-widest opacity-40 mb-1">Ngày mua</p>
+                                                                                <p className="text-[10px] font-bold text-text-main">{card.purchaseDate}</p>
+                                                                            </div>
+                                                                            <div className="p-3 bg-white/40 rounded-xl border border-gold-light/10">
+                                                                                <p className="text-[8px] font-black text-text-soft uppercase tracking-widest opacity-40 mb-1">Hết hạn/BH</p>
+                                                                                <p className={`text-[10px] font-bold ${isExpired ? 'text-rose-500' : 'text-text-main'}`}>
+                                                                                    {card.expiryDate || card.warrantyExpiryDate || 'Không thời hạn'}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Decorative elements */}
+                                                                    <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-gold-light/5 rounded-full blur-2xl group-hover:bg-gold-muted/10 transition-all"></div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                ) : (
+                                                    <div className="lg:col-span-3 bg-beige-soft/20 p-24 rounded-[40px] border border-dashed border-gold-light/30 flex flex-col items-center justify-center text-text-soft text-center opacity-40">
+                                                        <Flower size={64} strokeWidth={1} className="mb-6" />
+                                                        <p className="text-sm font-black uppercase tracking-[0.2em]">Hiện chưa có liệu trình nào đang hoạt động</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </section>
+                                    </div>
+                                )
+                            }
+
+                            {
+                                activeTab === 'điều trị' && (
+                                    <div className="animate-fade-in">
+                                        <div className="flex items-center gap-3 mb-6 sticky top-16 bg-transparent z-10">
+                                            <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shadow-sm">
+                                                <History size={20} />
+                                            </div>
+                                            <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
+                                                Lịch sử điều trị
+                                            </h3>
+                                        </div>
+                                        <div className="bg-white p-20 rounded-[32px] border border-dashed border-gold-light/20 flex flex-col items-center justify-center text-text-soft text-center shadow-luxury">
+                                            <History size={48} strokeWidth={1} className="mb-6 opacity-20 text-gold-muted" />
+                                            <p className="text-[11px] font-black text-text-soft uppercase tracking-widest mt-4 opacity-40">Hệ thống đang đồng bộ dữ liệu chuyên sâu...</p>
+                                        </div>
+                                    </div>
+                                )
+                            }
+
+                            {
+                                activeTab === 'thanh toán' && (
+                                    <div className="animate-fade-in">
+                                        <div className="flex items-center gap-3 mb-6 sticky top-16 bg-transparent z-10">
+                                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shadow-sm">
+                                                <Wallet size={20} />
+                                            </div>
+                                            <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
+                                                Tài chính & Công nợ
+                                            </h3>
+                                        </div>
+                                        <div className="flex flex-col md:flex-row gap-6 mb-8">
+                                            <div className="flex-1 bg-white p-8 rounded-[40px] border border-gold-light/20 shadow-luxury flex flex-col justify-between">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-gold-muted/10 text-gold-muted flex items-center justify-center">
+                                                        <TrendingUp size={20} />
+                                                    </div>
+                                                    <h4 className="text-[10px] font-black text-text-soft uppercase tracking-widest">Tổng chi tiêu</h4>
+                                                </div>
+                                                <p className="text-3xl lg:text-4xl font-serif font-black text-text-main">
+                                                    {(derivedStats.totalSpent || 0).toLocaleString()}
+                                                    <span className="text-sm font-sans ml-2 opacity-40 font-normal">VNĐ</span>
+                                                </p>
+                                            </div>
+
+                                            <div className="flex-1 bg-white p-8 rounded-[40px] border border-gold-light/20 shadow-luxury flex flex-col justify-between">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                                                        <Fingerprint size={20} />
+                                                    </div>
+                                                    <h4 className="text-[10px] font-black text-text-soft uppercase tracking-widest">Tổng công nợ</h4>
+                                                </div>
+                                                <p className="text-3xl lg:text-4xl font-serif font-black text-rose-600">
+                                                    {(derivedStats.totalDebt || 0).toLocaleString()}
+                                                    <span className="text-sm font-sans ml-2 opacity-40 font-normal">VNĐ</span>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white p-10 lg:p-14 rounded-[32px] border border-gold-light/20 flex flex-col md:flex-row items-center justify-between gap-10 text-text-soft text-center md:text-left shadow-luxury">
+                                            <div className="flex flex-col items-center md:items-start">
+                                                <Wallet size={48} strokeWidth={1.5} className="mb-6 text-gold-muted" />
+                                                <p className="text-[12px] font-black text-text-soft uppercase tracking-widest opacity-60">Số dư thẻ tiền nạp</p>
+                                                <p className="text-4xl lg:text-5xl font-serif font-black text-text-main mt-4">
+                                                    {(derivedStats.walletBalance || 0).toLocaleString()}
+                                                    <span className="text-xl lg:text-2xl font-sans lg:ml-2 font-normal opacity-40">VNĐ</span>
+                                                </p>
+                                                <div className="mt-6 flex gap-2 w-full md:w-auto">
+                                                    <button className="flex-1 md:flex-none px-6 py-2.5 bg-text-main text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gold-muted transition-all shadow-lg active:scale-95">Nạp tiền</button>
+                                                    <button className="flex-1 md:flex-none px-6 py-2.5 bg-beige-soft text-text-main text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gold-light transition-all shadow-sm active:scale-95">Biến động</button>
+                                                </div>
+                                            </div>
+                                            <div className="w-full md:w-1/2 bg-text-main p-8 rounded-3xl text-white relative overflow-hidden shadow-inner hidden md:block">
+                                                <div className="absolute top-0 right-0 w-32 h-32 bg-gold-muted/10 rounded-full translate-x-10 -translate-y-10 blur-xl"></div>
+                                                <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-6">Thẻ tiền trả trước</h4>
+                                                <p className="text-sm font-serif italic text-white/80 leading-relaxed">
+                                                    Việc nạp tiền trước vào thẻ giúp Khách hàng không cần mang theo tiền mặt hoặc thẻ tín dụng mỗi lần ghé qua, đồng thời tận hưởng trọn vẹn đặc quyền chuyên biệt tại thẩm mỹ viện.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Detailed Service Orders History */}
+                                        <div className="mt-10 space-y-6">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shadow-sm">
-                                                    <Flower size={20} />
+                                                <div className="w-8 h-8 rounded-lg bg-gold-muted/10 text-gold-muted flex items-center justify-center">
+                                                    <History size={16} />
                                                 </div>
-                                                <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
-                                                    Liệu trình & Dịch vụ
-                                                </h3>
+                                                <h4 className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Lịch sử hóa đơn & Công nợ</h4>
                                             </div>
-                                            <button
-                                                onClick={() => onNavigate('sales')}
-                                                className="px-6 py-2 bg-text-main text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gold-muted transition-all shadow-lg active:scale-95"
-                                            >
-                                                + Mua thêm dịch vụ
-                                            </button>
-                                        </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {customer.treatmentCards && customer.treatmentCards.length > 0 ? (
-                                                [...customer.treatmentCards]
-                                                    .sort((a, b) => {
-                                                        // Sort by status activity first, then by remaining sessions
-                                                        const statusWeight = { active: 0, expired: 2, completed: 1 };
-                                                        if (statusWeight[a.status] !== statusWeight[b.status]) {
-                                                            return statusWeight[a.status] - statusWeight[b.status];
-                                                        }
-                                                        return b.remaining - a.remaining;
-                                                    })
-                                                    .map(card => {
-                                                        const isExpiring = card.status === 'active' && card.remaining <= 2;
-                                                        const isExpired = card.status === 'expired' || (card.expiryDate && new Date(card.expiryDate) < new Date());
-
-                                                        return (
-                                                            <div key={card.id} className="bg-white border border-gold-light/20 rounded-[32px] p-6 hover:border-gold-muted/50 transition-all hover:shadow-luxury group relative overflow-hidden flex flex-col h-full">
-                                                                {/* Status Badge */}
-                                                                <div className="absolute top-4 right-4 z-20">
-                                                                    <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-sm ${card.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                                                        card.status === 'expired' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
-                                                                            'bg-gray-50 text-gray-400 border border-gray-100'
-                                                                        }`}>
-                                                                        {card.status === 'active' ? 'Đang dùng' : card.status === 'expired' ? 'Hết hạn' : 'Hoàn thành'}
-                                                                    </span>
-                                                                </div>
-
-                                                                <div className="flex items-center gap-4 relative z-10 mb-6">
-                                                                    <div className={`w-14 h-14 rounded-[18px] flex items-center justify-center shrink-0 shadow-inner ${card.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                                                        'bg-beige-soft text-text-soft border border-gold-light/10'
-                                                                        }`}>
-                                                                        <Flower size={24} strokeWidth={1.5} className={card.status === 'active' ? 'animate-pulse-subtle' : ''} />
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0 pr-12">
-                                                                        <p className="text-[14px] font-serif font-black text-text-main truncate tracking-tight group-hover:text-gold-muted transition-colors leading-tight">{card.name}</p>
-                                                                        <p className="text-[9px] text-text-soft font-black uppercase tracking-widest opacity-40 mt-1">Loại: {card.type === 'package' ? 'Gói liệu trình' : 'Dịch vụ lẻ'}</p>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="flex-1 space-y-4">
-                                                                    <div className="bg-beige-soft/30 rounded-2xl p-4 border border-gold-light/5">
-                                                                        <div className="flex justify-between items-end mb-2">
-                                                                            <div className="space-y-0.5">
-                                                                                <p className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-40">Tiến độ sử dụng</p>
-                                                                                <p className="text-[14px] font-black text-text-main">Còn <span className="text-2xl font-serif font-black text-gold-muted italic">{card.remaining}</span>/{card.total} buổi</p>
-                                                                            </div>
-                                                                            <div className="text-right">
-                                                                                <p className="text-[14px] font-black text-text-main opacity-20">{Math.round((card.used / card.total) * 100)}%</p>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="w-full h-2 bg-white/50 rounded-full overflow-hidden border border-gold-light/10">
-                                                                            <div
-                                                                                className={`h-full rounded-full transition-all duration-1000 ${isExpired ? 'bg-gray-300' :
-                                                                                    isExpiring ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.4)]' :
-                                                                                        'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                                                                                    }`}
-                                                                                style={{ width: `${(card.remaining / card.total) * 100}%` }}
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <div className="grid grid-cols-2 gap-3">
-                                                                        <div className="p-3 bg-white/40 rounded-xl border border-gold-light/10">
-                                                                            <p className="text-[8px] font-black text-text-soft uppercase tracking-widest opacity-40 mb-1">Ngày mua</p>
-                                                                            <p className="text-[10px] font-bold text-text-main">{card.purchaseDate}</p>
-                                                                        </div>
-                                                                        <div className="p-3 bg-white/40 rounded-xl border border-gold-light/10">
-                                                                            <p className="text-[8px] font-black text-text-soft uppercase tracking-widest opacity-40 mb-1">Hết hạn/BH</p>
-                                                                            <p className={`text-[10px] font-bold ${isExpired ? 'text-rose-500' : 'text-text-main'}`}>
-                                                                                {card.expiryDate || card.warrantyExpiryDate || 'Không thời hạn'}
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Decorative elements */}
-                                                                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-gold-light/5 rounded-full blur-2xl group-hover:bg-gold-muted/10 transition-all"></div>
-                                                            </div>
-                                                        );
-                                                    })
-                                            ) : (
-                                                <div className="lg:col-span-3 bg-beige-soft/20 p-24 rounded-[40px] border border-dashed border-gold-light/30 flex flex-col items-center justify-center text-text-soft text-center opacity-40">
-                                                    <Flower size={64} strokeWidth={1} className="mb-6" />
-                                                    <p className="text-sm font-black uppercase tracking-[0.2em]">Hiện chưa có liệu trình nào đang hoạt động</p>
+                                            <div className="bg-white rounded-[32px] border border-gold-light/20 shadow-luxury overflow-hidden">
+                                                <div className="overflow-x-auto luxury-scrollbar">
+                                                    <table className="w-full text-left luxury-table border-collapse">
+                                                        <thead>
+                                                            <tr className="bg-beige-soft/30 border-b border-gold-light/10">
+                                                                <th className="px-6 py-4 text-[9px] font-black text-text-soft uppercase tracking-widest">Mã phiếu</th>
+                                                                <th className="px-6 py-4 text-[9px] font-black text-text-soft uppercase tracking-widest">Ngày lập</th>
+                                                                <th className="px-6 py-4 text-[9px] font-black text-text-soft uppercase tracking-widest text-right">Tổng tiền</th>
+                                                                <th className="px-6 py-4 text-[9px] font-black text-text-soft uppercase tracking-widest text-right">Đã trả</th>
+                                                                <th className="px-6 py-4 text-[9px] font-black text-text-soft uppercase tracking-widest text-right">Còn nợ</th>
+                                                                <th className="px-6 py-4 text-[9px] font-black text-text-soft uppercase tracking-widest text-center">Trạng thái</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gold-light/5">
+                                                            {loadingDossier ? (
+                                                                <tr>
+                                                                    <td colSpan={6} className="px-10 py-10 text-center">
+                                                                        <Loader2 size={24} className="animate-spin text-gold-muted mx-auto" />
+                                                                    </td>
+                                                                </tr>
+                                                            ) : dossier?.serviceOrders && dossier.serviceOrders.length > 0 ? (
+                                                                dossier.serviceOrders.map(order => (
+                                                                    <tr key={order.id} className="hover:bg-beige-soft/10 transition-colors group">
+                                                                        <td className="px-6 py-4">
+                                                                            <span className="text-[12px] font-black text-text-main group-hover:text-gold-muted transition-colors">{order.code}</span>
+                                                                        </td>
+                                                                        <td className="px-6 py-4">
+                                                                            <span className="text-[12px] text-text-soft font-bold">
+                                                                                {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 text-right">
+                                                                            <span className="text-[13px] font-black text-gray-900">{(order.totalAmount || 0).toLocaleString()}đ</span>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 text-right">
+                                                                            <span className="text-[13px] font-bold text-emerald-600">{(order.actualAmount || 0).toLocaleString()}đ</span>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 text-right">
+                                                                            <span className={`text-[13px] font-black ${order.debtAmount > 0 ? 'text-rose-500' : 'text-gray-400'}`}>
+                                                                                {(order.debtAmount || 0).toLocaleString()}đ
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="px-6 py-4 text-center">
+                                                                            <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-sm ${order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                                                order.status === 'confirmed' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                                                                                    order.status === 'cancelled' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                                                                                        'bg-gray-50 text-gray-400 border border-gray-100'
+                                                                                }`}>
+                                                                                {order.status}
+                                                                            </span>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))
+                                                            ) : (
+                                                                <tr>
+                                                                    <td colSpan={6} className="px-10 py-20 text-center opacity-40">
+                                                                        <p className="text-[10px] font-black uppercase tracking-widest">Chưa có lịch sử hóa đơn</p>
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
                                                 </div>
-                                            )}
-                                        </div>
-                                    </section>
-                                </div>
-                            )}
-
-                            {activeTab === 'điều trị' && (
-                                <div className="animate-fade-in">
-                                    <div className="flex items-center gap-3 mb-6 sticky top-16 bg-transparent z-10">
-                                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shadow-sm">
-                                            <History size={20} />
-                                        </div>
-                                        <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
-                                            Lịch sử điều trị
-                                        </h3>
-                                    </div>
-                                    <div className="bg-white p-20 rounded-[32px] border border-dashed border-gold-light/20 flex flex-col items-center justify-center text-text-soft text-center shadow-luxury">
-                                        <History size={48} strokeWidth={1} className="mb-6 opacity-20 text-gold-muted" />
-                                        <p className="text-[11px] font-black text-text-soft uppercase tracking-widest mt-4 opacity-40">Hệ thống đang đồng bộ dữ liệu chuyên sâu...</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'thanh toán' && (
-                                <div className="animate-fade-in">
-                                    <div className="flex items-center gap-3 mb-6 sticky top-16 bg-transparent z-10">
-                                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shadow-sm">
-                                            <Wallet size={20} />
-                                        </div>
-                                        <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
-                                            Tài chính & Công nợ
-                                        </h3>
-                                    </div>
-                                    <div className="bg-white p-10 lg:p-14 rounded-[32px] border border-gold-light/20 flex flex-col md:flex-row items-center justify-between gap-10 text-text-soft text-center md:text-left shadow-luxury">
-                                        <div className="flex flex-col items-center md:items-start">
-                                            <Wallet size={48} strokeWidth={1.5} className="mb-6 text-gold-muted" />
-                                            <p className="text-[12px] font-black text-text-soft uppercase tracking-widest opacity-60">Số dư thẻ tiền nạp</p>
-                                            <p className="text-4xl lg:text-5xl font-serif font-black text-text-main mt-4">
-                                                {(customer.walletBalance || 0).toLocaleString()}
-                                                <span className="text-xl lg:text-2xl font-sans lg:ml-2 font-normal opacity-40">VNĐ</span>
-                                            </p>
-                                            <div className="mt-6 flex gap-2 w-full md:w-auto">
-                                                <button className="flex-1 md:flex-none px-6 py-2.5 bg-text-main text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gold-muted transition-all shadow-lg active:scale-95">Nạp tiền</button>
-                                                <button className="flex-1 md:flex-none px-6 py-2.5 bg-beige-soft text-text-main text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gold-light transition-all shadow-sm active:scale-95">Biến động</button>
                                             </div>
                                         </div>
-                                        <div className="w-full md:w-1/2 bg-text-main p-8 rounded-3xl text-white relative overflow-hidden shadow-inner hidden md:block">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-gold-muted/10 rounded-full translate-x-10 -translate-y-10 blur-xl"></div>
-                                            <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-6">Thẻ tiền trả trước</h4>
-                                            <p className="text-sm font-serif italic text-white/80 leading-relaxed">
-                                                Việc nạp tiền trước vào thẻ giúp Khách hàng không cần mang theo tiền mặt hoặc thẻ tín dụng mỗi lần ghé qua, đồng thời tận hưởng trọn vẹn đặc quyền chuyên biệt tại thẩm mỹ viện.
-                                            </p>
-                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )
+                            }
 
-                            {activeTab === 'tương tác' && (
-                                <div className="animate-fade-in">
-                                    <div className="flex items-center gap-3 mb-6 sticky top-16 bg-transparent z-10">
-                                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center shadow-sm">
-                                            <MessageSquare size={20} />
+                            {
+                                activeTab === 'tương tác' && (
+                                    <div className="animate-fade-in">
+                                        <div className="flex items-center gap-3 mb-6 sticky top-16 bg-transparent z-10">
+                                            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center shadow-sm">
+                                                <MessageSquare size={20} />
+                                            </div>
+                                            <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
+                                                Nhật ký chăm sóc
+                                            </h3>
                                         </div>
-                                        <h3 className="text-base font-black text-gray-900 uppercase tracking-widest bg-white/40 backdrop-blur-sm px-4 py-2 rounded-xl">
-                                            Nhật ký chăm sóc
-                                        </h3>
+                                        <div className="bg-white p-20 rounded-[32px] border border-dashed border-gold-light/20 flex flex-col items-center justify-center text-text-soft text-center shadow-luxury">
+                                            <MessageSquare size={48} strokeWidth={1} className="mb-6 opacity-20 text-gold-muted" />
+                                            <p className="text-[11px] font-black text-text-soft uppercase tracking-widest mt-4 opacity-40">Tổng hợp tương tác từ đa nền tảng...</p>
+                                        </div>
                                     </div>
-                                    <div className="bg-white p-20 rounded-[32px] border border-dashed border-gold-light/20 flex flex-col items-center justify-center text-text-soft text-center shadow-luxury">
-                                        <MessageSquare size={48} strokeWidth={1} className="mb-6 opacity-20 text-gold-muted" />
-                                        <p className="text-[11px] font-black text-text-soft uppercase tracking-widest mt-4 opacity-40">Tổng hợp tương tác từ đa nền tảng...</p>
-                                    </div>
-                                </div>
-                            )}
+                                )
+                            }
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* QR Tracking Modal */}
-            {showQrModal && (
-                <div
-                    className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in"
-                    onClick={() => setShowQrModal(false)}
-                >
+            {
+                showQrModal && (
                     <div
-                        className="bg-white rounded-[40px] max-w-sm w-full p-8 shadow-2xl animate-modal-up border border-white/20 relative"
-                        onClick={(e) => e.stopPropagation()}
+                        className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in"
+                        onClick={() => setShowQrModal(false)}
                     >
-                        <button
-                            onClick={() => setShowQrModal(false)}
-                            className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 transition-colors"
+                        <div
+                            className="bg-white rounded-[40px] max-w-sm w-full p-8 shadow-2xl animate-modal-up border border-white/20 relative"
+                            onClick={(e) => e.stopPropagation()}
                         >
-                            <X size={24} />
-                        </button>
+                            <button
+                                onClick={() => setShowQrModal(false)}
+                                className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
 
-                        <div className="flex flex-col items-center">
-                            <div className="w-16 h-16 bg-gold-muted/10 rounded-3xl flex items-center justify-center text-gold-muted mb-6">
-                                <QrCode size={32} />
-                            </div>
-
-                            <h2 className="text-xl font-bold text-gray-900 mb-2">QR Code Theo dõi</h2>
-                            <p className="text-sm text-gray-500 text-center mb-8">Khách hàng scan mã này để xem liệu trình & lịch hẹn cá nhân</p>
-
-                            <div className="aspect-square w-full bg-[#FAF8F6] rounded-[32px] border-2 border-dashed border-gold-muted/20 flex items-center justify-center p-6 mb-8 relative group overflow-hidden">
-                                {/* Simplified Mock QR - Real one would need qrcode library */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-gold-muted/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                <div className="w-full h-full relative z-10 p-4 bg-white rounded-2xl shadow-inner flex flex-col items-center justify-center border border-gold-muted/10 overflow-hidden">
-                                    <img
-                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== 'undefined' ? `${window.location.origin}/tracking/${customer.id}` : '')}`}
-                                        alt="Tracking QR Code"
-                                        className="w-full h-full object-contain"
-                                    />
+                            <div className="flex flex-col items-center">
+                                <div className="w-16 h-16 bg-gold-muted/10 rounded-3xl flex items-center justify-center text-gold-muted mb-6">
+                                    <QrCode size={32} />
                                 </div>
-                            </div>
 
-                            <div className="w-full space-y-3">
-                                <button
-                                    onClick={() => {
-                                        const url = `${window.location.origin}/tracking/${customer.id}`;
-                                        navigator.clipboard.writeText(url);
-                                        setCopySuccess(true);
-                                        setTimeout(() => setCopySuccess(false), 2000);
-                                    }}
-                                    className="w-full py-4 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 text-gray-900 font-bold text-sm flex items-center justify-center gap-3 transition-all active:scale-95"
-                                >
-                                    {copySuccess ? <CheckCircle2 size={18} className="text-emerald-500" /> : <Copy size={18} className="text-gray-400" />}
-                                    {copySuccess ? 'Đã sao chép link' : 'Sao chép link theo dõi'}
-                                </button>
+                                <h2 className="text-xl font-bold text-gray-900 mb-2">QR Code Theo dõi</h2>
+                                <p className="text-sm text-gray-500 text-center mb-8">Khách hàng scan mã này để xem liệu trình & lịch hẹn cá nhân</p>
 
-                                <a
-                                    href={`/tracking/${customer.id}`}
-                                    target="_blank"
-                                    className="w-full py-4 bg-text-main text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-gold-muted transition-all shadow-lg active:scale-95"
-                                >
-                                    <ExternalLink size={18} />
-                                    Xem thử giao diện khách
-                                </a>
+                                <div className="aspect-square w-full bg-[#FAF8F6] rounded-[32px] border-2 border-dashed border-gold-muted/20 flex items-center justify-center p-6 mb-8 relative group overflow-hidden">
+                                    {/* Simplified Mock QR - Real one would need qrcode library */}
+                                    <div className="absolute inset-0 bg-gradient-to-br from-gold-muted/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <div className="w-full h-full relative z-10 p-4 bg-white rounded-2xl shadow-inner flex flex-col items-center justify-center border border-gold-muted/10 overflow-hidden">
+                                        <img
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== 'undefined' ? `${window.location.origin}/tracking/${activeCustomer.id}` : '')}`}
+                                            alt="Tracking QR Code"
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="w-full space-y-3">
+                                    <button
+                                        onClick={() => {
+                                            const url = `${window.location.origin}/tracking/${activeCustomer.id}`;
+                                            navigator.clipboard.writeText(url);
+                                            setCopySuccess(true);
+                                            setTimeout(() => setCopySuccess(false), 2000);
+                                        }}
+                                        className="w-full py-4 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 text-gray-900 font-bold text-sm flex items-center justify-center gap-3 transition-all active:scale-95"
+                                    >
+                                        {copySuccess ? <CheckCircle2 size={18} className="text-emerald-500" /> : <Copy size={18} className="text-gray-400" />}
+                                        {copySuccess ? 'Đã sao chép link' : 'Sao chép link theo dõi'}
+                                    </button>
+
+                                    <a
+                                        href={`/tracking/${activeCustomer.id}`}
+                                        target="_blank"
+                                        className="w-full py-4 bg-text-main text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-gold-muted transition-all shadow-lg active:scale-95"
+                                    >
+                                        <ExternalLink size={18} />
+                                        Xem thử giao diện khách
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

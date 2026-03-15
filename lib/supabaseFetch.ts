@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { AppState, User, Branch, PaymentAccount, Category, MonthlyPlan, Transaction, ActivityLog } from './types'
+import { AppState, User, Branch, PaymentAccount, Category, MonthlyPlan, Transaction, ActivityLog, RedFlag } from './types'
 
 async function fetchAllRows(table: string, columns: string = '*') {
     let allData: any[] = []
@@ -59,7 +59,8 @@ export async function fetchAllData(): Promise<AppState | null> {
             supabase.from('crm_salary_advances').select('*'),
             supabase.from('crm_payroll_rosters').select('*'),
             supabase.from('crm_service_orders').select('*'),
-            supabase.from('crm_loyalty_settings').select('*')
+            supabase.from('crm_loyalty_settings').select('*'),
+            supabase.from('system_config').select('*')
         ])
 
         const [
@@ -75,7 +76,7 @@ export async function fetchAllData(): Promise<AppState | null> {
             resTotalVips,
             resAppointmentsRaw,
             resServicesRaw,
-        ] = batch1 as any;
+        ] = batch1;
 
         const [
             resTiersRaw,
@@ -91,8 +92,9 @@ export async function fetchAllData(): Promise<AppState | null> {
             resSalaryAdvancesRaw,
             resPayrollRostersRaw,
             resServiceOrdersRaw,
-            resLoyaltySettingsRaw
-        ] = batch2 as any;
+            resLoyaltySettingsRaw,
+            resSystemConfigRaw
+        ] = batch2;
 
         const rawQueries = [
             { id: 'branches', res: resBranchesRaw },
@@ -116,6 +118,7 @@ export async function fetchAllData(): Promise<AppState | null> {
             { id: 'payroll_rosters', res: resPayrollRostersRaw },
             { id: 'service_orders', res: resServiceOrdersRaw },
             { id: 'appointments', res: resAppointmentsRaw },
+            { id: 'system_config', res: resSystemConfigRaw },
             { id: 'customer_counts', res: resCustomersAllCount },
             { id: 'vip_counts', res: resTotalVips }
         ];
@@ -225,6 +228,7 @@ export async function fetchAllData(): Promise<AppState | null> {
                 id: t.id, branchId: t.branch_id, date: t.date, type: t.type as any, categoryId: t.category_id,
                 amount: t.amount, paymentAccountId: t.payment_account_id, toPaymentAccountId: t.to_payment_account_id,
                 paidByBranchId: t.paid_by_branch_id, note: t.note, isDebt: t.is_debt, status: t.status as any,
+                serviceOrderId: t.service_order_id,
                 createdBy: t.created_by, createdAt: t.created_at, updatedBy: t.updated_at, updatedAt: t.updated_at
             })),
             activityLogs: resActivityLogs.map((l: any) => ({
@@ -244,7 +248,13 @@ export async function fetchAllData(): Promise<AppState | null> {
                 customerPhone: a.crm_customers?.phone || 'N/A',
                 customerAvatar: a.crm_customers?.avatar,
                 customerRank: a.crm_customers?.rank,
-                customerRedFlags: (a.crm_customers?.medical_notes || a.crm_customers?.professional_notes) ? [{ details: 'Lưu ý y tế' }] : [],
+                customerRedFlags: (a.crm_customers?.medical_notes || a.crm_customers?.professional_notes) 
+                    ? [{ 
+                        id: 'note-' + a.id, 
+                        type: 'medical', 
+                        content: (a.crm_customers?.medical_notes || '') + ' ' + (a.crm_customers?.professional_notes || ''),
+                        createdAt: new Date().toISOString()
+                      } as RedFlag] : [],
                 saleTeleId: a.sale_tele_id,
                 saleTeleName: a.sale_tele_name,
                 salePageId: a.sale_page_id,
@@ -374,6 +384,9 @@ export async function fetchAllData(): Promise<AppState | null> {
                     appointmentId: o.appointment_id,
                     lineItems: o.line_items || [],
                     totalAmount: Number(o.total_amount || 0),
+                    actualAmount: Number(o.actual_amount || 0),
+                    debtAmount: Number(o.debt_amount || 0),
+                    payments: o.payments || [],
                     status: o.status,
                     customerName: c?.full_name,
                     customerPhone: c?.phone,
@@ -390,6 +403,19 @@ export async function fetchAllData(): Promise<AppState | null> {
                 isActive: resLoyaltySettingsRaw.data[0].is_active,
                 updatedAt: resLoyaltySettingsRaw.data[0].updated_at
             } : undefined,
+            systemConfig: resSystemConfigRaw.data?.[0] ? {
+                id: resSystemConfigRaw.data[0].id,
+                fontFamily: resSystemConfigRaw.data[0].font_family,
+                fontSizeScale: resSystemConfigRaw.data[0].font_size_scale || 100,
+                theme: resSystemConfigRaw.data[0].theme || 'light',
+                updatedAt: resSystemConfigRaw.data[0].updated_at
+            } : {
+                id: 'global',
+                fontFamily: 'Inter',
+                fontSizeScale: 100,
+                theme: 'light',
+                updatedAt: new Date().toISOString()
+            },
             customerStats: {
                 total: resCustomersAllCount.count || 0,
                 vip: resTotalVips.count || 0,
@@ -437,73 +463,10 @@ export async function searchCustomers(query: string, branchId?: string, canViewA
         email: c.email, gender: c.gender, facebook: c.facebook, zalo: c.zalo,
         address: c.address, birthday: c.birthday, rank: c.rank as any,
         points: c.points || 0, totalSpent: c.total_spent || 0,
-        lastVisit: c.last_visit || 'Chưa có', branchId: c.branch_id,
-        isVip: c.is_vip, professionalNotes: c.professional_notes,
-        createdAt: c.created_at, updatedAt: c.updated_at
-    }));
-}
-
-export async function fetchCustomerDossier(customerId: string) {
-    if (!customerId) return null;
-
-    const [resCustomer, resOrders, resCards, resAppts] = await Promise.all([
-        supabase.from('crm_customers').select('*').eq('id', customerId).single(),
-        supabase.from('crm_service_orders').select('*').eq('customer_id', customerId).order('created_at', { ascending: false }),
-        supabase.from('crm_treatment_cards').select('*').eq('customer_id', customerId).order('created_at', { ascending: false }),
-        supabase.from('crm_appointments').select('*').eq('customer_id', customerId).order('appointment_date', { ascending: false })
-    ]);
-
-    const c = resCustomer.data;
-    const mappedCustomer = c ? {
-        id: c.id, fullName: c.full_name, avatar: c.avatar, phone: c.phone, phone2: c.phone2,
-        email: c.email, gender: c.gender, facebook: c.facebook, zalo: c.zalo,
-        address: c.address, birthday: c.birthday, rank: c.rank as any,
-        points: c.points || 0, totalSpent: c.total_spent || 0,
         walletBalance: c.wallet_balance || 0,
         lastVisit: c.last_visit || 'Chưa có', branchId: c.branch_id,
         isVip: c.is_vip, professionalNotes: c.professional_notes,
         medicalNotes: c.medical_notes,
         createdAt: c.created_at, updatedAt: c.updated_at
-    } : null;
-
-    return {
-        customer: mappedCustomer,
-        serviceOrders: (resOrders.data || []).map((o: any) => ({
-            id: o.id,
-            code: o.code,
-            customerId: o.customer_id,
-            branchId: o.branch_id,
-            appointmentId: o.appointment_id,
-            lineItems: o.line_items || [],
-            totalAmount: Number(o.total_amount || 0),
-            actualAmount: Number(o.actual_amount || 0),
-            debtAmount: Number(o.debt_amount || 0),
-            status: o.status,
-            createdBy: o.created_by,
-            createdAt: o.created_at,
-            updatedAt: o.updated_at
-        })),
-        treatmentCards: (resCards.data || []).map((c: any) => ({
-            id: c.id,
-            customerId: c.customer_id,
-            name: c.name,
-            type: c.type,
-            total: c.total,
-            used: c.used,
-            remaining: c.remaining,
-            status: c.status,
-            expiryDate: c.expiry_date,
-            warrantyExpiryDate: c.warranty_expiry_date,
-            purchaseDate: c.purchase_date,
-            createdAt: c.created_at,
-            updatedAt: c.updated_at
-        })),
-        appointments: (resAppts.data || []).map((a: any) => ({
-            id: a.id, customerId: a.customer_id, branchId: a.branch_id, staffId: a.staff_id,
-            appointmentDate: a.appointment_date, appointmentTime: a.appointment_time,
-            endTime: a.end_time, status: a.status, type: a.type,
-            price: Number(a.price || 0), notes: a.notes,
-            createdAt: a.created_at, updatedAt: a.updated_at
-        }))
-    };
+    }));
 }

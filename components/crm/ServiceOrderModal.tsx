@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
-import { ServiceOrder, ServiceLineItem, StaffSplit, Customer, Appointment, CustomerRank, AppState } from '@/lib/types'
+import { ServiceOrder, ServiceLineItem, StaffSplit, Customer, Appointment, CustomerRank, AppState, ServicePayment } from '@/lib/types'
 import { saveServiceOrder, syncServiceOrder, syncCustomer, saveCustomer, syncAppointment } from '@/lib/storage'
 import { recalculateCustomerStats } from '@/lib/calculations'
 import { useModal } from '@/components/ModalProvider'
@@ -104,6 +104,7 @@ export default function ServiceOrderModal({
     const [formLineItems, setFormLineItems] = useState<ServiceLineItem[]>([])
     const [formStatus, setFormStatus] = useState<ServiceOrder['status']>('draft')
     const [formActualAmount, setFormActualAmount] = useState<number>(0)
+    const [formPayments, setFormPayments] = useState<ServicePayment[]>([])
     const [initialFormStateRef] = useState<{ snapshot: string }>({ snapshot: '' })
     const [editingNoteIdx, setEditingNoteIdx] = useState<number | null>(null)
 
@@ -142,6 +143,7 @@ export default function ServiceOrderModal({
                 setFormLineItems([...editingOrder.lineItems])
                 setFormStatus(editingOrder.status)
                 setFormActualAmount(editingOrder.actualAmount || 0)
+                setFormPayments(editingOrder.payments || [])
 
                 let cust = customers.find(c => c.id === editingOrder.customerId)
                 if (!cust && editingOrder.customerName) {
@@ -204,6 +206,7 @@ export default function ServiceOrderModal({
                     if (!initialCustomerId) setFormCustomerId(cust.id)
                 }
                 setFormActualAmount(0)
+                setFormPayments([])
             }
             setHasInitialized(true)
         }
@@ -216,7 +219,8 @@ export default function ServiceOrderModal({
                 appointmentId: formAppointmentId,
                 lineItems: formLineItems,
                 status: formStatus,
-                actualAmount: formActualAmount
+                actualAmount: formActualAmount,
+                payments: formPayments
             }
             initialFormStateRef.snapshot = JSON.stringify(stateToCapture)
         }
@@ -228,12 +232,13 @@ export default function ServiceOrderModal({
             setFormAppointmentId('')
             setFormLineItems([])
             setFormActualAmount(0)
+            setFormPayments([])
             initialFormStateRef.snapshot = ''
             setCustomerSearch('')
             setSelectedCustomerData(null)
             setCustomerSuggestions([])
         }
-    }, [isOpen, editingOrder, initialCustomerId, initialBranchId, initialAppointmentId, currentUser, customers, isCustomerNewAtBranch, hasInitialized, formCustomerId, formBranchId, formAppointmentId, formLineItems, formStatus, formActualAmount, initialFormStateRef])
+    }, [isOpen, editingOrder, initialCustomerId, initialBranchId, initialAppointmentId, currentUser, customers, isCustomerNewAtBranch, hasInitialized, formCustomerId, formBranchId, formAppointmentId, formLineItems, formStatus, formActualAmount, formPayments, initialFormStateRef])
 
     // Server-side customer search
     useEffect(() => {
@@ -303,7 +308,8 @@ export default function ServiceOrderModal({
             appointmentId: formAppointmentId,
             lineItems: formLineItems,
             status: formStatus,
-            actualAmount: formActualAmount
+            actualAmount: formActualAmount,
+            payments: formPayments
         }
         const currentStateJson = JSON.stringify(currentData)
         return initialFormStateRef.snapshot !== '' && currentStateJson !== initialFormStateRef.snapshot
@@ -361,6 +367,46 @@ export default function ServiceOrderModal({
         }))
     }
 
+    const addPaymentRaw = () => {
+        const newPayment: ServicePayment = {
+            id: crypto.randomUUID(),
+            method: 'cash',
+            amount: 0,
+            date: new Date().toISOString(),
+        }
+        setFormPayments(prev => [...prev, newPayment])
+    }
+
+    const updatePayment = (id: string, updates: Partial<ServicePayment>) => {
+        setFormPayments(prev => {
+            const newPayments = prev.map(p => p.id === id ? { ...p, ...updates } : p);
+            const newActual = newPayments.reduce((s, p) => s + (p.amount || 0), 0);
+            setFormActualAmount(newActual);
+            return newPayments;
+        })
+    }
+
+    const removePayment = (paymentId: string) => {
+        setFormPayments(prev => {
+            const newPayments = prev.filter(p => p.id !== paymentId);
+            const newActual = newPayments.reduce((s, p) => s + (p.amount || 0), 0);
+            setFormActualAmount(newActual);
+            return newPayments;
+        })
+    }
+
+    const addPayment = (method: ServicePayment['method'], amount: number) => {
+        if (amount <= 0) return
+        const newPayment: ServicePayment = {
+            id: crypto.randomUUID(),
+            method,
+            amount,
+            date: new Date().toISOString(),
+        }
+        setFormPayments(prev => [...prev, newPayment])
+        setFormActualAmount(prev => prev + amount)
+    }
+
     async function handleSave() {
         if (!formBranchId) { await showAlert('Vui lòng chọn chi nhánh'); return }
         if (!formCustomerId) { await showAlert('Vui lòng chọn khách hàng'); return }
@@ -386,6 +432,7 @@ export default function ServiceOrderModal({
             totalAmount,
             actualAmount: formActualAmount,
             debtAmount: totalAmount - formActualAmount,
+            payments: formPayments,
             status: formStatus,
             customerName: selectedCustomerData?.fullName,
             customerPhone: selectedCustomerData?.phone,
@@ -429,8 +476,8 @@ export default function ServiceOrderModal({
                 }
             }
 
-            // Re-calculate customer stats if order is completed
-            if (order.status === 'completed') {
+            // Re-calculate customer stats if order is completed or confirmed
+            if (order.status === 'completed' || order.status === 'confirmed') {
                 const currentState = (await import('@/lib/storage')).getState()
                 const customer = currentState.customers.find(c => c.id === order.customerId)
                 if (customer) {
@@ -471,323 +518,378 @@ export default function ServiceOrderModal({
                         </button>
                     </div>
 
-                    {/* Modal Body */}
-                    <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-8 sm:space-y-10 custom-scrollbar">
-                        {/* Section 1: Customer & Branch */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-6">
-                                <div className="relative">
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Khách hàng *</label>
+                    {/* ====== MAIN CONTENT: 2-COLUMN LAYOUT ====== */}
+                    <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+                        {/* Left Column: Customer Info & Services */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-8 space-y-8 border-r border-gray-100 bg-white">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
                                     <div className="relative">
-                                        <input
-                                            className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary/10 transition-all pr-12"
-                                            placeholder="Tìm tên hoặc số điện thoại..."
-                                            value={customerSearch}
-                                            onChange={e => { setCustomerSearch(e.target.value); setShowCustomerDropdown(true) }}
-                                            onFocus={() => setShowCustomerDropdown(true)}
-                                        />
-                                        {isSearchingCustomers && (
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                <Loader2 className="animate-spin text-primary/40" size={18} />
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Khách hàng *</label>
+                                        <div className="relative">
+                                            <input
+                                                className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary/10 transition-all pr-12"
+                                                placeholder="Tìm tên hoặc số điện thoại..."
+                                                value={customerSearch}
+                                                onChange={e => { setCustomerSearch(e.target.value); setShowCustomerDropdown(true) }}
+                                                onFocus={() => setShowCustomerDropdown(true)}
+                                            />
+                                            {isSearchingCustomers && (
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                                    <Loader2 className="animate-spin text-primary/40" size={18} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        {selectedCustomerData && (
+                                            <div className="mt-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-[11px] font-bold text-emerald-700 flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <span>{selectedCustomerData.fullName} — {selectedCustomerData.phone}</span>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedCustomerForProfile(selectedCustomerData);
+                                                            setShowProfileCustomer(true);
+                                                        }}
+                                                        className="w-7 h-7 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-110 shadow-md shadow-emerald-200/50 active:scale-95 transition-all flex items-center justify-center border border-emerald-500"
+                                                        title="Xem hồ sơ"
+                                                    >
+                                                        <User size={13} strokeWidth={2.5} />
+                                                    </button>
+                                                </div>
+                                                <button onClick={() => { setFormCustomerId(''); setSelectedCustomerData(null); setCustomerSearch('') }} className="text-emerald-400 hover:text-red-500"><X size={14} /></button>
+                                            </div>
+                                        )}
+                                        {showCustomerDropdown && customerSuggestions.length > 0 && !selectedCustomerData && (
+                                            <div className="absolute z-20 top-full mt-2 w-full bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto p-2">
+                                                {customerSuggestions.map(c => (
+                                                    <div key={c.id} className="w-full px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-4 cursor-pointer group/cust"
+                                                        onClick={() => {
+                                                            setFormCustomerId(c.id);
+                                                            setSelectedCustomerData(c);
+                                                            setCustomerSearch(`${c.fullName} - ${c.phone}`);
+                                                            setShowCustomerDropdown(false);
+                                                            if (!formAppointmentId && c.branchId) setFormBranchId(c.branchId)
+                                                        }}>
+                                                        <div className="relative">
+                                                            <img src={c.avatar || `https://ui-avatars.com/api/?name=${c.fullName}&background=random`} className="w-10 h-10 rounded-xl object-cover" alt="" />
+                                                            {c.rank === CustomerRank.PLATINUM && <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-lg flex items-center justify-center text-[8px] text-white">⭐</span>}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-black text-gray-900 truncate">{c.fullName} - {c.phone}</p>
+                                                            <p className="text-xs text-gray-400 font-bold truncate">
+                                                                {branches.find(b => b.id === c.branchId)?.name || 'Chưa gán'} - Hạng: {c.rank || 'Tiêu chuẩn'}
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                setSelectedCustomerForProfile(c)
+                                                                setShowProfileCustomer(true)
+                                                            }}
+                                                            className="w-8 h-8 rounded-xl flex items-center justify-center transition-all bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-110 shadow-lg shadow-emerald-200/50 active:scale-95 border border-emerald-500 shrink-0"
+                                                            title="Xem hồ sơ"
+                                                        >
+                                                            <User size={14} strokeWidth={2.5} />
+                                                        </button>
+                                                    </div>
+                                                ))}
                                             </div>
                                         )}
                                     </div>
-                                    {selectedCustomer && (
-                                        <div className="mt-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-[11px] font-bold text-emerald-700 flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-3">
-                                                <span>{selectedCustomer.fullName} — {selectedCustomer.phone}</span>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedCustomerForProfile(selectedCustomer);
-                                                        setShowProfileCustomer(true);
-                                                    }}
-                                                    className="w-7 h-7 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-110 shadow-md shadow-emerald-200/50 active:scale-95 transition-all flex items-center justify-center border border-emerald-500"
-                                                    title="Xem hồ sơ"
-                                                >
-                                                    <User size={13} strokeWidth={2.5} />
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Liên kết lịch hẹn</label>
+                                        <select className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-sm outline-none"
+                                            value={formAppointmentId} onChange={e => {
+                                                const aid = e.target.value; setFormAppointmentId(aid);
+                                                if (aid) { const a = appointments.find(x => x.id === aid); if (a?.branchId) setFormBranchId(a.branchId) }
+                                            }}>
+                                            <option value="">— Không liên kết —</option>
+                                            {customerAppointments.map(a => {
+                                                const branch = branches.find(b => b.id === a.branchId)
+                                                const code = `LH-${a.appointmentDate.replace(/-/g, '').slice(2)}-${a.appointmentTime?.replace(':', '') || '0000'}`
+                                                return <option key={a.id} value={a.id}>{code} | {a.appointmentDate} {a.appointmentTime || ''} | {branch?.name || ''}</option>
+                                            })}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Chi nhánh *</label>
+                                        <select className={`w-full px-5 py-4 border rounded-2xl font-bold text-sm outline-none transition-all ${!formBranchId ? 'bg-red-50 border-red-200 text-red-500' : 'bg-gray-50 border-gray-100'}`}
+                                            value={formBranchId} onChange={e => setFormBranchId(e.target.value)}>
+                                            <option value="">— Chọn chi nhánh —</option>
+                                            {spaBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Trạng thái phiếu</label>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
+                                            {Object.entries(STATUS_MAP).map(([k, v]) => (
+                                                <button key={k} onClick={() => setFormStatus(k as any)}
+                                                    className={`py-2 sm:py-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-tighter transition-all ${formStatus === k ? v.bg + ' ' + v.text + ' shadow-sm border' : 'text-gray-400 hover:text-gray-600'}`}>
+                                                    {v.label}
                                                 </button>
-                                            </div>
-                                            <button onClick={() => { setFormCustomerId(''); setSelectedCustomerData(null); setCustomerSearch('') }} className="text-emerald-400 hover:text-red-500"><X size={14} /></button>
-                                        </div>
-                                    )}
-                                    {showCustomerDropdown && customerSuggestions.length > 0 && !selectedCustomer && (
-                                        <div className="absolute z-20 top-full mt-2 w-full bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto p-2">
-                                            {customerSuggestions.map(c => (
-                                                <div key={c.id} className="w-full px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-4 cursor-pointer group/cust"
-                                                    onClick={() => {
-                                                        setFormCustomerId(c.id);
-                                                        setSelectedCustomerData(c);
-                                                        setCustomerSearch(`${c.fullName} - ${c.phone}`);
-                                                        setShowCustomerDropdown(false);
-                                                        if (!formAppointmentId && c.branchId) setFormBranchId(c.branchId)
-                                                    }}>
-                                                    <div className="relative">
-                                                        <img src={c.avatar || `https://ui-avatars.com/api/?name=${c.fullName}&background=random`} className="w-10 h-10 rounded-xl object-cover" alt="" />
-                                                        {c.rank === CustomerRank.PLATINUM && <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-lg flex items-center justify-center text-[8px] text-white">⭐</span>}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-black text-gray-900 truncate">{c.fullName} - {c.phone}</p>
-                                                        <p className="text-xs text-gray-400 font-bold truncate">
-                                                            {branches.find(b => b.id === c.branchId)?.name || 'Chưa gán'} - Hạng: {c.rank || 'Tiêu chuẩn'}
-                                                        </p>
-                                                    </div>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            setSelectedCustomerForProfile(c)
-                                                            setShowProfileCustomer(true)
-                                                        }}
-                                                        className="w-8 h-8 rounded-xl flex items-center justify-center transition-all bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-110 shadow-lg shadow-emerald-200/50 active:scale-95 border border-emerald-500 shrink-0"
-                                                        title="Xem hồ sơ"
-                                                    >
-                                                        <User size={14} strokeWidth={2.5} />
-                                                    </button>
-                                                </div>
                                             ))}
                                         </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Liên kết lịch hẹn</label>
-                                    <select className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-sm outline-none"
-                                        value={formAppointmentId} onChange={e => {
-                                            const aid = e.target.value; setFormAppointmentId(aid);
-                                            if (aid) { const a = appointments.find(x => x.id === aid); if (a?.branchId) setFormBranchId(a.branchId) }
-                                        }}>
-                                        <option value="">— Không liên kết —</option>
-                                        {customerAppointments.map(a => {
-                                            const branch = branches.find(b => b.id === a.branchId)
-                                            const code = `LH-${a.appointmentDate.replace(/-/g, '').slice(2)}-${a.appointmentTime?.replace(':', '') || '0000'}`
-                                            return <option key={a.id} value={a.id}>{code} | {a.appointmentDate} {a.appointmentTime || ''} | {branch?.name || ''}</option>
-                                        })}
-                                    </select>
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="space-y-6">
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Chi nhánh *</label>
-                                    <select className={`w-full px-5 py-4 border rounded-2xl font-bold text-sm outline-none transition-all ${!formBranchId ? 'bg-red-50 border-red-200 text-red-500' : 'bg-gray-50 border-gray-100'}`}
-                                        value={formBranchId} onChange={e => setFormBranchId(e.target.value)}>
-                                        <option value="">— Chọn chi nhánh —</option>
-                                        {spaBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                    </select>
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-black text-gray-700 uppercase tracking-widest flex items-center gap-2 pt-4">
+                                        <Receipt size={16} /> Danh sách dịch vụ
+                                    </h3>
+                                    <button onClick={addLineItem} className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all">
+                                        <Plus size={14} /> Thêm dịch vụ
+                                    </button>
                                 </div>
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Trạng thái phiếu</label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
-                                        {Object.entries(STATUS_MAP).map(([k, v]) => (
-                                            <button key={k} onClick={() => setFormStatus(k as any)}
-                                                className={`py-2 sm:py-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-tighter transition-all ${formStatus === k ? v.bg + ' ' + v.text + ' shadow-sm border' : 'text-gray-400 hover:text-gray-600'}`}>
-                                                {v.label}
-                                            </button>
-                                        ))}
-                                    </div>
+
+                                <div className="space-y-6">
+                                    {formLineItems.map((li, idx) => (
+                                        <div key={li.id} className="p-4 sm:p-6 bg-gray-50/50 border border-gray-100 rounded-[1.5rem] sm:rounded-[2rem] space-y-5 sm:space-y-6 relative group border-l-[6px] border-l-primary/10">
+                                            {/* Line Header */}
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar-hide whitespace-nowrap pb-1">
+                                                    <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-[11px] font-black text-primary shrink-0">{idx + 1}</span>
+                                                    <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shrink-0 ${CUSTOMER_TYPE_LABELS[li.customerType]?.bg || 'bg-gray-100'}`}>{CUSTOMER_TYPE_LABELS[li.customerType]?.label || 'TVT'}</span>
+                                                    <button onClick={() => setEditingNoteIdx(idx)} className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shrink-0 ${li.note ? 'bg-amber-100 text-amber-600' : 'bg-white border border-gray-100 text-gray-400 hover:text-gray-600'}`}>
+                                                        {li.note ? 'GHI CHÚ ✓' : '+ GHI CHÚ'}
+                                                    </button>
+                                                </div>
+                                                {formLineItems.length > 1 && (
+                                                    <button onClick={() => removeLineItem(idx)} className="p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Line Fields */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-4">
+                                                    <div className="relative">
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase mb-2">Tên dịch vụ *</label>
+                                                        <input className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-primary/10"
+                                                            value={li.serviceName}
+                                                            onChange={e => { updateLineItem(idx, { serviceName: e.target.value }); setServiceSearchIndex(idx); setServiceSearchText(e.target.value) }}
+                                                            onFocus={() => { setServiceSearchIndex(idx); setServiceSearchText(li.serviceName) }}
+                                                            onBlur={() => setTimeout(() => setServiceSearchIndex(null), 200)}
+                                                        />
+                                                        {serviceSearchIndex === idx && serviceSuggestions.length > 0 && (
+                                                            <div className="absolute z-30 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-40 overflow-y-auto p-1">
+                                                                {serviceSuggestions.map(s => (
+                                                                    <button key={s.id} className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg text-xs"
+                                                                        onMouseDown={() => { updateLineItem(idx, { serviceId: s.id, serviceName: s.name, price: s.price }); setServiceSearchIndex(null) }}>
+                                                                        <p className="font-bold text-gray-900">{s.name}</p>
+                                                                        <p className="text-[9px] text-gray-400 uppercase">{formatCurrency(s.price)}đ</p>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase mb-2">Mô tả chi tiết</label>
+                                                        <textarea className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl font-bold text-sm outline-none min-h-[80px]"
+                                                            placeholder="Nhập mô tả dịch vụ..." value={li.description || ''} onChange={e => updateLineItem(idx, { description: e.target.value })} />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase mb-2">Loại dịch vụ</label>
+                                                        <div className="flex gap-1 p-1 bg-white border border-gray-100 rounded-xl overflow-x-auto custom-scrollbar-hide">
+                                                            {SERVICE_TYPES.map(st => (
+                                                                <button key={st.value} onClick={() => updateLineItem(idx, { serviceType: st.value })}
+                                                                    className={`flex-1 min-w-fit whitespace-nowrap px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter flex items-center justify-center gap-1.5 transition-all ${li.serviceType === st.value ? st.color + ' shadow-sm' : 'text-gray-400'}`}>
+                                                                    <st.icon size={14} /> {st.label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Package-specific fields */}
+                                                    {li.serviceType === 'package' && (
+                                                        <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-xl space-y-3 animate-fade-in">
+                                                            <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1.5"><Package size={12} /> Thông tin gói liệu trình</p>
+                                                            <div>
+                                                                <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Loại gói</label>
+                                                                <div className="flex gap-1 p-1 bg-white border border-amber-100 rounded-lg">
+                                                                    {PACKAGE_TYPES.map(pt => (
+                                                                        <button key={pt.value} onClick={() => updateLineItem(idx, { packageType: pt.value })}
+                                                                            className={`flex-1 py-1.5 rounded-md text-[9px] font-black uppercase transition-all ${li.packageType === pt.value ? 'bg-amber-100 text-amber-700 shadow-sm' : 'text-gray-400'}`}>
+                                                                            {pt.label}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                            {li.packageType === 'sessions' && (
+                                                                <div>
+                                                                    <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Tổng số buổi</label>
+                                                                    <input type="number" min="1" className="w-full px-4 py-2 bg-white border border-amber-100 rounded-lg font-bold text-sm outline-none"
+                                                                        value={li.totalSessions || ''} onChange={e => updateLineItem(idx, { totalSessions: parseInt(e.target.value) || 0 })} placeholder="VD: 10" />
+                                                                </div>
+                                                            )}
+                                                            {li.packageType === 'duration' && (
+                                                                <div>
+                                                                    <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Hạn sử dụng</label>
+                                                                    <input type="date" className="w-full px-4 py-2 bg-white border border-amber-100 rounded-lg font-bold text-sm outline-none"
+                                                                        value={li.expiryDate || ''} onChange={e => updateLineItem(idx, { expiryDate: e.target.value })} />
+                                                                </div>
+                                                            )}
+                                                            {li.packageType === 'warranty' && (
+                                                                <div>
+                                                                    <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Ngày hết hạn bảo hành</label>
+                                                                    <input type="date" className="w-full px-4 py-2 bg-white border border-amber-100 rounded-lg font-bold text-sm outline-none"
+                                                                        value={li.warrantyExpiryDate || ''} onChange={e => updateLineItem(idx, { warrantyExpiryDate: e.target.value })} />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Card-specific fields */}
+                                                    {li.serviceType === 'card' && (
+                                                        <div className="p-4 bg-purple-50/50 border border-purple-100 rounded-xl space-y-3 animate-fade-in">
+                                                            <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-1.5"><CreditCard size={12} /> Thông tin thẻ khách hàng</p>
+                                                            <div>
+                                                                <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Giá trị thẻ/ví (VNĐ)</label>
+                                                                <input className="w-full px-4 py-2 bg-white border border-purple-100 rounded-lg font-bold text-sm outline-none"
+                                                                    value={formatCurrency(li.cardWalletValue || 0)} onChange={e => updateLineItem(idx, { cardWalletValue: parseCurrency(e.target.value) })} placeholder="0" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Hạn sử dụng thẻ</label>
+                                                                <input type="date" className="w-full px-4 py-2 bg-white border border-purple-100 rounded-lg font-bold text-sm outline-none"
+                                                                    value={li.expiryDate || ''} onChange={e => updateLineItem(idx, { expiryDate: e.target.value })} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase mb-2">Giá dịch vụ (VNĐ)</label>
+                                                        <input className="w-full px-5 py-3.5 bg-white border border-gray-100 rounded-xl font-black text-2xl text-primary outline-none focus:ring-2 focus:ring-primary/10"
+                                                            value={formatCurrency(li.price)} onChange={e => updateLineItem(idx, { price: parseCurrency(e.target.value) })} />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase mb-2">Chia hoa hồng NV</label>
+                                                        <div className="space-y-2">
+                                                            {li.staffSplits.map((sp, si) => (
+                                                                <div key={si} className="flex gap-2">
+                                                                    <div className="flex-1 relative">
+                                                                        <input className="w-full px-3 py-2 bg-white border border-gray-100 rounded-lg font-bold text-xs" placeholder="Tên NV..." value={sp.staffName}
+                                                                            onChange={e => { updateStaffSplit(idx, si, { staffName: e.target.value, staffId: '' }); setStaffSearchIndex(idx * 100 + si); setStaffSearchText(e.target.value) }}
+                                                                            onFocus={() => { setStaffSearchIndex(idx * 100 + si); setStaffSearchText(sp.staffName) }} onBlur={() => setTimeout(() => setStaffSearchIndex(null), 200)} />
+                                                                        {staffSearchIndex === idx * 100 + si && staffSuggestions.length > 0 && (
+                                                                            <div className="absolute z-40 top-full mt-1 w-full bg-white rounded-lg shadow-xl border border-gray-100 max-h-32 overflow-y-auto p-1 text-[10px]">
+                                                                                {staffSuggestions.map(u => <button key={u.id} className="w-full text-left px-2 py-1.5 hover:bg-gray-50 rounded" onMouseDown={() => { updateStaffSplit(idx, si, { staffId: u.id, staffName: u.displayName }); setStaffSearchIndex(null) }}>{u.displayName}</button>)}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <input className="w-28 px-3 py-2 bg-white border border-gray-100 rounded-lg font-bold text-xs text-right" placeholder="Tiền" value={formatCurrency(sp.amount)} onChange={e => updateStaffSplit(idx, si, { amount: parseCurrency(e.target.value) })} />
+                                                                    <button onClick={() => removeStaffSplit(idx, si)} className="text-gray-300 hover:text-red-500"><X size={14} /></button>
+                                                                </div>
+                                                            ))}
+                                                            <button onClick={() => addStaffSplit(idx)} className="text-[9px] font-black text-primary uppercase hover:underline">+ Thêm nhân viên chia hoa hồng</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {li.note && (
+                                                <div className="p-4 bg-amber-50/50 border border-amber-100/50 rounded-2xl animate-fade-in">
+                                                    <p className="text-[9px] font-black text-amber-600 uppercase mb-1 flex items-center gap-1.5"><MessageSquare size={12} /> Chú thích chi nhánh:</p>
+                                                    <p className="text-xs font-bold text-gray-700 italic">"{li.note}"</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Section 2: Services */}
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-black text-gray-700 uppercase tracking-widest flex items-center gap-2 pt-4">
-                                    <Receipt size={16} /> Danh sách dịch vụ
-                                </h3>
-                                <button onClick={addLineItem} className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all">
-                                    <Plus size={14} /> Thêm dịch vụ
-                                </button>
+                        {/* Right Column: Payment Management */}
+                        <div className="w-full md:w-96 bg-gray-50/50 flex flex-col border-l border-gray-100">
+                            <div className="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-black text-gray-700 uppercase tracking-widest flex items-center gap-2">
+                                        <CreditCard size={18} /> Khoản thanh toán
+                                    </h3>
+                                    <button onClick={addPaymentRaw} className="flex items-center gap-1.5 px-3 py-1.5 bg-text-main text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gold-muted transition-all shadow-lg shadow-gold-muted/20 active:scale-95">
+                                        <Plus size={14} /> Thêm dòng
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {formPayments.length > 0 ? (
+                                        formPayments.map((p) => (
+                                            <div key={p.id} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm space-y-4 relative group animate-scale-up">
+                                                <button onClick={() => removePayment(p.id)} className="absolute -top-2 -right-2 w-6 h-6 bg-white text-gray-300 hover:text-red-500 rounded-full flex items-center justify-center shadow-md border border-gray-100 transition-all opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100">
+                                                    <X size={12} strokeWidth={3} />
+                                                </button>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase mb-1.5">Phương thức</label>
+                                                        <select className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl font-bold text-[11px] outline-none"
+                                                            value={p.method} onChange={e => updatePayment(p.id, { method: e.target.value as any })}>
+                                                            <option value="cash">Tiền mặt</option>
+                                                            <option value="bank">Chuyển khoản</option>
+                                                            <option value="wallet">Ví thành viên</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase mb-1.5">Số tiền</label>
+                                                        <input className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl font-black text-sm text-right outline-none text-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                                                            value={formatCurrency(p.amount)} onChange={e => updatePayment(p.id, { amount: parseCurrency(e.target.value) })} />
+                                                    </div>
+                                                </div>
+
+                                                {p.method === 'wallet' && (
+                                                    <div className="px-3 py-2 bg-purple-50 border border-purple-100 rounded-xl flex items-center justify-between">
+                                                        <span className="text-[9px] font-black text-purple-600 uppercase">Số dư ví:</span>
+                                                        <span className="text-xs font-black text-purple-700">{formatCurrency(selectedCustomerData?.walletBalance || 0)}đ</span>
+                                                    </div>
+                                                )}
+
+                                                <div>
+                                                    <input className="w-full px-3 py-2 bg-gray-50/50 border border-transparent hover:border-gray-100 rounded-xl text-[10px] font-bold text-gray-500 outline-none transition-all"
+                                                        placeholder="Ghi chú thanh toán..." value={p.note || ''} onChange={e => updatePayment(p.id, { note: e.target.value })} />
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="py-12 border-2 border-dashed border-gray-100 rounded-[2rem] flex flex-col items-center justify-center gap-3 opacity-30">
+                                            <Receipt size={32} className="text-gray-300" />
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Chưa có thanh toán<br />Nhấp "Thêm dòng" để bắt đầu</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="space-y-6">
-                                {formLineItems.map((li, idx) => (
-                                    <div key={li.id} className="p-4 sm:p-6 bg-gray-50/50 border border-gray-100 rounded-[1.5rem] sm:rounded-[2rem] space-y-5 sm:space-y-6 relative group border-l-[6px] border-l-primary/10">
-                                        {/* Line Header */}
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar-hide whitespace-nowrap pb-1">
-                                                <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-[11px] font-black text-primary shrink-0">{idx + 1}</span>
-                                                <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shrink-0 ${CUSTOMER_TYPE_LABELS[li.customerType]?.bg || 'bg-gray-100'}`}>{CUSTOMER_TYPE_LABELS[li.customerType]?.label || 'TVT'}</span>
-                                                <button onClick={() => setEditingNoteIdx(idx)} className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shrink-0 ${li.note ? 'bg-amber-100 text-amber-600' : 'bg-white border border-gray-100 text-gray-400 hover:text-gray-600'}`}>
-                                                    {li.note ? 'GHI CHÚ ✓' : '+ GHI CHÚ'}
-                                                </button>
-                                            </div>
-                                            {formLineItems.length > 1 && (
-                                                <button onClick={() => removeLineItem(idx)} className="p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {/* Line Fields */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-4">
-                                                <div className="relative">
-                                                    <label className="block text-[9px] font-black text-gray-400 uppercase mb-2">Tên dịch vụ *</label>
-                                                    <input className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-primary/10"
-                                                        value={li.serviceName}
-                                                        onChange={e => { updateLineItem(idx, { serviceName: e.target.value }); setServiceSearchIndex(idx); setServiceSearchText(e.target.value) }}
-                                                        onFocus={() => { setServiceSearchIndex(idx); setServiceSearchText(li.serviceName) }}
-                                                        onBlur={() => setTimeout(() => setServiceSearchIndex(null), 200)}
-                                                    />
-                                                    {serviceSearchIndex === idx && serviceSuggestions.length > 0 && (
-                                                        <div className="absolute z-30 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-40 overflow-y-auto p-1">
-                                                            {serviceSuggestions.map(s => (
-                                                                <button key={s.id} className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg text-xs"
-                                                                    onMouseDown={() => { updateLineItem(idx, { serviceId: s.id, serviceName: s.name, price: s.price }); setServiceSearchIndex(null) }}>
-                                                                    <p className="font-bold text-gray-900">{s.name}</p>
-                                                                    <p className="text-[9px] text-gray-400 uppercase">{formatCurrency(s.price)}đ</p>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[9px] font-black text-gray-400 uppercase mb-2">Mô tả chi tiết</label>
-                                                    <textarea className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl font-bold text-sm outline-none min-h-[80px]"
-                                                        placeholder="Nhập mô tả dịch vụ..." value={li.description || ''} onChange={e => updateLineItem(idx, { description: e.target.value })} />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[9px] font-black text-gray-400 uppercase mb-2">Loại dịch vụ</label>
-                                                    <div className="flex gap-1 p-1 bg-white border border-gray-100 rounded-xl overflow-x-auto custom-scrollbar-hide">
-                                                        {SERVICE_TYPES.map(st => (
-                                                            <button key={st.value} onClick={() => updateLineItem(idx, { serviceType: st.value })}
-                                                                className={`flex-1 min-w-fit whitespace-nowrap px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter flex items-center justify-center gap-1.5 transition-all ${li.serviceType === st.value ? st.color + ' shadow-sm' : 'text-gray-400'}`}>
-                                                                <st.icon size={14} /> {st.label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* Package-specific fields */}
-                                                {li.serviceType === 'package' && (
-                                                    <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-xl space-y-3 animate-fade-in">
-                                                        <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1.5"><Package size={12} /> Thông tin gói liệu trình</p>
-                                                        <div>
-                                                            <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Loại gói</label>
-                                                            <div className="flex gap-1 p-1 bg-white border border-amber-100 rounded-lg">
-                                                                {PACKAGE_TYPES.map(pt => (
-                                                                    <button key={pt.value} onClick={() => updateLineItem(idx, { packageType: pt.value })}
-                                                                        className={`flex-1 py-1.5 rounded-md text-[9px] font-black uppercase transition-all ${li.packageType === pt.value ? 'bg-amber-100 text-amber-700 shadow-sm' : 'text-gray-400'}`}>
-                                                                        {pt.label}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                        {li.packageType === 'sessions' && (
-                                                            <div>
-                                                                <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Tổng số buổi</label>
-                                                                <input type="number" min="1" className="w-full px-4 py-2 bg-white border border-amber-100 rounded-lg font-bold text-sm outline-none"
-                                                                    value={li.totalSessions || ''} onChange={e => updateLineItem(idx, { totalSessions: parseInt(e.target.value) || 0 })} placeholder="VD: 10" />
-                                                            </div>
-                                                        )}
-                                                        {li.packageType === 'duration' && (
-                                                            <div>
-                                                                <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Hạn sử dụng</label>
-                                                                <input type="date" className="w-full px-4 py-2 bg-white border border-amber-100 rounded-lg font-bold text-sm outline-none"
-                                                                    value={li.expiryDate || ''} onChange={e => updateLineItem(idx, { expiryDate: e.target.value })} />
-                                                            </div>
-                                                        )}
-                                                        {li.packageType === 'warranty' && (
-                                                            <div>
-                                                                <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Ngày hết hạn bảo hành</label>
-                                                                <input type="date" className="w-full px-4 py-2 bg-white border border-amber-100 rounded-lg font-bold text-sm outline-none"
-                                                                    value={li.warrantyExpiryDate || ''} onChange={e => updateLineItem(idx, { warrantyExpiryDate: e.target.value })} />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* Card-specific fields */}
-                                                {li.serviceType === 'card' && (
-                                                    <div className="p-4 bg-purple-50/50 border border-purple-100 rounded-xl space-y-3 animate-fade-in">
-                                                        <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-1.5"><CreditCard size={12} /> Thông tin thẻ khách hàng</p>
-                                                        <div>
-                                                            <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Giá trị thẻ/ví (VNĐ)</label>
-                                                            <input className="w-full px-4 py-2 bg-white border border-purple-100 rounded-lg font-bold text-sm outline-none"
-                                                                value={formatCurrency(li.cardWalletValue || 0)} onChange={e => updateLineItem(idx, { cardWalletValue: parseCurrency(e.target.value) })} placeholder="0" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Hạn sử dụng thẻ</label>
-                                                            <input type="date" className="w-full px-4 py-2 bg-white border border-purple-100 rounded-lg font-bold text-sm outline-none"
-                                                                value={li.expiryDate || ''} onChange={e => updateLineItem(idx, { expiryDate: e.target.value })} />
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label className="block text-[9px] font-black text-gray-400 uppercase mb-2">Giá dịch vụ (VNĐ)</label>
-                                                    <input className="w-full px-5 py-3.5 bg-white border border-gray-100 rounded-xl font-black text-2xl text-primary outline-none focus:ring-2 focus:ring-primary/10"
-                                                        value={formatCurrency(li.price)} onChange={e => updateLineItem(idx, { price: parseCurrency(e.target.value) })} />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[9px] font-black text-gray-400 uppercase mb-2">Chia hoa hồng NV</label>
-                                                    <div className="space-y-2">
-                                                        {li.staffSplits.map((sp, si) => (
-                                                            <div key={si} className="flex gap-2">
-                                                                <div className="flex-1 relative">
-                                                                    <input className="w-full px-3 py-2 bg-white border border-gray-100 rounded-lg font-bold text-xs" placeholder="Tên NV..." value={sp.staffName}
-                                                                        onChange={e => { updateStaffSplit(idx, si, { staffName: e.target.value, staffId: '' }); setStaffSearchIndex(idx * 100 + si); setStaffSearchText(e.target.value) }}
-                                                                        onFocus={() => { setStaffSearchIndex(idx * 100 + si); setStaffSearchText(sp.staffName) }} onBlur={() => setTimeout(() => setStaffSearchIndex(null), 200)} />
-                                                                    {staffSearchIndex === idx * 100 + si && staffSuggestions.length > 0 && (
-                                                                        <div className="absolute z-40 top-full mt-1 w-full bg-white rounded-lg shadow-xl border border-gray-100 max-h-32 overflow-y-auto p-1 text-[10px]">
-                                                                            {staffSuggestions.map(u => <button key={u.id} className="w-full text-left px-2 py-1.5 hover:bg-gray-50 rounded" onMouseDown={() => { updateStaffSplit(idx, si, { staffId: u.id, staffName: u.displayName }); setStaffSearchIndex(null) }}>{u.displayName}</button>)}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <input className="w-28 px-3 py-2 bg-white border border-gray-100 rounded-lg font-bold text-xs text-right" placeholder="Tiền" value={formatCurrency(sp.amount)} onChange={e => updateStaffSplit(idx, si, { amount: parseCurrency(e.target.value) })} />
-                                                                <button onClick={() => removeStaffSplit(idx, si)} className="text-gray-300 hover:text-red-500"><X size={14} /></button>
-                                                            </div>
-                                                        ))}
-                                                        <button onClick={() => addStaffSplit(idx)} className="text-[9px] font-black text-primary uppercase hover:underline">+ Thêm nhân viên chia hoa hồng</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {li.note && (
-                                            <div className="p-4 bg-amber-50/50 border border-amber-100/50 rounded-2xl animate-fade-in">
-                                                <p className="text-[9px] font-black text-amber-600 uppercase mb-1 flex items-center gap-1.5"><MessageSquare size={12} /> Chú thích chi nhánh:</p>
-                                                <p className="text-xs font-bold text-gray-700 italic">"{li.note}"</p>
-                                            </div>
-                                        )}
+                            {/* Payment Summary */}
+                            <div className="p-6 bg-white border-t border-gray-100 space-y-4">
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tổng hóa đơn</span>
+                                        <span className="text-sm font-black text-gray-900">{formatCurrency(formLineItems.reduce((s, li) => s + li.price, 0))}đ</span>
                                     </div>
-                                ))}
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Đã thanh toán</span>
+                                        <span className="text-xl font-black text-emerald-600">{formatCurrency(formActualAmount)}đ</span>
+                                    </div>
+                                    <div className="pt-3 border-t border-gray-50 flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Còn nợ</span>
+                                        <span className={`text-xl font-black ${formLineItems.reduce((s, li) => s + li.price, 0) - formActualAmount > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                                            {formatCurrency(formLineItems.reduce((s, li) => s + li.price, 0) - formActualAmount)}đ
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Modal Footer */}
-                    <div className="px-5 py-6 sm:px-8 sm:py-8 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-end sm:items-center justify-between gap-6 shrink-0">
-                        <div className="flex flex-wrap items-center gap-6 sm:gap-10 w-full sm:w-auto">
-                            <div>
-                                <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase mb-1">Tổng cộng hóa đơn</p>
-                                <p className="text-xl sm:text-2xl font-black text-gray-900">{formatCurrency(formLineItems.reduce((s, li) => s + li.price, 0))}đ</p>
-                            </div>
-                            <div className="w-px h-10 bg-gray-200 hidden sm:block"></div>
-                            <div className="flex-1 sm:flex-none min-w-[140px]">
-                                <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase mb-1">Thực thu (Khách trả)</p>
-                                <div className="relative">
-                                    <input
-                                        className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl font-black text-lg text-emerald-600 outline-none focus:ring-4 focus:ring-emerald-100 transition-all pr-10"
-                                        value={formatCurrency(formActualAmount)}
-                                        onChange={e => setFormActualAmount(parseCurrency(e.target.value))}
-                                    />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-300">đ</span>
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase mb-1">Còn nợ</p>
-                                <p className={`text-lg sm:text-xl font-black ${formLineItems.reduce((s, li) => s + li.price, 0) - formActualAmount > 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                                    {formatCurrency(formLineItems.reduce((s, li) => s + li.price, 0) - formActualAmount)}đ
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-                            <button onClick={handleCloseInternal} className="flex-1 sm:flex-none sm:px-8 py-3.5 sm:py-4 bg-white border border-gray-200 rounded-2xl font-black text-[10px] sm:text-[11px] text-gray-400 uppercase tracking-widest hover:bg-gray-50 hover:text-gray-600 transition-all">Hủy bỏ</button>
-                            <button onClick={handleSave} className="flex-[2] sm:flex-none sm:px-10 py-3.5 sm:py-4 bg-text-main text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-xl hover:bg-gold-muted transition-all active:scale-95">Lưu phiếu</button>
-                        </div>
+                    {/* Footer Actions */}
+                    <div className="px-8 py-5 bg-white border-t border-gray-100 flex items-center justify-end gap-3 shrink-0">
+                        <button onClick={handleCloseInternal} className="px-8 py-3.5 bg-white border border-gray-100 rounded-2xl font-black text-[10px] text-gray-400 uppercase tracking-widest hover:bg-gray-50 transition-all">Hủy bỏ</button>
+                        <button onClick={handleSave} className="px-10 py-3.5 bg-text-main text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-gold-muted/20 hover:bg-gold-muted transition-all active:scale-95">Hoàn tất & Lưu phiếu</button>
                     </div>
                 </div>
             </div>

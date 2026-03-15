@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { AppState, User } from './types'
+import { AppState, User, Transaction, SystemConfig } from './types'
 import { getState, setState } from './storage'
 import { fetchAllData } from './supabaseFetch'
 import { supabase } from './supabase'
@@ -16,6 +16,7 @@ interface AppContextValue {
     saveState: (updater: (s: AppState) => AppState) => void
     updateProfile: (data: Partial<User>) => Promise<boolean>
     updateUserById: (userId: string, data: Partial<User>) => Promise<boolean>
+    updateSystemConfig: (data: Partial<SystemConfig>) => Promise<boolean>
 }
 
 // Empty state used for both SSR and pre-hydration client render
@@ -171,34 +172,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!state.currentUserId) return false
 
         try {
-            const updatePayload: any = {}
+            const updatePayload: {
+                display_name?: string
+                password?: string
+                email?: string
+                avatar_url?: string
+            } = {}
             if (data.displayName !== undefined) updatePayload.display_name = data.displayName
             if (data.password !== undefined) updatePayload.password = data.password
             if (data.email !== undefined) updatePayload.email = data.email
             if (data.avatarUrl !== undefined) updatePayload.avatar_url = data.avatarUrl
 
-            console.log('updateProfile Payload:', updatePayload, 'UserID:', state.currentUserId)
-
-            const { data: resData, error } = await supabase
+            const { error } = await supabase
                 .from('users')
                 .update(updatePayload)
                 .eq('id', state.currentUserId)
                 .select()
 
             if (error) {
-                console.error('Supabase update error object:', JSON.stringify(error))
+                console.error('Supabase update error:', error.message || error)
                 throw error
             }
-
-            console.log('Supabase update success, updated rows:', resData)
 
             saveState(s => ({
                 ...s,
                 users: s.users.map(u => u.id === state.currentUserId ? { ...u, ...data } : u)
             }))
             return true
-        } catch (e: any) {
-            console.error('Failed to update profile. Catch block received:', JSON.stringify(e, Object.getOwnPropertyNames(e)))
+        } catch (e) {
+            console.error('Failed to update profile.', e)
             return false
         }
     }, [state.currentUserId, saveState])
@@ -207,7 +209,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const updateUserById = useCallback(async (userId: string, data: Partial<User>): Promise<boolean> => {
         try {
-            const updatePayload: any = {}
+            const updatePayload: {
+                display_name?: string
+                password?: string
+                email?: string
+                avatar_url?: string
+                role?: string
+                allowed_pages?: string[]
+                permissions?: string[]
+                branch_id?: string
+                title?: string
+                is_active?: boolean
+            } = {}
             if (data.displayName !== undefined) updatePayload.display_name = data.displayName
             if (data.password !== undefined) updatePayload.password = data.password
             if (data.email !== undefined) updatePayload.email = data.email
@@ -237,10 +250,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
     }, [saveState])
 
+    const updateSystemConfig = useCallback(async (data: Partial<SystemConfig>): Promise<boolean> => {
+        try {
+            const current = state.systemConfig || { id: 'global', fontFamily: 'Inter', fontSizeScale: 100, theme: 'light', updatedAt: '' }
+            const next = { ...current, ...data, updatedAt: new Date().toISOString() }
+
+            const { error } = await supabase
+                .from('system_config')
+                .upsert({
+                    id: next.id,
+                    font_family: next.fontFamily,
+                    font_size_scale: next.fontSizeScale,
+                    theme: next.theme,
+                    updated_at: next.updatedAt
+                })
+
+            if (error) {
+                console.error('Supabase update error:', error)
+                throw error
+            }
+
+            saveState(s => ({ ...s, systemConfig: next }))
+            return true
+        } catch (e: any) {
+            console.error('Failed to update system config:', e.message || e)
+            return false
+        }
+    }, [state.systemConfig, saveState])
+
     const value: AppContextValue = {
         state, currentUser, mounted,
         login, logout, refresh, saveState,
-        updateProfile, updateUserById
+        updateProfile, updateUserById, updateSystemConfig
     }
 
     return React.createElement(AppContext.Provider, { value }, children)
@@ -278,6 +319,9 @@ export function isPageAllowed(user: User | undefined, href: string) {
     if (baseHref === '/crm/membership-settings') {
         return canManageMembership(user)
     }
+    
+    // Trang cài đặt hệ thống chỉ dành cho Admin (Admins đã trả về true ở trên)
+    if (baseHref === '/settings/system') return false
 
     // Check allowedPages if it has content
     if (Array.isArray(user.allowedPages) && user.allowedPages.length > 0) {
@@ -343,7 +387,7 @@ export function canViewAllBranches(user?: User) {
     return hasPermission(user, 'branch_view_all')
 }
 
-export function canEditTransaction(user: User | undefined, tx: any) {
+export function canEditTransaction(user: User | undefined, tx: Transaction) {
     if (!user) return false
 
     if (hasPermission(user, 'transaction_update') || hasPermission(user, 'transaction_edit_all')) return true;

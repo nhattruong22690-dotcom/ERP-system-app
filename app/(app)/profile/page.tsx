@@ -139,7 +139,7 @@ export default function ProfilePage() {
     if (!currentUser) return <div className="p-8 text-center">Đang tải...</div>
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={UserIcon}
                 title="Hồ sơ Cá nhân"

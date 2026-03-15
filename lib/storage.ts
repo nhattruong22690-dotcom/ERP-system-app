@@ -37,9 +37,9 @@ export function getState(): AppState {
         parsed.activityLogs = parsed.activityLogs || []
         parsed.customers = parsed.customers || []
         parsed.appointments = parsed.appointments || []
-        parsed.services = (parsed as any).services || []
-        parsed.membershipTiers = (parsed as any).membershipTiers || []
-        parsed.jobTitles = (parsed as any).jobTitles || []
+        parsed.services = parsed.services || []
+        parsed.membershipTiers = parsed.membershipTiers || []
+        parsed.jobTitles = parsed.jobTitles || []
         parsed.dismissedAlerts = parsed.dismissedAlerts || []
         parsed.starredAlerts = parsed.starredAlerts || []
 
@@ -668,6 +668,7 @@ export async function syncCustomer(customer: Customer) {
         rank: customer.rank,
         points: customer.points,
         total_spent: customer.totalSpent,
+        wallet_balance: customer.walletBalance || 0,
         last_visit: lastVisitVal,
         is_vip: customer.isVip || false,
         medical_notes: customer.medicalNotes,
@@ -1150,14 +1151,45 @@ export async function syncServiceOrder(order: any) {
             appointment_id: order.appointmentId,
             line_items: order.lineItems,
             total_amount: order.totalAmount,
+            actual_amount: order.actualAmount,
+            debt_amount: order.debtAmount,
+            payments: order.payments,
             status: order.status,
             created_by: order.createdBy,
             created_at: order.createdAt,
-            updated_at: order.updatedAt
+            updated_at: order.updatedAt,
         })
-        if (error) console.error('Supabase Error (ServiceOrder):', error)
+        if (error) {
+            console.error('Supabase Error (ServiceOrder):', error)
+            return null
+        }
+
+        // Tạo giao dịch thu chi cho các khoản thanh toán
+        if (order.payments && order.payments.length > 0) {
+            for (const p of order.payments) {
+                let accountId = 'pa-cash-hq'
+                if (p.method === 'bank') accountId = 'pa-bank-hq'
+                else if (p.method === 'wallet') accountId = 'pa-wallet'
+
+                await supabase.from('transactions').upsert({
+                    id: p.id,
+                    branch_id: order.branchId,
+                    date: p.date.split('T')[0],
+                    type: 'income',
+                    category_id: 'cat-rev-service',
+                    amount: p.amount,
+                    payment_account_id: accountId,
+                    note: `Thanh toán cho phiếu ${order.code} (${p.method === 'cash' ? 'Tiền mặt' : p.method === 'bank' ? 'Chuyển khoản' : 'Ví'})`,
+                    service_order_id: order.id,
+                    created_by: order.createdBy,
+                    created_at: p.date,
+                    updated_at: p.date,
+                    status: 'open'
+                })
+            }
+        }
     } catch (e) {
-        console.error('syncServiceOrder failed (table may not exist yet):', e)
+        console.error('syncServiceOrder failed:', e)
     }
     return null
 }

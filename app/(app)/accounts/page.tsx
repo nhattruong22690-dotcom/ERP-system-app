@@ -109,7 +109,7 @@ export default function AccountsPage() {
     }, [state.accounts, state.branches, currentUser])
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={Landmark}
                 title="Tài khoản"

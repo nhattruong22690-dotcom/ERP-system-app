@@ -303,7 +303,7 @@ export default function PresenceSidebar({ onOpenChat, isOpen: propIsOpen, onTogg
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                             <h3 className="text-sm font-black text-text-main uppercase tracking-widest flex items-center gap-2">
-                                <Users size={16} className="text-gold-muted" />
+                                <Users size={16} className="text-gold-muted" aria-hidden="true" />
                                 Team
                             </h3>
                             <span className="flex items-center gap-1 text-[9px] font-black text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-500/10">
@@ -312,15 +312,18 @@ export default function PresenceSidebar({ onOpenChat, isOpen: propIsOpen, onTogg
                         </div>
                         <button
                             onClick={() => setIsOpen(false)}
-                            className="p-1.5 hover:bg-beige-soft rounded-lg text-text-soft/40 transition-colors"
+                            className="p-1.5 hover:bg-beige-soft rounded-lg text-text-soft/40 transition-colors focus:outline-offset-2"
+                            aria-label="Đóng sidebar"
                         >
                             <X size={18} />
                         </button>
                     </div>
 
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-soft/40" size={14} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-soft/40" size={14} aria-hidden="true" />
+                        <label htmlFor="user-search" className="sr-only">Tìm kiếm đồng nghiệp</label>
                         <input
+                            id="user-search"
                             type="text"
                             placeholder="Find coworker..."
                             className="w-full bg-white border border-gold-light/20 rounded-xl pl-9 pr-4 py-2.5 text-xs font-bold text-text-main focus:outline-none focus:ring-4 focus:ring-gold-muted/5 transition-all placeholder:text-text-soft/20"

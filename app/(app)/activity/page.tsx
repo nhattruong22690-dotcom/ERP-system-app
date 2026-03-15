@@ -37,7 +37,7 @@ export default function ActivityPage() {
     const logs = [...(state.activityLogs || [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             {/* Header Luxury Section */}
             <PageHeader
                 icon={Bell}

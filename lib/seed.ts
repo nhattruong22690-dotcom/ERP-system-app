@@ -60,6 +60,7 @@ export function seedData(): AppState {
     const accounts: PaymentAccount[] = [
         { id: 'pa-cash-hq', name: 'Tiền mặt VP', type: 'cash', initialBalance: 0, createdAt: now },
         { id: 'pa-bank-hq', name: 'Ngân hàng VP', type: 'bank', bankName: 'Vietcombank', accountNumber: '0011234567890', accountHolder: 'Công ty', initialBalance: 0, createdAt: now },
+        { id: 'pa-wallet', name: 'Ví thành viên (Nội bộ)', type: 'cash', initialBalance: 0, createdAt: now },
     ]
 
     // CATEGORIES - Keep these as they are the core structure

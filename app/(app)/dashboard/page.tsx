@@ -53,7 +53,7 @@ export default function DashboardPage() {
     }, [state.accounts, currentUser])
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={LayoutDashboard}
                 title="Bảng điều khiển"

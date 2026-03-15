@@ -146,7 +146,7 @@ export default function NotificationSettingsPage() {
     }
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={Bell}
                 title="Cấu hình thông báo"

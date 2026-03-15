@@ -161,7 +161,7 @@ export default function CategoriesPage() {
     })
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={Tag}
                 title="Danh mục Thu & Chi"

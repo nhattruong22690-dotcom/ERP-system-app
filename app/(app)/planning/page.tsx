@@ -291,7 +291,7 @@ export default function PlanningPage() {
     }
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={FileText}
                 title="Lập kế hoạch"

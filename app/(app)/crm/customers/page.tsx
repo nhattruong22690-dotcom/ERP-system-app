@@ -112,7 +112,7 @@ export default function CustomersPage() {
     if (!currentUser) return null;
 
     return (
-        <div className="page-container bg-[#FAF8F6] min-h-screen flex flex-col">
+        <div className="page-container">
             <PageHeader
                 icon={Users}
                 title="Quản lý Khách hàng"

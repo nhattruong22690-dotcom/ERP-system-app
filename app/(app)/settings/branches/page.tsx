@@ -77,7 +77,7 @@ export default function BranchesPage() {
     }
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={Building2}
                 title="Hệ thống Quản lý"

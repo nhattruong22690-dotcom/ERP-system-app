@@ -207,7 +207,7 @@ export default function UsersPage() {
     }, [state.users, activeTab, searchTerm, filterBranch, filterJobTitle])
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={UserCircle}
                 title="Hồ sơ Nhân sự"

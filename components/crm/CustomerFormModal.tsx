@@ -80,9 +80,20 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
         onSave(formData);
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') handleCloseInternal();
+    };
+
     return (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={handleCloseInternal}>
-            <div className="bg-white w-full max-w-7xl h-fit rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-scale-up border border-gold-light/20 my-auto cursor-default" onClick={(e) => e.stopPropagation()}>
+        <div 
+            className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" 
+            onClick={handleCloseInternal}
+            onKeyDown={handleKeyDown}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="customer-modal-title"
+        >
+            <div className="bg-white w-full max-w-7xl h-fit rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-scale-up border border-gold-light/20 my-auto cursor-default" onClick={(e) => e.stopPropagation()} tabIndex={-1}>
 
                 {/* Left Side: Compact Branding Sidebar */}
                 <div className="w-full md:w-[200px] bg-text-main relative overflow-hidden flex flex-col p-10 text-white shrink-0">
@@ -91,9 +102,10 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                     <div className="relative z-10 flex flex-col h-full">
                         <div className="mb-8">
                             <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-5">
-                                <Sparkles className="text-gold-muted" size={24} />
+                                <Sparkles className="text-gold-muted" size={24} aria-hidden="true" />
                             </div>
-                            <h2 className="text-2xl font-serif font-black tracking-tight leading-tight">
+                            <h2 id="customer-modal-title" className="text-2xl font-serif font-black tracking-tight leading-tight">
+                                {customer ? 'Hồ sơ' : 'Thêm mới'}
                             </h2>
                             <p className="text-[12px] text-gold-muted font-black uppercase tracking-[0.3em] mt-3 opacity-80">Xinh Group</p>
                         </div>
@@ -105,7 +117,8 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                     {/* Compact Close Button */}
                     <button
                         onClick={handleCloseInternal}
-                        className="absolute top-6 right-6 z-[120] w-10 h-10 rounded-xl bg-white/80 hover:bg-white text-text-soft hover:text-rose-500 flex items-center justify-center transition-all shadow-sm border border-gold-light/20 active:scale-90"
+                        className="absolute top-6 right-6 z-[120] w-10 h-10 rounded-xl bg-white/80 hover:bg-white text-text-soft hover:text-rose-500 flex items-center justify-center transition-all shadow-sm border border-gold-light/20 active:scale-90 focus:outline-offset-2"
+                        aria-label="Đóng"
                     >
                         <X size={18} strokeWidth={2.5} />
                     </button>
@@ -121,10 +134,11 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
 
                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                                     <div className="md:col-span-12 lg:col-span-4">
-                                        <label className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Họ và tên *</label>
+                                        <label htmlFor="customer-name" className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Họ và tên *</label>
                                         <div className="relative group">
-                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted/40 group-focus-within:text-gold-muted" size={16} />
+                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted/40 group-focus-within:text-gold-muted" size={16} aria-hidden="true" />
                                             <input
+                                                id="customer-name"
                                                 type="text"
                                                 required
                                                 className="w-full pl-12 pr-4 py-4 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-base shadow-sm"
@@ -136,10 +150,11 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                     </div>
 
                                     <div className="md:col-span-6 lg:col-span-4">
-                                        <label className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Số điện thoại *</label>
+                                        <label htmlFor="customer-phone" className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Số điện thoại *</label>
                                         <div className="relative group">
-                                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted/40 group-focus-within:text-gold-muted" size={15} />
+                                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted/40 group-focus-within:text-gold-muted" size={15} aria-hidden="true" />
                                             <input
+                                                id="customer-phone"
                                                 type="tel"
                                                 required
                                                 className="w-full pl-12 pr-4 py-3 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-base shadow-sm"
@@ -151,10 +166,11 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                     </div>
 
                                     <div className="md:col-span-6 lg:col-span-4">
-                                        <label className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Email</label>
+                                        <label htmlFor="customer-email" className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Email</label>
                                         <div className="relative group">
-                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted/40 group-focus-within:text-gold-muted" size={15} />
+                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted/40 group-focus-within:text-gold-muted" size={15} aria-hidden="true" />
                                             <input
+                                                id="customer-email"
                                                 type="email"
                                                 className="w-full pl-12 pr-4 py-3 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-base shadow-sm"
                                                 placeholder="email"
@@ -192,10 +208,11 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                     </div>
 
                                     <div className="md:col-span-6 lg:col-span-4">
-                                        <label className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Ngày sinh</label>
+                                        <label htmlFor="customer-birthday" className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Ngày sinh</label>
                                         <div className="relative group">
-                                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted/40 group-focus-within:text-gold-muted transition-colors pointer-events-none z-10" size={16} />
+                                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted/40 group-focus-within:text-gold-muted transition-colors pointer-events-none z-10" size={16} aria-hidden="true" />
                                             <input
+                                                id="customer-birthday"
                                                 type="text"
                                                 placeholder="dd/mm/yyyy"
                                                 maxLength={10}
@@ -215,10 +232,11 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                     </div>
 
                                     <div className="md:col-span-6 lg:col-span-2">
-                                        <label className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Facebook</label>
+                                        <label htmlFor="customer-facebook" className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Facebook</label>
                                         <div className="relative group">
-                                            <Facebook className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1877F2]" size={15} />
+                                            <Facebook className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1877F2]" size={15} aria-hidden="true" />
                                             <input
+                                                id="customer-facebook"
                                                 type="text"
                                                 className="w-full pl-11 pr-4 py-3 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-sm shadow-sm"
                                                 placeholder="link Fb"
@@ -229,10 +247,11 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                     </div>
 
                                     <div className="md:col-span-6 lg:col-span-2">
-                                        <label className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Số Zalo</label>
+                                        <label htmlFor="customer-zalo" className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Số Zalo</label>
                                         <div className="relative group">
-                                            <MessageSquare className="absolute left-4 top-1/2 -translate-y-1/2 text-[#0068FF]" size={15} />
+                                            <MessageSquare className="absolute left-4 top-1/2 -translate-y-1/2 text-[#0068FF]" size={15} aria-hidden="true" />
                                             <input
+                                                id="customer-zalo"
                                                 type="text"
                                                 className="w-full pl-11 pr-4 py-3 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-sm shadow-sm"
                                                 placeholder="số Zalo"
@@ -249,10 +268,11 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                 <div className="lg:col-span-7 space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                         <div className="md:col-span-1">
-                                            <label className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Chi nhánh quản lý *</label>
+                                            <label htmlFor="customer-branch" className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Chi nhánh quản lý *</label>
                                             <div className="relative group">
-                                                <Home className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted/40" size={16} />
+                                                <Home className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-muted/40" size={16} aria-hidden="true" />
                                                 <select
+                                                    id="customer-branch"
                                                     required
                                                     className="w-full pl-12 pr-10 py-3 bg-white border border-gold-light/30 rounded-xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-base appearance-none cursor-pointer shadow-sm"
                                                     value={formData.branchId || ''}
@@ -263,7 +283,7 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                                         <option key={b.id} value={b.id} className="not-serif">{b.name}</option>
                                                     ))}
                                                 </select>
-                                                <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-gold-muted/30 rotate-90" size={14} strokeWidth={2} />
+                                                <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-gold-muted/30 rotate-90" size={14} strokeWidth={2} aria-hidden="true" />
                                             </div>
                                         </div>
                                         <div className="md:col-span-1">
@@ -282,10 +302,11 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Địa chỉ cư trú (Long Text)</label>
+                                        <label htmlFor="customer-address" className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Địa chỉ cư trú (Long Text)</label>
                                         <div className="relative group">
-                                            <MapPin className="absolute left-4 top-4 text-gold-muted/40 group-focus-within:text-gold-muted transition-colors" size={18} />
+                                            <MapPin className="absolute left-4 top-4 text-gold-muted/40 group-focus-within:text-gold-muted transition-colors" size={18} aria-hidden="true" />
                                             <textarea
+                                                id="customer-address"
                                                 rows={3}
                                                 className="w-full pl-12 pr-4 py-4 bg-white border border-gold-light/30 rounded-2xl focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-base resize-none shadow-sm min-h-[100px]"
                                                 placeholder="Nhập địa chỉ chi tiết: Số nhà, đường, phường, quận..."
@@ -297,10 +318,11 @@ const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
                                 </div>
 
                                 <div className="lg:col-span-5">
-                                    <label className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Ghi chú chuyên môn</label>
+                                    <label htmlFor="customer-notes" className="block text-[9px] font-black text-text-soft/60 uppercase tracking-widest mb-1.5 ml-1">Ghi chú chuyên môn</label>
                                     <div className="relative group h-[calc(100%-25px)]">
-                                        <ClipboardList className="absolute left-4 top-4 text-gold-muted/40 group-focus-within:text-gold-muted transition-colors" size={18} />
+                                        <ClipboardList className="absolute left-4 top-4 text-gold-muted/40 group-focus-within:text-gold-muted transition-colors" size={18} aria-hidden="true" />
                                         <textarea
+                                            id="customer-notes"
                                             className="w-full pl-12 pr-4 py-4 bg-white border border-gold-light/30 rounded-[30px] focus:ring-4 focus:ring-gold-muted/5 focus:border-gold-muted/40 outline-none transition-all font-serif italic text-text-main text-base shadow-inner resize-none h-full min-h-[160px]"
                                             placeholder="Ghi nhận tiền sử da, thói quen chăm sóc, sở thích dịch vụ..."
                                             value={formData.professionalNotes || ''}

@@ -29,7 +29,7 @@ export default function TeamPage() {
     const totalPhones = teamStats.reduce((acc, curr) => acc + curr.phoneCount, 0)
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             {/* Background Texture Overlay */}
             <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0" style={{ backgroundImage: 'radial-gradient(var(--gold-muted) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 

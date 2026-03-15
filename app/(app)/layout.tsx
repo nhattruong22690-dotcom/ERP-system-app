@@ -43,6 +43,7 @@ const SETTINGS_NAV = [
     { href: '/settings/categories', label: 'Danh mục thu chi', icon: Tag, restricted: true },
     { href: '/settings/notifications', label: 'Cấu hình thông báo', icon: Bell, restricted: true },
     { href: '/settings/users', label: 'Quản trị nhân sự', icon: Users, adminOnly: true },
+    { href: '/settings/system', label: 'Cài đặt hệ thống', icon: Settings2, adminOnly: true },
 ]
 const ROLE_LABELS: Record<string, string> = {
     admin: 'Admin', director: 'Giám đốc', manager: 'Quản lý', accountant: 'Kế toán', staff: 'Nhân viên',
@@ -403,6 +404,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     display: 'flex',
                     flexDirection: 'column',
                     marginLeft: !isMobile ? 'var(--sidebar-width)' : 0,
+                    paddingLeft: !isMobile ? 8 : 0,
                     marginRight: 0,
                     paddingTop: 0,
                     '--header-offset': isMobile ? '56px' : '0px'

@@ -438,7 +438,7 @@ export default function LeadsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={Zap}
                 title="Quản lý Leads"

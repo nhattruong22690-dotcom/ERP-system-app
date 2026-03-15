@@ -22,6 +22,18 @@ import {
     Briefcase
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
+import { JobTitle } from '@/lib/types'
+
+interface PayrollItem {
+    user: User
+    totalWorkDays: number
+    baseSalary: number
+    totalAllowance: number
+    config: NonNullable<User['salaryConfig']>
+    computedSalary: number
+    branch: Branch | undefined
+    jobTitle: JobTitle | undefined
+}
 
 // Helper to format currency
 // Using global fmtVND for consistency
@@ -32,7 +44,7 @@ export default function PayrollPage() {
     const [selectedDate, setSelectedDate] = useState(new Date())
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedBranch, setSelectedBranch] = useState('all')
-    const [viewingPayslip, setViewingPayslip] = useState<any>(null)
+    const [viewingPayslip, setViewingPayslip] = useState<PayrollItem | null>(null)
 
     const monthStr = `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}`
 
@@ -53,14 +65,15 @@ export default function PayrollPage() {
                 return acc
             }, 0)
 
-            const rawConfig: any = user.salaryConfig || {}
+            const salaryConfig = user.salaryConfig || { type: 'working_days', standardDays: 26, baseSalary: 0, allowances: [] }
             const config = {
-                type: rawConfig.type || 'working_days',
-                standardDays: rawConfig.standardDays || 26,
-                baseSalary: rawConfig.baseSalary || 0,
-                allowances: rawConfig.allowances || []
-            }
-            const totalAllowance = config.allowances.reduce((sum: number, a: any) => sum + (a.amount || 0), 0)
+                type: salaryConfig.type || 'working_days',
+                standardDays: salaryConfig.standardDays || 26,
+                baseSalary: salaryConfig.baseSalary || 0,
+                allowances: salaryConfig.allowances || []
+            } as NonNullable<User['salaryConfig']>
+            
+            const totalAllowance = config.allowances.reduce((sum: number, a: { amount?: number }) => sum + (a.amount || 0), 0)
 
             let computedSalary = 0
             if (config.type === 'fixed') {
@@ -106,7 +119,7 @@ export default function PayrollPage() {
     }
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={Calculator}
                 title="Tổng hợp Công & Lương"
@@ -343,7 +356,7 @@ export default function PayrollPage() {
                                     <span className="text-text-soft opacity-60">Lương cơ bản</span>
                                     <span className="font-bold">{fmtVND(viewingPayslip.baseSalary)}</span>
                                 </div>
-                                {viewingPayslip.config.allowances.map((a: any, i: number) => (
+                                {viewingPayslip.config.allowances.map((a: { name?: string, amount?: number }, i: number) => (
                                     <div key={i} className="flex justify-between items-center text-[13px] px-2 font-medium">
                                         <span className="text-text-soft opacity-60">{a.name || 'Phụ cấp'}</span>
                                         <span className="font-black text-emerald-600">+ {fmtVND(a.amount || 0)}</span>

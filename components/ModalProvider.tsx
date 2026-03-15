@@ -52,12 +52,24 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         })
     }, [])
 
-    const handleClose = (value: boolean) => {
+    const handleClose = useCallback((value: boolean) => {
         if (modal) {
             modal.resolve(value)
             setModal(null)
         }
-    }
+    }, [modal])
+
+    // Handle Escape key
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && modal) {
+                if (modal.type === 'alert') handleClose(true)
+                else handleClose(false)
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [modal, handleClose])
 
     return (
         <ModalContext.Provider value={{ showAlert, showConfirm }}>
@@ -66,25 +78,29 @@ export function ModalProvider({ children }: { children: ReactNode }) {
                 <div
                     className="fixed inset-0 z-[9999] flex justify-center items-center p-4 bg-black/60 backdrop-blur-md animate-fade-in"
                     onClick={() => modal.type === 'alert' ? handleClose(true) : handleClose(false)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="modal-title"
                 >
                     <div
-                        className="w-full max-w-[400px] bg-white rounded-[2rem] p-8 shadow-2xl border border-gray-100"
+                        className="w-full max-w-[400px] bg-white rounded-[2rem] p-8 shadow-2xl border border-gray-100 focus:outline-none"
                         style={{ animation: 'modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}
                         onClick={(e) => e.stopPropagation()}
+                        tabIndex={-1}
                     >
                         <div className="flex flex-col items-center text-center gap-5">
                             {modal.type === 'confirm' ? (
                                 <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100">
-                                    <HelpCircle size={32} />
+                                    <HelpCircle size={32} aria-hidden="true" />
                                 </div>
                             ) : (
                                 <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500 border border-blue-100">
-                                    <Info size={32} />
+                                    <Info size={32} aria-hidden="true" />
                                 </div>
                             )}
 
                             <div>
-                                <h3 className="text-lg font-black text-gray-900 uppercase tracking-wide">
+                                <h3 id="modal-title" className="text-lg font-black text-gray-900 uppercase tracking-wide">
                                     {modal.title}
                                 </h3>
                                 <p className="mt-2 text-sm text-gray-500 font-bold leading-relaxed">
@@ -95,18 +111,19 @@ export function ModalProvider({ children }: { children: ReactNode }) {
                             <div className="flex gap-3 w-full mt-2">
                                 {modal.type === 'confirm' && (
                                     <button
-                                        className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-gray-200 transition-all active:scale-95"
+                                        className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-gray-200 transition-all active:scale-95 focus:outline-offset-2"
                                         onClick={() => handleClose(false)}
                                     >
                                         Hủy
                                     </button>
                                 )}
                                 <button
-                                    className={`flex-1 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95 shadow-lg ${modal.type === 'confirm'
+                                    className={`flex-1 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95 shadow-lg focus:outline-offset-2 ${modal.type === 'confirm'
                                             ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-200'
-                                            : 'bg-text-main text-white hover:bg-gold-muted shadow-gray-200'
+                                            : 'bg-neutral-900 text-white hover:bg-neutral-700 shadow-gray-200'
                                         }`}
                                     onClick={() => handleClose(true)}
+                                    autoFocus
                                 >
                                     {modal.type === 'confirm' ? 'Xác nhận' : 'Đồng ý'}
                                 </button>

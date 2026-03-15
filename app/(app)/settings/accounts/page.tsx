@@ -73,7 +73,7 @@ export default function AccountsPage() {
     }
 
     return (
-        <div className="page-container bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={CreditCard}
                 title="Tài khoản thanh toán"

@@ -238,6 +238,7 @@ export interface Transaction {
   updatedAt: string
   status?: 'locked' | 'open' // trạng thái khóa
   isDebt?: boolean          // Ghi nợ / Trả nợ (từ cá nhân vào cty)
+  serviceOrderId?: string   // NEW: Liên kết với phiếu dịch vụ (nếu có)
 }
 
 // ============================================================
@@ -318,13 +319,13 @@ export interface Appointment {
   price?: number
   notes?: string
   logs?: AppointmentLog[]
-  redFlags?: any[]
-  serviceEntries?: any[]
+  redFlags?: RedFlag[]
+  serviceEntries?: ServiceEntry[]
   customerName?: string // Joined from crm_customers
   customerPhone?: string // Joined from crm_customers
   customerAvatar?: string // Joined
   customerRank?: CustomerRank // Joined
-  customerRedFlags?: any[] // Joined
+  customerRedFlags?: RedFlag[] // Joined
   saleTeleId?: string // Sale chốt lịch
   saleTeleName?: string // NEW: record string name
   salePageId?: string  // NEW: record Sale Page source
@@ -337,6 +338,47 @@ export interface Appointment {
   kpiExclusionNote?: string
   kpiExcludedBy?: string
   kpiExcludedAt?: string
+}
+
+export interface RedFlag {
+  id: string
+  type: 'medical' | 'complaint' | 'vip' | 'other'
+  content: string
+  createdBy?: string
+  createdAt: string
+}
+
+export interface ServiceEntry {
+  id: string
+  serviceId: string
+  serviceName: string
+  price: number
+  quantity: number
+  staffId?: string
+  staffName?: string
+  createdAt: string
+}
+
+export interface GlobalNotification {
+  id: string
+  content: string
+  type: 'info' | 'warning' | 'event'
+  priority: number
+  isActive: boolean
+  showOnLogin: boolean
+  showOnDay: boolean
+  showInterval: boolean
+  lastTriggeredAt?: string
+  expiresAt?: string
+  createdAt: string
+}
+
+export interface UserNotificationStatus {
+  userId: string
+  notificationId: string
+  isSeen: boolean
+  lastShownAt: string
+  showCount: number
 }
 
 export interface CrmService {
@@ -489,6 +531,15 @@ export interface Attendance {
 // ============================================================
 // SERVICE ORDERS (Phiếu Dịch Vụ)
 // ============================================================
+export interface ServicePayment {
+  id: string
+  method: 'cash' | 'bank' | 'pos' | 'wallet'
+  amount: number
+  date: string
+  note?: string
+  transactionId?: string
+}
+
 export interface ServiceOrder {
   id: string
   code: string                    // Mã phiếu: SO-YYMMDD-XXX
@@ -499,6 +550,7 @@ export interface ServiceOrder {
   totalAmount: number
   actualAmount?: number
   debtAmount?: number
+  payments?: ServicePayment[]     // NEW: Danh sách lịch sử thanh toán
   status: 'draft' | 'confirmed' | 'completed' | 'cancelled'
   customerName?: string           // Joined from crm_customers
   customerPhone?: string          // Joined from crm_customers
@@ -532,6 +584,17 @@ export interface StaffSplit {
 }
 
 // ============================================================
+// SYSTEM CONFIGURATION
+// ============================================================
+export interface SystemConfig {
+  id: string
+  fontFamily: string
+  fontSizeScale: number // Percentage, e.g. 100
+  theme: 'light' | 'dark' | 'luxury-gold'
+  updatedAt: string
+}
+
+// ============================================================
 // APP STATE
 // ============================================================
 export interface AppState {
@@ -558,6 +621,7 @@ export interface AppState {
   salaryAdvances: SalaryAdvance[]
   payrollRosters: PayrollRoster[]
   serviceOrders: ServiceOrder[]
+  systemConfig?: SystemConfig
   loyaltySettings?: LoyaltySettings
   currentUserId?: string
   dismissedAlerts: string[]

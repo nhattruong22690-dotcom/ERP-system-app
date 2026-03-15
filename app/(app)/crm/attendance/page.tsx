@@ -323,7 +323,7 @@ export default function AttendancePage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#FAF8F6]">
+        <div className="page-container">
             <PageHeader
                 icon={Clock}
                 title="Chấm công"

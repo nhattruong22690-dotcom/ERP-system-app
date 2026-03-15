@@ -166,6 +166,8 @@ export default function NotificationBanner({ userId }: Props) {
     return (
         <div
             ref={bannerRef}
+            role="status"
+            aria-live="polite"
             style={{
                 position: 'fixed',
                 top: isVisible ? '0' : '-80px',
@@ -197,7 +199,7 @@ export default function NotificationBanner({ userId }: Props) {
                 borderRight: '1px solid rgba(0,0,0,0.05)',
                 zIndex: 2,
                 flexShrink: 0
-            }}>
+            }} aria-hidden="true">
                 {notification.type === 'warning' ? <AlertTriangle size={24} /> : <Info size={24} />}
                 <div style={{ marginLeft: '12px', display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8 }}>
@@ -250,6 +252,7 @@ export default function NotificationBanner({ userId }: Props) {
                     transition: 'color 0.2s',
                     zIndex: 2
                 }}
+                aria-label="Đóng thông báo hệ thống"
                 onMouseOver={(e) => e.currentTarget.style.color = '#374151'}
                 onMouseOut={(e) => e.currentTarget.style.color = '#9ca3af'}
             >
