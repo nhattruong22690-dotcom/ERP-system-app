@@ -19,21 +19,29 @@ export function recalcPlan(plan: MonthlyPlan): MonthlyPlan {
     }
 }
 
-// Lấy tổng thực tế của 1 category trong 1 tháng tại 1 chi nhánh
+// Lấy tổng thực tế của 1 category trong 1 khoảng thời gian hoặc theo tháng tại 1 chi nhánh
 export function getActualForCategory(
     transactions: Transaction[],
     branchId: string,
     categoryId: string,
     year: number,
-    month: number
+    month: number,
+    fromDate?: string,
+    toDate?: string
 ): number {
     return transactions
-        .filter(tx =>
-            tx.branchId === branchId &&
-            tx.categoryId === categoryId &&
-            new Date(tx.date).getFullYear() === year &&
-            new Date(tx.date).getMonth() + 1 === month
-        )
+        .filter(tx => {
+            if (tx.branchId !== branchId) return false
+            if (tx.categoryId !== categoryId) return false
+
+            const txDate = tx.date.split('T')[0]
+            if (fromDate && toDate) {
+                return txDate >= fromDate && txDate <= toDate
+            } else {
+                return new Date(tx.date).getFullYear() === year &&
+                    new Date(tx.date).getMonth() + 1 === month
+            }
+        })
         .reduce((sum, tx) => sum + tx.amount, 0)
 }
 
@@ -41,14 +49,16 @@ export function getActualForCategory(
 export function buildCashFlowRows(
     plan: MonthlyPlan,
     categories: Category[],
-    transactions: Transaction[]
+    transactions: Transaction[],
+    fromDate?: string,
+    toDate?: string
 ): CashFlowRow[] {
     return plan.categoryPlans
         .filter(cp => !cp.disabled)
         .map(cp => {
             const cat = categories.find(c => c.id === cp.categoryId)
             if (!cat) return null
-            const actual = getActualForCategory(transactions, plan.branchId, cp.categoryId, plan.year, plan.month)
+            const actual = getActualForCategory(transactions, plan.branchId, cp.categoryId, plan.year, plan.month, fromDate, toDate)
             const planned = cp.plannedAmount
             const delta = actual - planned
             const pct = planned > 0 ? (actual / planned) * 100 : actual > 0 ? 999 : 0
@@ -90,11 +100,13 @@ export function buildAlerts(
     categories: Category[],
     transactions: Transaction[],
     branches: Branch[],
-    includeAll: boolean = false
+    includeAll: boolean = false,
+    fromDate?: string,
+    toDate?: string
 ): AlertItem[] {
     const alerts: AlertItem[] = []
     for (const plan of plans) {
-        const rows = buildCashFlowRows(plan, categories, transactions)
+        const rows = buildCashFlowRows(plan, categories, transactions, fromDate, toDate)
         for (const row of rows) {
             if (includeAll || row.status === 'warning' || row.status === 'exceeded') {
                 const branch = branches.find(b => b.id === plan.branchId)
