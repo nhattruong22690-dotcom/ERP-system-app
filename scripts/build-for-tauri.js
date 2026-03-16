@@ -8,6 +8,17 @@ const hiddenApiPath = path.join(__dirname, '..', 'app', '_api_hidden');
 let hidden = false;
 
 try {
+  console.log('--- TAURI BUILD DIAGNOSTICS ---');
+  console.log('IS_TAURI:', process.env.IS_TAURI);
+  console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'PRESENT (starts with ' + process.env.NEXT_PUBLIC_SUPABASE_URL.substring(0, 8) + '...)' : 'MISSING');
+  console.log('SUPABASE_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'PRESENT' : 'MISSING');
+  
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error('CRITICAL ERROR: Supabase environment variables are missing.');
+    console.error('Static export will fail. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your GitHub Secrets.');
+    process.exit(1);
+  }
+
   // Hide API routes (Next.js static export fails on API routes)
   if (fs.existsSync(apiPath)) {
     console.log('Hiding API routes for Tauri static export...');
