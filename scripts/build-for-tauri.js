@@ -15,17 +15,24 @@ try {
     hidden = true;
   }
 
-  console.log('Running Next.js build...');
+  console.log('Running Next.js build (static export mode)...');
   execSync('npm run build', { 
     stdio: 'inherit', 
     shell: true, 
     env: { ...process.env, IS_TAURI: 'true' } 
   });
 
-  console.log('Next.js build successful!');
+  console.log('Next.js build successful! Checking for "out" folder...');
+  if (fs.existsSync(path.join(__dirname, '..', 'out'))) {
+    console.log('Static "out" directory found.');
+  } else {
+    throw new Error('Build succeeded but "out" directory is missing. Check next.config.ts output: "export"');
+  }
 
 } catch (error) {
-  console.error('Next.js build failed.');
+  console.error('\n--- TAURI BUILD HELPER ERROR ---');
+  console.error('Error during Next.js build process.');
+  if (error.message) console.error('Message:', error.message);
   process.exit(1);
 } finally {
   // Always restore API routes
