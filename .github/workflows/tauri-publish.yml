@@ -43,7 +43,7 @@ jobs:
           NEXT_PUBLIC_SITE_URL: https://xinhgroup.vercel.app
           IS_TAURI: 'true'
         with:
-          tagName: v__VERSION__ # the action will replace __VERSION__ with the app version in tauri.conf.json
+          tagName: v__VERSION__
           releaseName: "Xinh Group ERP v__VERSION__"
           releaseBody: "See the assets for the installer."
           releaseDraft: true
