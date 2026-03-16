@@ -6,17 +6,26 @@
   --font-sans: var(--font-inter), sans-serif;
 
   /* Premium Palette - HSL Refactored */
-  --color-gold-muted: hsl(40, 48%, 56%); /* #C5A059 */
-  --color-gold-light: hsl(36, 40%, 92%); /* #F2EBE1 */
-  --color-beige-soft: hsl(38, 45%, 96%); /* #FAF7F2 */
-  --color-white-pure: hsl(0, 0%, 100%);  /* #FFFFFF */
-  --color-text-main: hsl(0, 0%, 18%);    /* #2D2D2D */
-  --color-text-soft: hsl(0, 0%, 48%);    /* #7A7A7A */
+  --color-gold-muted: hsl(40, 48%, 56%);
+  /* #C5A059 */
+  --color-gold-light: hsl(36, 40%, 92%);
+  /* #F2EBE1 */
+  --color-beige-soft: hsl(38, 45%, 96%);
+  /* #FAF7F2 */
+  --color-white-pure: hsl(0, 0%, 100%);
+  /* #FFFFFF */
+  --color-text-main: hsl(0, 0%, 18%);
+  /* #2D2D2D */
+  --color-text-soft: hsl(0, 0%, 48%);
+  /* #7A7A7A */
 
   /* Financial States */
-  --color-fin-plus: hsl(161, 84%, 39%);    /* #10b981 */
-  --color-fin-minus: hsl(351, 89%, 60%);   /* #f43f5e */
-  --color-fin-neutral: hsl(215, 16%, 47%); /* #64748b */
+  --color-fin-plus: hsl(161, 84%, 39%);
+  /* #10b981 */
+  --color-fin-minus: hsl(351, 89%, 60%);
+  /* #f43f5e */
+  --color-fin-neutral: hsl(215, 16%, 47%);
+  /* #64748b */
 
   --shadow-luxury: 0 10px 40px hsla(40, 48%, 56%, 0.12);
   --shadow-premium: 0 20px 80px hsla(0, 0%, 0%, 0.03);
