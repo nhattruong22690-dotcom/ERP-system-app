@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Xinh Group ERP",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "identifier": "com.taichinh.erp",
   "build": {
     "frontendDist": "../out",
@@ -26,7 +26,7 @@
   "plugins": {
     "updater": {
       "active": true,
-      "pubkey": "RWTY0IyGdADqi6hC+qz0+0sCNhOvXvIqB2VofxQ4qssfpqALkkAABAAAAAAAAAAAAAABaSkRp80eWHJPAL3mvqbKKH4t0wYcKl7u0Mc=",
+      "pubkey": "RWTWo9MDn8J9k/N92vHFOx48ZLLKJhA0jvZx9bGlT37yY4PorTSpi+GU",
       "endpoints": [
         "https://github.com/nhattruong22690-dotcom/ERP-system-app/releases/latest/download/latest.json"
       ]
