@@ -1,8 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Output configuration for Tauri (static export) or Vercel (default)
+  output: process.env.IS_TAURI ? 'export' : undefined,
+
   // Enable React strict mode for better development warnings
   reactStrictMode: true,
+
 
   // Compress responses with gzip
   compress: true,
@@ -22,7 +26,9 @@ const nextConfig: NextConfig = {
 
   // Configure headers for caching static assets
   async headers() {
+    if (process.env.IS_TAURI) return [];
     return [
+
       {
         source: '/:all*(svg|jpg|jpeg|png|gif|ico|webp|avif)',
         headers: [

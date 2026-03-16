@@ -7,6 +7,7 @@ interface LeadTableProps {
     getRowColor: (status: string) => string
     getEffectiveStatus: (lead: any) => string
     openCare: (lead: any) => void
+    openBooking: (lead: any) => void
     statusChips: Record<string, { label: string; color: string }>
     onViewCustomer?: (customer: any) => void
 }
@@ -17,6 +18,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
     getRowColor,
     getEffectiveStatus,
     openCare,
+    openBooking,
     statusChips,
     onViewCustomer
 }) => {
@@ -115,6 +117,16 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                                                     <div className="flex items-center gap-2 px-3 py-1 bg-white ring-1 ring-gold-light/20 rounded-lg text-[12px] font-black text-text-main italic tabular-nums group-hover:ring-gold-muted/30 transition-all">
                                                         <Phone size={12} className="text-gold-muted" /> {lead.phone}
                                                     </div>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            openBooking(lead)
+                                                        }}
+                                                        className="shrink-0 w-8 h-8 rounded-xl bg-gold-muted text-white hover:bg-gold-muted/80 hover:scale-110 shadow-lg shadow-gold-muted/20 active:scale-95 transition-all duration-300 flex items-center justify-center border border-gold-light/20"
+                                                        title="Đặt lịch hẹn nhanh"
+                                                    >
+                                                        <CalendarDays size={14} strokeWidth={2.5} />
+                                                    </button>
                                                     {lead.phoneObtainedAt && (
                                                         <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter italic border ${(new Date(lead.phoneObtainedAt).getTime() - new Date(lead.createdAt).getTime()) / (1000 * 60 * 60) <= 24
                                                             ? 'bg-rose-50 text-rose-600 border-rose-100'

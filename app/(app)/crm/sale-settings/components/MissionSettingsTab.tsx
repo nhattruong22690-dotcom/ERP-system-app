@@ -1,9 +1,11 @@
 'use client'
 import { useState, useMemo, useEffect } from 'react'
+import { Target, Plus, Trash2, Edit2 } from 'lucide-react'
+import { generateId } from '@/lib/utils/id'
 import { useApp } from '@/lib/auth'
 import { UserMission } from '@/lib/types'
 import { saveUserMission, syncUserMission } from '@/lib/storage'
-import { useToast } from '@/components/ToastProvider'
+import { useToast } from '@/components/layout/ToastProvider'
 
 export const MissionSettingsTab = () => {
     const { state, saveState } = useApp()
@@ -46,7 +48,7 @@ export const MissionSettingsTab = () => {
     const handleAddMission = (cycle: 'daily' | 'weekly' | 'monthly', metricType: 'booking_count' | 'revenue_total' | 'lead_count') => {
         if (!selectedStaff) return
         const newMission: UserMission = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             userId: selectedStaff,
             cycle,
             metricType,

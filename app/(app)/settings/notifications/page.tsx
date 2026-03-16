@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/supabase'
 import { useApp } from '@/lib/auth'
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
-import PageHeader from '@/components/PageHeader'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
+import PageHeader from '@/components/layout/PageHeader'
 import {
     Bell, Plus, Edit2, Trash2, Save, X,
     AlertTriangle, Info, Calendar, Clock,

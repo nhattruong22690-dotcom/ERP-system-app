@@ -1,16 +1,17 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { useApp, canEditTransaction, canViewAllBranches, canLockTransaction, hasPermission } from '@/lib/auth'
-import { fmtVND } from '@/lib/calculations'
+import { fmtVND } from '@/lib/utils/calculations'
 import { saveTransaction, deleteTransaction } from '@/lib/storage'
 import { Transaction, ActivityLog, AppState } from '@/lib/types'
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
-import UserAvatar from '@/components/UserAvatar'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
+import UserAvatar from '@/components/ui/UserAvatar'
 import { Plus, Search, Filter, Calendar, CreditCard, User, Edit2, Trash2, X, Download, AlertCircle, AlertTriangle, CheckCircle2, MoreHorizontal, ArrowRightCircle, Building, LayoutGrid, Eye, Database, TrendingUp, TrendingDown, Activity, LockKeyhole } from 'lucide-react'
 import { MoneyInput } from '../planning/page'
 
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
+import { getVNToday, getVNMonth, getVNYear } from '@/lib/utils/date'
 
 function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36) }
 
@@ -32,8 +33,8 @@ export default function TransactionsPage() {
     )
     const [filterType, setFilterType] = useState('')
     const [filterDate, setFilterDate] = useState('')
-    const [filterMonth, setFilterMonth] = useState<number>(new Date().getMonth() + 1)
-    const [filterYear, setFilterYear] = useState<number>(new Date().getFullYear())
+    const [filterMonth, setFilterMonth] = useState<number>(getVNMonth())
+    const [filterYear, setFilterYear] = useState<number>(getVNYear())
     const [filterCat, setFilterCat] = useState('')
     const [filterAccount, setFilterAccount] = useState('')
     const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
@@ -121,7 +122,7 @@ export default function TransactionsPage() {
     }
 
     function openNew() {
-        setForm({ ...EMPTY_TX(), date: new Date().toISOString().split('T')[0], branchId: filterBranch || visibleBranches.find(b => b.type !== 'hq' && !b.isHeadquarter)?.id })
+        setForm({ ...EMPTY_TX(), date: getVNToday(), branchId: filterBranch || visibleBranches.find(b => b.type !== 'hq' && !b.isHeadquarter)?.id })
         setEditingTx(null)
         setIsHQPaying(false)
         setShowForm(true)
@@ -316,10 +317,11 @@ export default function TransactionsPage() {
                         </div>
                     </div>
 
-                    {(filterDate || filterBranch || filterType || filterCat || filterAccount || filterMonth !== (new Date().getMonth() + 1)) && (
+                    {(filterDate || filterBranch || filterType || filterCat || filterAccount || filterMonth !== getVNMonth() || filterYear !== getVNYear()) && (
                         <button className="relative z-10 flex items-center gap-2 px-6 py-3 bg-rose-50 border border-rose-100 rounded-xl text-[10px] font-black text-rose-600 hover:bg-rose-100 transition-all uppercase tracking-[0.2em] italic group-hover:scale-105" onClick={() => {
                             setFilterDate(''); setFilterBranch(''); setFilterType(''); setFilterCat(''); setFilterAccount('');
-                            setFilterMonth(new Date().getMonth() + 1);
+                            setFilterMonth(getVNMonth());
+                            setFilterYear(getVNYear());
                         }}>
                             <X size={14} strokeWidth={3} /> Xóa lọc
                         </button>

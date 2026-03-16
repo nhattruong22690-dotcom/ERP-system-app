@@ -2,9 +2,10 @@ import React from 'react'
 import {
     History, Zap, History as HistoryIcon, Send, Clock, User as UserIcon,
     XCircle, Save, X, Pencil, CalendarDays, History as HistoryLogo,
-    Zap as ZapIcon
+    Zap as ZapIcon, ShieldCheck, CheckCircle2, DollarSign
 } from 'lucide-react'
-import { useModal } from '@/components/ModalProvider'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useApp } from '@/lib/auth'
 
 interface LeadModalsProps {
     // Care Modal
@@ -17,7 +18,7 @@ interface LeadModalsProps {
     careForm: any
     setCareForm: (val: any) => void
     handleAddCareLog: () => void
-    handleSaveInline: () => void
+    handleSaveInline: (lead?: any) => void
     handleCancelInline: () => void
     openBooking: (lead: any) => void
     careResults: any[]
@@ -56,17 +57,19 @@ export const LeadModals: React.FC<LeadModalsProps> = ({
     showBookingModal, setShowBookingModal, bookingForm, setBookingForm, handleBooking,
     customers, onViewCustomer
 }) => {
+    const { currentUser } = useApp()
     const { showConfirm } = useModal()
     const initialFormStateRef = React.useRef<{ [key: string]: string }>({})
 
     // Dirty check logic for Care Modal
     React.useEffect(() => {
         if (showCareModal && !initialFormStateRef.current.care) {
+            // Stabilize object for comparison
             initialFormStateRef.current.care = JSON.stringify({ activeLead, careForm, isEditingInfo })
         } else if (!showCareModal) {
             initialFormStateRef.current.care = ''
         }
-    }, [showCareModal, activeLead, careForm, isEditingInfo])
+    }, [showCareModal]) // Only trigger when modal opens/closes
 
     const isCareDirty = React.useMemo(() => {
         if (!showCareModal || !initialFormStateRef.current.care) return false
@@ -90,7 +93,7 @@ export const LeadModals: React.FC<LeadModalsProps> = ({
         } else if (!showForm) {
             initialFormStateRef.current.form = ''
         }
-    }, [showForm, form])
+    }, [showForm]) // Only trigger when modal opens/closes
 
     const isFormDirty = React.useMemo(() => {
         if (!showForm || !initialFormStateRef.current.form) return false
@@ -114,7 +117,7 @@ export const LeadModals: React.FC<LeadModalsProps> = ({
         } else if (!showBookingModal) {
             initialFormStateRef.current.booking = ''
         }
-    }, [showBookingModal, bookingForm])
+    }, [showBookingModal]) // Only trigger when modal opens/closes
 
     const isBookingDirty = React.useMemo(() => {
         if (!showBookingModal || !initialFormStateRef.current.booking) return false
@@ -134,7 +137,7 @@ export const LeadModals: React.FC<LeadModalsProps> = ({
         <>
             {/* Modal Care Logs & Timeline */}
             {showCareModal && activeLead && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={handleCareBackdropClick} />
                     <div className="relative w-full max-w-5xl bg-white rounded-[40px] shadow-luxury overflow-hidden animate-modal-up flex flex-col h-[90vh] border border-gold-light/20">
                         {/* Header & Basic Info */}
@@ -201,7 +204,7 @@ export const LeadModals: React.FC<LeadModalsProps> = ({
                                         </div>
                                     ) : (
                                         <>
-                                            {activeLead.phone && activeLead.status === 'in_care' && (
+                                            {activeLead.phone && (
                                                 <button
                                                     onClick={() => openBooking(activeLead)}
                                                     className="flex items-center gap-3 bg-emerald-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-luxury shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95"
@@ -251,10 +254,39 @@ export const LeadModals: React.FC<LeadModalsProps> = ({
                                         ) : (
                                             <>
                                                 <p className="text-[14px] font-black text-gold-muted italic tabular-nums">{activeLead.phone || 'N/A'}</p>
-                                                {activeLead.phone && activeLead.phoneObtainedAt && (
-                                                    <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter italic border ${(new Date(activeLead.phoneObtainedAt).getTime() - new Date(activeLead.createdAt).getTime()) / (1000 * 60 * 60) <= 24 ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
-                                                        {(new Date(activeLead.phoneObtainedAt).getTime() - new Date(activeLead.createdAt).getTime()) / (1000 * 60 * 60) <= 24 ? 'HOT' : 'COLD'}
-                                                    </span>
+                                                {activeLead.phone && (
+                                                    <div className="flex items-center gap-2">
+                                                        {activeLead.phoneConfirmed ? (
+                                                            <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100 animate-in fade-in zoom-in duration-300">
+                                                                <ShieldCheck size={10} strokeWidth={2.5} />
+                                                                <span className="text-[8px] font-black uppercase tracking-tighter italic">Xác thực</span>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (await showConfirm('Xác nhận số điện thoại này là chính xác và liên lạc được? (Tính KPI cho Sale Page)')) {
+                                                                        const updated = {
+                                                                            ...activeLead,
+                                                                            phoneConfirmed: true,
+                                                                            confirmedAt: new Date().toISOString(),
+                                                                            confirmedBy: currentUser?.id
+                                                                        }
+                                                                        setActiveLead(updated)
+                                                                        handleSaveInline(updated)
+                                                                    }
+                                                                }}
+                                                                className="flex items-center gap-1 bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full border border-amber-100 hover:bg-amber-100 transition-all active:scale-90 shadow-sm"
+                                                            >
+                                                                <ShieldCheck size={10} strokeWidth={2.5} />
+                                                                <span className="text-[8px] font-black uppercase tracking-tighter italic">Chờ xác thực</span>
+                                                            </button>
+                                                        )}
+                                                        {activeLead.phoneObtainedAt && (
+                                                            <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter italic border ${(new Date(activeLead.phoneObtainedAt).getTime() - new Date(activeLead.createdAt).getTime()) / (1000 * 60 * 60) <= 24 ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
+                                                                {(new Date(activeLead.phoneObtainedAt).getTime() - new Date(activeLead.createdAt).getTime()) / (1000 * 60 * 60) <= 24 ? 'HOT' : 'COLD'}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </>
                                         )}
@@ -294,19 +326,49 @@ export const LeadModals: React.FC<LeadModalsProps> = ({
                                 </div>
                             </div>
 
-                            <div className="mt-8 pt-8 border-t border-gold-light/10">
-                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-soft/40 italic block mb-3">Ghi chú vận hành ban đầu</label>
-                                {isEditingInfo ? (
-                                    <textarea
-                                        className="w-full p-5 bg-white border border-gold-light/30 rounded-2xl text-xs font-black italic focus:ring-2 focus:ring-gold-muted/20 outline-none min-h-[100px]"
-                                        value={activeLead.notes || ''}
-                                        onChange={e => setActiveLead({ ...activeLead, notes: e.target.value })}
-                                    />
-                                ) : (
-                                    <div className="p-6 bg-white/50 rounded-2xl border border-gold-light/10 shadow-inner ring-1 ring-gold-light/5">
-                                        <p className="text-xs font-black text-text-soft/60 italic leading-relaxed">"{activeLead.notes || 'Không có ghi chú ban đầu'}"</p>
+                            <div className="mt-8 pt-8 border-t border-gold-light/10 grid grid-cols-1 lg:grid-cols-2 gap-10">
+                                <div>
+                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-soft/40 italic block mb-3">Ghi chú vận hành ban đầu</label>
+                                    {isEditingInfo ? (
+                                        <textarea
+                                            className="w-full p-5 bg-white border border-gold-light/30 rounded-2xl text-xs font-black italic focus:ring-2 focus:ring-gold-muted/20 outline-none min-h-[100px]"
+                                            value={activeLead.notes || ''}
+                                            onChange={e => setActiveLead({ ...activeLead, notes: e.target.value })}
+                                        />
+                                    ) : (
+                                        <div className="p-6 bg-white/50 rounded-2xl border border-gold-light/10 shadow-inner ring-1 ring-gold-light/5">
+                                            <p className="text-xs font-black text-text-soft/60 italic leading-relaxed">"{activeLead.notes || 'Không có ghi chú ban đầu'}"</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                                            <DollarSign size={14} strokeWidth={2.5} />
+                                        </div>
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-soft/40 italic block">Giá trị dịch vụ phát sinh (Tư vấn)</label>
                                     </div>
-                                )}
+                                    {isEditingInfo ? (
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                className="w-full p-5 bg-white border border-gold-light/30 rounded-2xl text-[14px] font-black italic focus:ring-2 focus:ring-gold-muted/20 outline-none pr-12 text-emerald-600"
+                                                value={activeLead.actualServiceValue || ''}
+                                                onChange={e => setActiveLead({ ...activeLead, actualServiceValue: parseInt(e.target.value) || 0 })}
+                                                placeholder="0"
+                                            />
+                                            <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-text-soft/30 italic uppercase">VNĐ</span>
+                                        </div>
+                                    ) : (
+                                        <div className="p-6 bg-emerald-50/20 rounded-2xl border border-emerald-100 shadow-sm flex items-baseline gap-2">
+                                            <p className="text-2xl font-serif font-black text-emerald-600 italic">
+                                                {(activeLead.actualServiceValue || 0).toLocaleString('vi-VN')}
+                                            </p>
+                                            <span className="text-[10px] font-black text-emerald-600/40 italic uppercase">VNĐ</span>
+                                        </div>
+                                    )}
+                                    <p className="text-[9px] font-bold text-text-soft/40 italic ml-1">* Giá trị này dùng để tính KPI cho Sale Page & Sale Tele.</p>
+                                </div>
                             </div>
                         </div>
 
@@ -405,7 +467,7 @@ export const LeadModals: React.FC<LeadModalsProps> = ({
 
             {/* Modal Add/Edit Lead */}
             {showForm && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={handleFormBackdropClick} />
                     <div className="relative w-full max-w-2xl bg-white rounded-[40px] p-12 animate-modal-up shadow-luxury border border-gold-light/20">
                         <div className="flex justify-between items-start mb-10">
@@ -471,7 +533,7 @@ export const LeadModals: React.FC<LeadModalsProps> = ({
 
             {/* Modal Booking */}
             {showBookingModal && activeLead && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[3100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={handleBookingBackdropClick} />
                     <div className="relative w-full max-w-xl bg-white rounded-[40px] p-12 animate-modal-up shadow-luxury border border-emerald-100/50">
                         <div className="flex justify-between items-start mb-10">

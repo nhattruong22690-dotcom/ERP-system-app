@@ -2,8 +2,8 @@
 import { useState, useMemo } from 'react'
 import { useApp } from '@/lib/auth'
 import { Attendance, User, Branch, AppState } from '@/lib/types'
-import { fmtVND } from '@/lib/calculations'
-import { useModal } from '@/components/ModalProvider'
+import { fmtVND } from '@/lib/utils/calculations'
+import { useModal } from '@/components/layout/ModalProvider'
 import {
     DollarSign,
     Calendar,
@@ -21,7 +21,7 @@ import {
     CheckCircle,
     Briefcase
 } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 import { JobTitle } from '@/lib/types'
 
 interface PayrollItem {

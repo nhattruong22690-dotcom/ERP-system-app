@@ -3,11 +3,11 @@ import { useState } from 'react'
 import { useApp, canManageBranches, hasPermission } from '@/lib/auth'
 import { Branch, BranchType } from '@/lib/types'
 import { saveBranch } from '@/lib/storage'
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
 import { Plus, Edit2, X, Building2, Store, Users, Megaphone, Palette, Star, Heart, Zap, Coffee, Building, Landmark, MapPin, Tag, Smartphone, Globe, Sparkles, Stethoscope, Syringe, UserCheck, Activity, HeartPulse, Microscope, Crown, PlusCircle } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 
 function uid() { return 'b-' + Math.random().toString(36).slice(2) }
 

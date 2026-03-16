@@ -15,7 +15,7 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false)
 
     const { state: appState, refresh } = useApp()
-    const { supabase } = require('@/lib/supabase')
+    const { supabase } = require('@/lib/supabase/supabase')
 
     async function handleForgotPassword() {
         if (!username) {

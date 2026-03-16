@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Save, Zap, Info, ShieldCheck, Power, RefreshCcw } from 'lucide-react'
 import { useApp } from '@/lib/auth'
-import { useToast } from '@/components/ToastProvider'
+import { useToast } from '@/components/layout/ToastProvider'
 import { LoyaltySettings } from '@/lib/types'
 
 export const LoyaltySettingsTab = () => {

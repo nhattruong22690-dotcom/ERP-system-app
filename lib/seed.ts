@@ -1,4 +1,4 @@
-import { AppState, User, Branch, PaymentAccount, Category, MonthlyPlan } from './types'
+import { AppState, User, Branch, PaymentAccount, Category, MonthlyPlan } from '@/lib/types'
 
 function uid() {
     return Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
@@ -160,6 +160,7 @@ export function seedData(): AppState {
         salaryAdvances: [],
         payrollRosters: [],
         serviceOrders: [],
+        serviceCategories: [],
         currentUserId: undefined,
         dismissedAlerts: [],
         starredAlerts: [],

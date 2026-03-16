@@ -1,10 +1,10 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { AppState, User, Transaction, SystemConfig } from './types'
-import { getState, setState } from './storage'
-import { fetchAllData } from './supabaseFetch'
-import { supabase } from './supabase'
+import { AppState, User, Transaction, SystemConfig } from '@/lib/types'
+import { getState, setState } from '@/lib/storage'
+import { fetchAllData } from '@/lib/supabase/supabaseFetch'
+import { supabase } from '@/lib/supabase/supabase'
 
 interface AppContextValue {
     state: AppState
@@ -48,6 +48,7 @@ const EMPTY_STATE: AppState = {
     salaryAdvances: [],
     payrollRosters: [],
     serviceOrders: [],
+    serviceCategories: [],
 }
 
 const AppContext = createContext<AppContextValue | null>(null)

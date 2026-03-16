@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Award, Zap, Settings, Star } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 import { LoyaltySettingsTab } from './components/LoyaltySettingsTab'
 import { MembershipTiersTab } from './components/MembershipTiersTab'
 import { useApp, canManageMembership } from '@/lib/auth'

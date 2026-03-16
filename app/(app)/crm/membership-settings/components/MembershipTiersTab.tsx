@@ -1,8 +1,9 @@
 'use client'
 import { useState } from 'react'
 import { Plus, Edit2, Trash2, Save, X, Award, TrendingUp, Percent, Info, RefreshCcw } from 'lucide-react'
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
+import { generateId } from '@/lib/utils/id'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
 import { useApp } from '@/lib/auth'
 import { MembershipTier } from '@/lib/types'
 
@@ -55,7 +56,7 @@ export const MembershipTiersTab = () => {
         try {
             const storage = await import('@/lib/storage')
             const newTier: MembershipTier = {
-                id: editingTier?.id || crypto.randomUUID(),
+                id: editingTier?.id || generateId(),
                 name: formData.name!,
                 subtext: formData.subtext || '',
                 minSpend: Number(formData.minSpend || 0),

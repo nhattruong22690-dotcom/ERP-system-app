@@ -334,6 +334,14 @@ export interface Appointment {
   bookingSource?: 'lead' | 'tele' | 'branch' // NEW: Phân loại nguồn lịch
   createdAt: string
   updatedAt: string
+  saleTeleBonus?: number    // NEW: Tiền thưởng tạm tính cho Tele
+  salePageBonus?: number    // NEW: Tiền thưởng tạm tính cho Page
+  kpiConfig?: {             // NEW: Lưu vết cấu hình KPI lúc đặt lịch
+    bookingBonus: number
+    checkinNoServiceBonus: number
+    checkinServiceBonus: number
+    serviceCommissionRate: number
+  }
   kpiConfirmed?: boolean
   kpiExclusionNote?: string
   kpiExcludedBy?: string
@@ -385,10 +393,20 @@ export interface CrmService {
   id: string
   name: string
   category: string
+  categoryId?: string
   price: number
   duration: number
+  type: 'single' | 'package' | 'card' // NEW: Loại dịch vụ
   isActive: boolean
   image?: string
+  createdAt: string
+}
+
+export interface ServiceCategory {
+  id: string
+  name: string
+  description?: string
+  isActive: boolean
   createdAt: string
 }
 
@@ -420,9 +438,12 @@ export interface MembershipTier {
 export interface KpiTier {
   minKpi: number
   maxKpi: number | null
-  bonusNoPayment: number
-  bonusWithPayment: number
-  commissionRate: number // percent, e.g. 1 for 1%
+  bonusNoPayment: number  // Thường là dành cho Check-in không PS
+  bonusWithPayment: number // Dành cho Sale Page (SĐT) hoặc Sale Tele (Check-in có PS)
+  bonusBooking: number     // NEW: Thưởng đặt lịch (Sale Tele)
+  bonusService: number     // NEW: Thưởng khách đến phát sinh (Sale Tele)
+  bonusAmount: number      // NEW: Thưởng cứng cả mốc
+  commissionRate: number   // percent, e.g. 1 for 1%
 }
 
 export interface CommissionSetting {
@@ -479,6 +500,12 @@ export interface Lead {
   branchId?: string // Gán chi nhánh cho Lead
   createdAt: string
   updatedAt?: string
+  isLocked?: boolean      // NEW: Khóa Lead khi đã bàn giao chi nhánh
+  phoneConfirmed?: boolean // NEW: Đã xác thực SĐT gọi được
+  confirmedBy?: string     // NEW: StaffId người xác thực số
+  confirmedAt?: string     // NEW: Thời điểm xác thực số
+  actualServiceValue?: number // NEW: Giá trị thực tế phát sinh tại CN
+  serviceNote?: string     // NEW: Ghi chú các dịch vụ đã làm
   kpiConfirmed?: boolean
   kpiExclusionNote?: string
   kpiExcludedBy?: string
@@ -538,6 +565,7 @@ export interface ServicePayment {
   date: string
   note?: string
   transactionId?: string
+  lineItemId?: string               // NEW: Link to specific service line item
 }
 
 export interface ServiceOrder {
@@ -564,6 +592,8 @@ export interface ServiceLineItem {
   id: string
   customerType: 'new' | 'old' | 'tvt' // Mới (chưa từng làm DV tại CN) | Cũ | TVT (dòng tiếp theo)
   serviceId?: string
+  categoryId?: string            // NEW: ID danh mục
+  categoryName?: string          // NEW: Tên danh mục (de-normalized)
   serviceName: string
   serviceType: 'single' | 'package' | 'card'
   description?: string
@@ -574,6 +604,7 @@ export interface ServiceLineItem {
   expiryDate?: string
   warrantyExpiryDate?: string
   note?: string
+  payments?: ServicePayment[]      // NEW: Payments for this specific line item
   staffSplits: StaffSplit[]
 }
 
@@ -581,6 +612,9 @@ export interface StaffSplit {
   staffId: string
   staffName: string
   amount: number
+  role?: string                 // Vai trò (Tư vấn, Kỹ thuật, Bác sĩ...)
+  type?: 'fixed' | 'percentage' // Hỗ trợ tính theo số tiền hoặc %
+  rate?: number                 // % hoa hồng (nếu type = 'percentage')
 }
 
 // ============================================================
@@ -607,6 +641,7 @@ export interface AppState {
   customers: Customer[]
   appointments: Appointment[]
   services: CrmService[] // Kept CrmService as ServiceItem was not defined
+  serviceCategories: ServiceCategory[]
   membershipTiers: MembershipTier[]
   treatmentCards: TreatmentCard[]
   commissionSettings: CommissionSetting[]

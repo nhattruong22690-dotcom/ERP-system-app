@@ -1,13 +1,13 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
-import { buildAlerts, buildCashFlowRows, fmtVND } from '@/lib/calculations'
+import { buildAlerts, buildCashFlowRows, fmtVND } from '@/lib/utils/calculations'
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Activity, Target, CreditCard, Wallet, Landmark, LayoutDashboard } from 'lucide-react'
-import { calculateAccountBalances } from '@/lib/calculations'
+import { calculateAccountBalances } from '@/lib/utils/calculations'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 
 const MONTHS = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12']
 

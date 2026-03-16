@@ -2,9 +2,9 @@
 import React from 'react'
 import { useApp } from '@/lib/auth'
 import { ActivityLog } from '@/lib/types'
-import { fmtDate } from '@/lib/calculations'
+import { fmtDate } from '@/lib/utils/calculations'
 import { Bell, User, Clock, Tag, FileText, ArrowLeftRight, CreditCard, Building2, Trash2, Edit, PlusCircle, TrendingUp, TrendingDown } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 
 const ENTITY_ICONS: Record<string, any> = {
     transaction: ArrowLeftRight,

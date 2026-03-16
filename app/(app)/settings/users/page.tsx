@@ -2,17 +2,18 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useApp, canManageUsers, hasPermission } from '@/lib/auth'
 import { saveUser } from '@/lib/storage'
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
-import JobTitlesModal from '@/components/settings/JobTitlesModal'
-import UserAvatar from '@/components/UserAvatar'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
+import JobTitlesModal from '@/components/features/settings/JobTitlesModal'
+import UserAvatar from '@/components/ui/UserAvatar'
 import { Plus, Edit2, X, Shield, Eye, EyeOff, Search, Power, Settings, BadgeCheck, Phone, CheckCircle2, UserCircle, Building, Store, Award, Check, ChevronDown, Landmark, MapPin, Tag, Smartphone, Globe, Star, Heart, Zap, Coffee, MessageSquare, Scissors, DollarSign, Clock, Sparkles, Trash2, History, ArrowRight, PlusCircle, Lock, KeyRound, ShieldCheck } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import PageHeader from '@/components/PageHeader'
+import { generateId } from '@/lib/utils/id'
+import PageHeader from '@/components/layout/PageHeader'
 
 import { User, UserRole, JobTitle, COLOR_MAP, ROLES, SalaryConfig, SalaryHistory } from '@/lib/types'
-import { PAGE_OPTIONS, PERM_OPTIONS, PERMISSION_GROUPS } from '@/lib/constants'
+import { PAGE_OPTIONS, PERM_OPTIONS, PERMISSION_GROUPS } from '@/lib/utils/constants'
 
 
 function uid() { return 'u-' + Math.random().toString(36).slice(2) }
@@ -932,7 +933,7 @@ function SalaryConfigModal({ user, initialConfig, onSave, onClose }: { user: Use
             const storage = await import('@/lib/storage')
 
             const historyObj: SalaryHistory = {
-                id: crypto.randomUUID(),
+                id: generateId(),
                 userId: user.id,
                 changedBy: currentUser?.id,
                 oldConfig: initialConfig,

@@ -3,10 +3,12 @@ import { useState, useMemo } from 'react'
 import { useApp } from '@/lib/auth'
 import { CrmService } from '@/lib/types'
 import { saveService, syncService } from '@/lib/storage'
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
-import { LayoutGrid, Search, PlusCircle } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
+import { generateId } from '@/lib/utils/id'
+import { Trash2, Edit2, Plus, Search, Check, Tag, LayoutGrid, PlusCircle, X, Settings } from 'lucide-react'
+import PageHeader from '@/components/layout/PageHeader'
+import ServiceCategoryManagementModal from '@/components/features/crm/ServiceCategoryManagementModal'
 
 export default function ServicesPage() {
     const { state, saveState } = useApp()
@@ -14,6 +16,7 @@ export default function ServicesPage() {
     const { showToast } = useToast()
 
     const [showForm, setShowForm] = useState(false)
+    const [showCategoryModal, setShowCategoryModal] = useState(false)
     const [editing, setEditing] = useState<CrmService | null>(null)
     const [form, setForm] = useState<Partial<CrmService>>({})
     const [search, setSearch] = useState('')
@@ -21,20 +24,20 @@ export default function ServicesPage() {
     const filteredServices = useMemo(() => {
         const term = search.toLowerCase().trim()
         return (state.services || []).filter(s =>
-            s.name.toLowerCase().includes(term) || s.category.toLowerCase().includes(term)
-        ).sort((a, b) => a.category.localeCompare(b.category))
+            s.name.toLowerCase().includes(term) || (s.category || '').toLowerCase().includes(term)
+        ).sort((a, b) => (a.category || '').localeCompare(b.category || ''))
     }, [state.services, search])
 
-    const categories = useMemo(() => {
-        return Array.from(new Set((state.services || []).map(s => s.category))).filter(Boolean)
-    }, [state.services])
+    const serviceCategories = state.serviceCategories || []
 
     function openNew() {
         setForm({
             isActive: true,
             price: 0,
             duration: 60,
-            category: categories[0] || 'Chăm sóc da'
+            type: 'single', // Default
+            categoryId: serviceCategories[0]?.id,
+            category: serviceCategories[0]?.name || ''
         })
         setEditing(null)
         setShowForm(true)
@@ -47,17 +50,19 @@ export default function ServicesPage() {
     }
 
     async function handleSave() {
-        if (!form.name || !form.category) {
-            await showAlert('Vui lòng nhập Tên dịch vụ và Danh mục')
+        if (!form.name || (!form.category && !form.categoryId)) {
+            await showAlert('Vui lòng nhập Tên dịch vụ và chọn Danh mục')
             return
         }
 
         const service: CrmService = {
-            id: editing?.id || crypto.randomUUID(),
+            id: editing?.id || generateId(),
             name: form.name,
-            category: form.category,
+            category: form.category || '',
+            categoryId: form.categoryId,
             price: Number(form.price) || 0,
             duration: Number(form.duration) || 0,
+            type: (form.type as any) || 'single',
             isActive: form.isActive !== false,
             image: form.image,
             createdAt: editing?.createdAt || new Date().toISOString()
@@ -78,17 +83,26 @@ export default function ServicesPage() {
         <div className="page-container">
             <PageHeader
                 icon={LayoutGrid}
-                title="Danh mục Dịch vụ"
+                title="Dịch vụ"
                 subtitle="Bảng giá & Quy trình chuẩn"
                 description="Hệ thống CRM • Quản lý danh mục dịch vụ cao cấp"
                 actions={
-                    <button
-                        onClick={openNew}
-                        className="px-6 py-3 bg-text-main text-white rounded-[15px] text-[11px] font-black uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-muted hover:shadow-gold-muted/20 transition-all duration-300 flex items-center gap-2 active:scale-95 group"
-                    >
-                        <PlusCircle size={18} strokeWidth={2.5} className="group-hover:rotate-90 transition-transform duration-500" />
-                        Thêm mới
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setShowCategoryModal(true)}
+                            className="px-5 py-3 bg-white border border-gray-100 text-gray-400 rounded-[15px] text-[10px] font-black uppercase tracking-widest hover:text-primary hover:border-primary/30 transition-all flex items-center gap-2 shadow-sm active:scale-95"
+                        >
+                            <Settings size={16} />
+                            Quản lý danh mục
+                        </button>
+                        <button
+                            onClick={openNew}
+                            className="px-6 py-3 bg-text-main text-white rounded-[15px] text-[11px] font-black uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-muted hover:shadow-gold-muted/20 transition-all duration-300 flex items-center gap-2 active:scale-95 group"
+                        >
+                            <PlusCircle size={18} strokeWidth={2.5} className="group-hover:rotate-90 transition-transform duration-500" />
+                            Thêm mới
+                        </button>
+                    </div>
                 }
             >
                 <div className="relative w-64 md:w-80">
@@ -111,59 +125,74 @@ export default function ServicesPage() {
                             <thead>
                                 <tr className="bg-gray-50/50">
                                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Dịch vụ</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Danh mục</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Phân loại</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Loại hình</th>
                                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Giá niêm yết</th>
                                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Thời lượng</th>
                                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Trạng thái</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Thao tác</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {filteredServices.map(s => (
-                                    <tr key={s.id} className="hover:bg-gray-50/50 transition-colors group">
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                                                    <span className="material-icons-round">category</span>
+                                {filteredServices.map(s => {
+                                    const categoryName = serviceCategories.find(c => c.id === s.categoryId)?.name || s.category
+                                    return (
+                                        <tr key={s.id} className="hover:bg-gray-50/50 transition-colors group">
+                                            <td className="px-8 py-5">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                                                        <Tag size={18} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-black text-gray-900">{s.name}</p>
+                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter mt-0.5">ID: {s.id.slice(0, 8)}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-black text-gray-900">{s.name}</p>
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter mt-0.5">ID: {s.id.slice(0, 8)}</p>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                                                    {categoryName}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-center">
+                                                <span className={`px-2 py-1 rounded text-[9px] font-black uppercase ${
+                                                    s.type === 'package' ? 'bg-amber-100 text-amber-600' : 
+                                                    s.type === 'card' ? 'bg-purple-100 text-purple-600' : 
+                                                    'bg-blue-100 text-blue-600'
+                                                }`}>
+                                                    {s.type === 'package' ? 'Liệu trình' : s.type === 'card' ? 'Thẻ' : 'DV Lẻ'}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-right font-black text-gray-900">
+                                                {s.price.toLocaleString('vi-VN')}đ
+                                            </td>
+                                            <td className="px-8 py-5 text-center">
+                                                <span className="text-sm font-bold text-gray-600">{s.duration}'</span>
+                                            </td>
+                                            <td className="px-8 py-5 text-center">
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${s.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${s.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
+                                                    {s.isActive ? 'Đang hoạt động' : 'Tạm ngưng'}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => openEdit(s)}
+                                                        className="w-10 h-10 rounded-xl bg-white border border-gray-100 text-gray-400 hover:text-primary hover:border-primary/30 flex items-center justify-center transition-all shadow-sm active:scale-90"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                                                {s.category}
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-5 text-right font-black text-gray-900">
-                                            {s.price.toLocaleString('vi-VN')}đ
-                                        </td>
-                                        <td className="px-8 py-5 text-center">
-                                            <span className="text-sm font-bold text-gray-600">{s.duration}'</span>
-                                        </td>
-                                        <td className="px-8 py-5 text-center">
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${s.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${s.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
-                                                {s.isActive ? 'Đang hoạt động' : 'Tạm ngưng'}
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-5 text-right">
-                                            <button
-                                                onClick={() => openEdit(s)}
-                                                className="w-10 h-10 rounded-xl bg-white border border-gray-100 text-gray-400 hover:text-primary hover:border-primary/30 flex items-center justify-center transition-all shadow-sm active:scale-90"
-                                            >
-                                                <span className="material-icons-round text-lg">edit</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
                                 {filteredServices.length === 0 && (
                                     <tr>
                                         <td colSpan={6} className="px-8 py-20 text-center">
                                             <div className="flex flex-col items-center gap-4 opacity-20">
-                                                <span className="material-icons-round text-6xl">inventory_2</span>
+                                                <Tag size={48} />
                                                 <p className="font-black text-xl uppercase tracking-widest">Chưa có dịch vụ nào</p>
                                             </div>
                                         </td>
@@ -186,7 +215,7 @@ export default function ServicesPage() {
                                     <p className="text-xs text-gray-400 font-bold tracking-widest uppercase mt-1">Hệ thống dịch vụ Luxury</p>
                                 </div>
                                 <button onClick={() => setShowForm(false)} className="w-10 h-10 rounded-full bg-white border border-gray-100 text-gray-400 hover:text-gray-900 flex items-center justify-center transition-all active:scale-90 shadow-sm">
-                                    <span className="material-icons-round">close</span>
+                                    <X size={20} />
                                 </button>
                             </div>
 
@@ -202,26 +231,46 @@ export default function ServicesPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Danh mục</label>
-                                        <div className="relative">
-                                            <input
-                                                list="service-categories"
-                                                className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-bold"
-                                                value={form.category || ''}
-                                                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                                                placeholder="Chọn hoặc nhập mới..."
-                                            />
-                                            <datalist id="service-categories">
-                                                {categories.map(c => <option key={c} value={c} />)}
-                                            </datalist>
+                                    <div className="col-span-2">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Loại hình dịch vụ</label>
+                                        <div className="grid grid-cols-3 gap-3 bg-gray-50 p-2 rounded-2xl border border-gray-100">
+                                            {[
+                                                { id: 'single', label: 'Dịch vụ lẻ', color: 'text-blue-600', bg: 'bg-blue-50' },
+                                                { id: 'package', label: 'Liệu trình', color: 'text-amber-600', bg: 'bg-amber-50' },
+                                                { id: 'card', label: 'Thẻ / Ví', color: 'text-purple-600', bg: 'bg-purple-50' },
+                                            ].map(t => (
+                                                <button
+                                                    key={t.id}
+                                                    onClick={() => setForm(f => ({ ...f, type: t.id as any }))}
+                                                    className={`py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all border ${
+                                                        form.type === t.id ? `${t.bg} ${t.color} border-${t.id}-100 shadow-sm` : 'bg-white border-transparent text-gray-400'
+                                                    }`}
+                                                >
+                                                    {t.label}
+                                                </button>
+                                            ))}
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Phân loại danh mục</label>
+                                        <select
+                                            className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-bold outline-none cursor-pointer focus:border-primary transition-all text-sm"
+                                            value={form.categoryId || ''}
+                                            onChange={e => {
+                                                const cat = serviceCategories.find(c => c.id === e.target.value)
+                                                setForm(f => ({ ...f, categoryId: e.target.value, category: cat?.name || '' }))
+                                            }}
+                                        >
+                                            <option value="">-- Chọn danh mục --</option>
+                                            {serviceCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Thời lượng (Phút)</label>
                                         <input
                                             type="number"
-                                            className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-bold"
+                                            className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-sm"
                                             value={form.duration || 0}
                                             onChange={e => setForm(f => ({ ...f, duration: Number(e.target.value) }))}
                                         />
@@ -266,7 +315,7 @@ export default function ServicesPage() {
                                     onClick={handleSave}
                                     className="flex-[2] py-4 bg-primary text-gray-900 rounded-2xl font-black shadow-xl shadow-primary/30 hover:bg-primary-hover transition-all active:scale-95 flex items-center justify-center gap-2"
                                 >
-                                    <span className="material-icons-round">check_circle</span>
+                                    <Check size={20} />
                                     Lưu dịch vụ
                                 </button>
                             </div>
@@ -274,6 +323,11 @@ export default function ServicesPage() {
                     </div>
                 )}
             </div>
+
+            <ServiceCategoryManagementModal 
+                isOpen={showCategoryModal} 
+                onClose={() => setShowCategoryModal(false)} 
+            />
         </div>
     )
 }

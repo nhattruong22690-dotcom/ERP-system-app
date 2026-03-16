@@ -1,12 +1,16 @@
 import {
     AppState, User, Branch, PaymentAccount, Category, MonthlyPlan,
-    Transaction, ActivityLog, Customer, Appointment,
+    Transaction, ActivityLog, Customer, Appointment, ServiceOrder,
     CommissionSetting, Lead, CommissionLog, UserMission,
     JobTitle, Attendance, CrmService, MembershipTier, SalaryHistory,
-    Bonus, Deduction, SalaryAdvance, PayrollRoster, LoyaltySettings
-} from './types'
-import { seedData } from './seed'
-import { supabase } from './supabase'
+    Bonus, Deduction, SalaryAdvance, PayrollRoster, LoyaltySettings, ServiceCategory
+} from '@/lib/types'
+import { seedData } from '@/lib/seed'
+import { supabase } from '@/lib/supabase/supabase'
+import { generateId } from '@/lib/utils/id'
+
+import { fetchCustomerHistory } from '@/lib/supabase/supabaseFetch'
+import { recalculateCustomerStats } from '@/lib/utils/calculations'
 
 const STORAGE_KEY = 'taichinh_app_prod_v1' // Force reset from v1 mock data
 
@@ -39,6 +43,7 @@ export function getState(): AppState {
         parsed.appointments = parsed.appointments || []
         parsed.services = parsed.services || []
         parsed.membershipTiers = parsed.membershipTiers || []
+        parsed.serviceCategories = parsed.serviceCategories || []
         parsed.jobTitles = parsed.jobTitles || []
         parsed.dismissedAlerts = parsed.dismissedAlerts || []
         parsed.starredAlerts = parsed.starredAlerts || []
@@ -71,7 +76,8 @@ export function setState(state: AppState): void {
             'bonuses',
             'deductions',
             'salaryAdvances',
-            'salaryHistory'
+            'salaryHistory',
+            'serviceCategories'
         ]
 
         heavyKeys.forEach(key => {
@@ -89,7 +95,7 @@ export function setState(state: AppState): void {
 }
 
 export async function syncActivityLogSideEffect(log: Omit<ActivityLog, 'id' | 'createdAt'>) {
-    const id = crypto.randomUUID()
+    const id = generateId()
     const createdAt = new Date().toISOString()
     const activityLog: ActivityLog = { ...log, id, createdAt }
 
@@ -110,7 +116,7 @@ export function updateState(updater: (s: AppState) => AppState): AppState {
 }
 
 export function saveActivityLog(log: Omit<ActivityLog, 'id' | 'createdAt'>) {
-    const id = crypto.randomUUID()
+    const id = generateId()
     const createdAt = new Date().toISOString()
     const fullLog: ActivityLog = { ...log, id, createdAt }
 
@@ -144,7 +150,7 @@ export async function syncUser(user: User, currentUserId: string | undefined) {
         view_all_branches: user.viewAllBranches || false
     })
     if (error) {
-        console.error('Supabase Error (User):', JSON.stringify(error, null, 2))
+        console.error('Supabase Error (User):', { message: error.message, code: error.code, details: error.details, hint: error.hint })
         console.error('Error details:', {
             code: error.code,
             message: error.message,
@@ -577,7 +583,7 @@ export async function syncTransaction(tx: Transaction, currentUserId: string | u
         }
         if (tx.note) details += ` - ${tx.note}`
 
-        const id = crypto.randomUUID()
+        const id = generateId()
         const createdAt = new Date().toISOString()
         const activityLog: ActivityLog = {
             id,
@@ -622,7 +628,7 @@ export async function syncDeleteTransaction(id: string, currentUserId: string | 
     if (error) console.error('Supabase Error (Delete TX):', error)
 
     if (currentUserId && tx) {
-        const logId = crypto.randomUUID()
+        const logId = generateId()
         const createdAt = new Date().toISOString()
         const details = `Xóa giao dịch: ${tx.amount.toLocaleString('vi-VN')}đ - ${tx.note || '(Không có ghi chú)'}`
 
@@ -677,25 +683,36 @@ export async function syncCustomer(customer: Customer) {
         created_at: customer.createdAt,
         updated_at: customer.updatedAt
     })
-    if (error) console.error('Supabase Error (Customer):', JSON.stringify(error, null, 2))
+    if (error) console.error('Supabase Error (Customer):', { message: error.message, code: error.code, details: error.details, hint: error.hint })
 
     // Sync Treatment Cards if any
     if (customer.treatmentCards && customer.treatmentCards.length > 0) {
-        const cards = customer.treatmentCards.map(card => ({
-            id: card.id,
-            customer_id: customer.id,
-            name: card.name,
-            type: card.type,
-            total: card.total,
-            used: card.used,
-            remaining: card.remaining,
-            expiry_date: card.expiryDate,
-            status: card.status,
-            purchase_date: card.purchaseDate,
-            created_at: card.createdAt
-        }))
+        const cards = customer.treatmentCards.map(card => {
+            const data: any = {
+                id: card.id,
+                customer_id: customer.id,
+                name: card.name,
+                type: card.type,
+                total: card.total,
+                used: card.used,
+                remaining: card.remaining,
+                status: card.status,
+                purchase_date: card.purchaseDate,
+                created_at: card.createdAt
+            }
+            if (card.expiryDate) data.expiry_date = card.expiryDate;
+            return data;
+        })
         const { error: cardError } = await supabase.from('crm_treatment_cards').upsert(cards)
-        if (cardError) console.error('Supabase Error (TreatmentCards):', JSON.stringify(cardError, null, 2))
+        if (cardError) {
+            console.error('🔴 Supabase Error (TreatmentCards):', {
+                message: cardError.message,
+                code: cardError.code,
+                details: cardError.details,
+                hint: cardError.hint,
+                dataSent: cards
+            })
+        }
     }
     return null
 }
@@ -735,8 +752,7 @@ export async function syncCommissionSetting(setting: CommissionSetting) {
     })
 
     if (error) {
-        console.error('Supabase Error (CommissionSetting):', JSON.stringify(error, null, 2))
-        console.error('Error Details:', error.code, error.message, error.details, error.hint)
+        console.error('Supabase Error (CommissionSetting):', { message: error.message, code: error.code, details: error.details, hint: error.hint })
     }
     return null
 }
@@ -784,7 +800,7 @@ export async function syncJobTitle(jt: any) {
         created_at: jt.createdAt
     })
     if (error) {
-        console.error('Supabase Error (JobTitle):', JSON.stringify(error))
+        console.error('Supabase Error (JobTitle):', { message: error.message, code: error.code, details: error.details, hint: error.hint })
         console.error('  -> code:', error.code, '| message:', error.message, '| details:', error.details)
     }
     return null
@@ -831,6 +847,12 @@ export async function syncLead(lead: Lead) {
         branch_id: lead.branchId,
         phone_obtained_at: lead.phoneObtainedAt,
         care_logs: lead.careLogs,
+        is_locked: lead.isLocked || false,
+        phone_confirmed: lead.phoneConfirmed || false,
+        confirmed_by: lead.confirmedBy,
+        confirmed_at: lead.confirmedAt,
+        actual_service_value: lead.actualServiceValue,
+        service_note: lead.serviceNote,
         created_at: lead.createdAt,
         updated_at: lead.updatedAt || new Date().toISOString()
     })
@@ -848,11 +870,14 @@ export async function syncLead(lead: Lead) {
         const diffHours = (now - createdAt) / (1000 * 60 * 60)
 
         const isHot = diffHours <= 24
-        const amount = isHot ? 10000 : 2000
-        const type = isHot ? 'lead_hot_phone' : 'lead_cold_phone'
+        // Quy tắc mới: KPI chỉ tính khi phoneConfirmed = TRUE
+        if (!lead.phoneConfirmed) return lead
+
+        const amount = 10000 // Cố định 10k theo yêu cầu mới
+        const type = 'lead_confirmed_phone'
 
         const comm: CommissionLog = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             userId: salePageId,
             amount: amount,
             type: type as any,
@@ -959,11 +984,16 @@ export async function syncAppointment(apt: Appointment) {
         }
 
         if (leadStatus) {
-            const { error: updateLeadError } = await supabase.from('crm_leads').update({ lifecycle_status: leadStatus }).eq('id', apt.leadId)
+            const updatePayload: any = { lifecycle_status: leadStatus }
+            if (['pending', 'confirmed', 'booked'].includes(apt.status)) {
+                updatePayload.is_locked = true
+            }
+
+            const { error: updateLeadError } = await supabase.from('crm_leads').update(updatePayload).eq('id', apt.leadId)
             if (updateLeadError) {
                 console.error('Supabase Error (Sync Lead Status from Appointment):', updateLeadError)
             } else {
-                console.log(`Synced Lead ${apt.leadId} status to ${leadStatus} from Appointment ${apt.status}`)
+                console.log(`Synced Lead ${apt.leadId} status to ${leadStatus} from Appointment ${apt.status} (Locked: ${updatePayload.is_locked || 'no change'})`)
             }
         }
     }
@@ -974,7 +1004,7 @@ export async function syncAppointment(apt: Appointment) {
         const { data: existing } = await supabase.from('crm_commission_logs').select('id').eq('appointment_id', apt.id).eq('type', 'sale_tele_high_value')
         if (!existing || existing.length === 0) {
             const comm: CommissionLog = {
-                id: crypto.randomUUID(),
+                id: generateId(),
                 userId: apt.saleTeleId,
                 amount: 100000,
                 type: 'sale_tele_high_value',
@@ -1037,7 +1067,7 @@ export async function syncDeleteAppointment(id: string, leadId?: string, reason?
         if (lead) {
             const user = (getState().users.find(u => u.id === getState().currentUserId))
             const reasonLog = {
-                id: crypto.randomUUID(),
+                id: generateId(),
                 userId: user?.id || 'system',
                 userName: user?.displayName || 'Hệ thống',
                 type: 'other' as const,
@@ -1085,9 +1115,13 @@ export function saveAppointment(apt: Appointment) {
             if (apt.status === 'cancelled') leadStatus = 'recare'
             else if (['pending', 'confirmed', 'booked'].includes(apt.status)) leadStatus = 'booked'
 
-            nextState.leads = nextState.leads.map(l =>
-                l.id === apt.leadId ? { ...l, status: leadStatus } : l
-            )
+            nextState.leads = nextState.leads.map(l => {
+                if (l.id === apt.leadId) {
+                    const isLocked = ['pending', 'confirmed', 'booked', 'arrived', 'completed'].includes(apt.status)
+                    return { ...l, status: leadStatus, isLocked }
+                }
+                return l
+            })
         }
 
         return nextState
@@ -1099,9 +1133,16 @@ export function saveAppointment(apt: Appointment) {
  */
 export async function syncService(service: any) {
     const { error } = await supabase.from('crm_services').upsert({
-        id: service.id, name: service.name, category: service.category,
-        price: service.price, duration: service.duration, is_active: service.isActive,
-        image: service.image, created_at: service.createdAt
+        id: service.id,
+        name: service.name,
+        category: service.category,
+        category_id: service.categoryId,
+        price: service.price,
+        duration: service.duration,
+        type: service.type,
+        is_active: service.isActive,
+        image: service.image,
+        created_at: service.createdAt
     })
     if (error) console.error('Supabase Error (Service):', error)
     return null
@@ -1160,7 +1201,13 @@ export async function syncServiceOrder(order: any) {
             updated_at: order.updatedAt,
         })
         if (error) {
-            console.error('Supabase Error (ServiceOrder):', error)
+            console.error('🔴 Supabase Error (ServiceOrder):', {
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                hint: error.hint,
+                orderId: order.id
+            })
             return null
         }
 
@@ -1169,23 +1216,66 @@ export async function syncServiceOrder(order: any) {
             for (const p of order.payments) {
                 let accountId = 'pa-cash-hq'
                 if (p.method === 'bank') accountId = 'pa-bank-hq'
-                else if (p.method === 'wallet') accountId = 'pa-wallet'
+                else if (p.method === 'wallet') {
+                    // pa-wallet does not exist in payment_accounts, use a generic one or skip
+                    // For now, mapping to pa-cash-hq but adding a note
+                    accountId = 'pa-cash-hq'
+                }
 
-                await supabase.from('transactions').upsert({
+                const { error: txError } = await supabase.from('transactions').upsert({
                     id: p.id,
                     branch_id: order.branchId,
                     date: p.date.split('T')[0],
                     type: 'income',
-                    category_id: 'cat-rev-service',
+                    category_id: 'c-rev-dt', // Fixed from 'c-rev-sp' (which is Product Sales)
                     amount: p.amount,
                     payment_account_id: accountId,
-                    note: `Thanh toán cho phiếu ${order.code} (${p.method === 'cash' ? 'Tiền mặt' : p.method === 'bank' ? 'Chuyển khoản' : 'Ví'})`,
+                    note: `Thanh toán cho phiếu ${order.code} (${p.method === 'cash' ? 'Tiền mặt' : p.method === 'bank' ? 'Chuyển khoản' : 'Ví'})${p.method === 'wallet' ? ' [Ví thành viên]' : ''}`,
                     service_order_id: order.id,
                     created_by: order.createdBy,
                     created_at: p.date,
                     updated_at: p.date,
                     status: 'open'
                 })
+
+                if (txError) {
+                    console.error('🔴 Supabase Error (Transaction from ServiceOrder):', JSON.stringify({
+                        message: txError.message,
+                        code: txError.code,
+                        details: txError.details,
+                        hint: txError.hint,
+                        paymentId: p.id
+                    }, null, 2))
+                }
+            }
+        }
+        // Tự động cập nhật giá trị dịch vụ thực tế và trạng thái về Lead
+        if (order.appointmentId) {
+            // 1. Lấy lead_id từ appointment
+            const { data: apt } = await supabase.from('crm_appointments').select('lead_id').eq('id', order.appointmentId).single()
+            if (apt?.lead_id) {
+                const { error: updateLeadError } = await supabase.from('crm_leads').update({
+                    actual_service_value: order.actualAmount,
+                    // actual_service_at: order.updatedAt || order.createdAt, // Column missing in DB
+                    lifecycle_status: 'completed'
+                }).eq('id', apt.lead_id)
+
+                if (updateLeadError) {
+                    console.error('🔴 Supabase Error (Sync Lead from ServiceOrder):', {
+                        message: updateLeadError.message,
+                        code: updateLeadError.code,
+                        details: updateLeadError.details,
+                        hint: updateLeadError.hint,
+                        leadId: apt.lead_id
+                    })
+                } else {
+                    console.log(`Synced Lead ${apt.lead_id} actual value: ${order.actualAmount} from ServiceOrder`)
+                }
+            }
+
+            // 2. Cập nhật trạng thái Appointment thành completed nếu ServiceOrder hoàn tất
+            if (order.status === 'completed' || order.status === 'paid') {
+                await supabase.from('crm_appointments').update({ status: 'completed' }).eq('id', order.appointmentId)
             }
         }
     } catch (e) {
@@ -1255,7 +1345,7 @@ export async function syncMembershipTier(tier: MembershipTier, currentUserId?: s
 
     if (currentUserId) {
         const details = `Cấu hình Membership: ${tier.name} (Giảm ${tier.discount}%)`
-        const logId = crypto.randomUUID()
+        const logId = generateId()
         supabase.from('activity_logs').insert({
             id: logId, user_id: currentUserId, type: 'update',
             entity_type: 'membership_tier', entity_id: tier.id,
@@ -1271,7 +1361,7 @@ export async function syncDeleteMembershipTier(id: string, name: string, current
 
     if (currentUserId) {
         const details = `Xóa Hạng thành viên: ${name}`
-        const logId = crypto.randomUUID()
+        const logId = generateId()
         supabase.from('activity_logs').insert({
             id: logId, user_id: currentUserId, type: 'delete',
             entity_type: 'membership_tier', entity_id: id,
@@ -1293,7 +1383,7 @@ export async function syncLoyaltySettings(settings: LoyaltySettings, currentUser
 
     if (currentUserId) {
         const details = `Cập nhật cấu hình Tích điểm: ${settings.isActive ? 'Bật' : 'Tắt'} - 1đ/${(1 / settings.pointsPerVnd).toLocaleString()}đ - 1đ=${settings.vndPerPoint.toLocaleString()}đ`
-        const logId = crypto.randomUUID()
+        const logId = generateId()
         supabase.from('activity_logs').insert({
             id: logId, user_id: currentUserId, type: 'update',
             entity_type: 'loyalty_settings', entity_id: settings.id,
@@ -1303,3 +1393,131 @@ export async function syncLoyaltySettings(settings: LoyaltySettings, currentUser
     return null
 }
 
+
+/**
+ * Fully recalculates a customer's statistics by fetching their specific history
+ * and then updating both the local state and Supabase.
+ */
+export async function syncRecalculateCustomerStats(customerId: string) {
+    try {
+        // 1. Fetch targeted history
+        const { orders, appointments, customer: rawCustomer } = await fetchCustomerHistory(customerId)
+        if (!rawCustomer) {
+            console.error('syncRecalculateCustomerStats: Customer not found', customerId)
+            return
+        }
+
+        // 2. Map types correctly
+        const customer: Customer = {
+            id: rawCustomer.id,
+            fullName: rawCustomer.full_name,
+            phone: rawCustomer.phone,
+            phone2: rawCustomer.phone2,
+            email: rawCustomer.email,
+            gender: rawCustomer.gender,
+            birthday: rawCustomer.birthday,
+            avatar: rawCustomer.avatar,
+            facebook: rawCustomer.facebook,
+            zalo: rawCustomer.zalo,
+            address: rawCustomer.address,
+            rank: rawCustomer.rank,
+            points: rawCustomer.points || 0,
+            totalSpent: rawCustomer.total_spent || 0,
+            walletBalance: rawCustomer.wallet_balance || 0,
+            lastVisit: rawCustomer.last_visit || 'Chưa có',
+            isVip: rawCustomer.is_vip || false,
+            medicalNotes: rawCustomer.medical_notes,
+            professionalNotes: rawCustomer.professional_notes,
+            branchId: rawCustomer.branch_id,
+            treatmentCards: rawCustomer.treatment_cards || [],
+            createdAt: rawCustomer.created_at,
+            updatedAt: rawCustomer.updated_at
+        }
+
+        // Map orders and appointments back to frontend types for calculation
+        const mappedOrders: ServiceOrder[] = orders.map((o: any) => ({
+            id: o.id,
+            code: o.code,
+            customerId: o.customer_id,
+            branchId: o.branch_id,
+            lineItems: o.line_items || [],
+            totalAmount: o.total_amount || 0,
+            actualAmount: o.actual_amount || 0,
+            debtAmount: o.debt_amount || 0,
+            payments: o.payments || [],
+            status: o.status || 'draft',
+            createdBy: o.created_by || 'system',
+            createdAt: o.created_at,
+            updatedAt: o.updated_at
+        }))
+
+        const mappedAppts: Appointment[] = appointments.map((a: any) => ({
+            id: a.id,
+            customerId: a.customer_id,
+            branchId: a.branch_id,
+            appointmentDate: a.appointment_date,
+            status: a.status as any,
+            price: a.price || 0,
+            createdAt: a.created_at,
+            updatedAt: a.updated_at
+        }))
+
+        // 3. Get dependencies for calculation
+        const state = getState()
+        
+        // 4. Recalculate
+        const updatedCustomer = recalculateCustomerStats(customer, {
+            ...state,
+            serviceOrders: mappedOrders,
+            appointments: mappedAppts
+        } as any)
+
+        // 5. Save back
+        if (updatedCustomer) {
+            // Update local state if needed (might not be in memory, that's fine)
+            // But we mostly care about Supabase for this larger-scale sync
+            await syncCustomer(updatedCustomer)
+            console.log(`Recalculated and synced stats for customer: ${customer.fullName}`)
+        }
+    } catch (e) {
+        console.error('syncRecalculateCustomerStats failed:', e)
+    }
+}
+
+// ============================================================
+// SERVICE CATEGORIES
+// ============================================================
+
+export async function syncServiceCategory(cat: ServiceCategory) {
+    const { error } = await supabase.from('crm_service_categories').upsert({
+        id: cat.id,
+        name: cat.name,
+        description: cat.description,
+        is_active: cat.isActive,
+        created_at: cat.createdAt
+    })
+    if (error) console.error('Supabase Error (ServiceCategory):', JSON.stringify(error, null, 2))
+    return null
+}
+
+export function saveServiceCategory(cat: ServiceCategory) {
+    return (s: AppState): AppState => ({
+        ...s,
+        serviceCategories: s.serviceCategories?.some(x => x.id === cat.id)
+            ? s.serviceCategories.map(x => x.id === cat.id ? cat : x)
+            : [...(s.serviceCategories || []), cat]
+    })
+}
+
+export async function deleteServiceCategoryDB(id: string) {
+    const { error } = await supabase.from('crm_service_categories').delete().eq('id', id)
+    if (error) console.error('Supabase Error (Delete ServiceCategory):', error)
+    return null
+}
+
+export function removeServiceCategoryState(id: string) {
+    return (s: AppState): AppState => ({
+        ...s,
+        serviceCategories: s.serviceCategories?.filter(x => x.id !== id) || []
+    })
+}

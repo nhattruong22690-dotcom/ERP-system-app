@@ -4,9 +4,10 @@ import { useState, useMemo } from 'react'
 import { useApp, canViewAllBranches, hasPermission } from '@/lib/auth'
 import { Lead, User, LeadCareLog, Appointment, Customer } from '@/lib/types'
 import { saveLead, syncLead, saveAppointment, syncAppointment, saveCustomer, syncCustomer } from '@/lib/storage'
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
-import UserAvatar from '@/components/UserAvatar'
+import { generateId } from '@/lib/utils/id'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
+import UserAvatar from '@/components/ui/UserAvatar'
 import {
     Plus, Search, Phone, Clock,
     CheckCircle2, XCircle, UserPlus, ClipboardList,
@@ -18,10 +19,12 @@ import { useRouter } from 'next/navigation'
 // Import components
 import { LeadStats } from './components/LeadStats'
 import { LeadFilters } from './components/LeadFilters'
+import { getRowColor, getEffectiveStatus } from '@/app/(app)/crm/leads/utils'
+import { getVNToday, getVNMonthStr } from '@/lib/utils/date'
 import { LeadTable } from './components/LeadTable'
 import { LeadModals } from './components/LeadModals'
-import PageHeader from '@/components/PageHeader'
-import CustomerProfileModal from '@/components/crm/CustomerProfileModal'
+import PageHeader from '@/components/layout/PageHeader'
+import CustomerProfileModal from '@/components/features/crm/CustomerProfileModal'
 
 const SOURCES = ['Facebook', 'Zalo', 'Hotline', 'Website', 'TikTok', 'Khác']
 
@@ -70,7 +73,9 @@ const EMPTY_LEAD = (userId?: string, branchId?: string): Partial<Lead> => ({
     salePageId: userId,
     branchId: branchId,
     notes: '',
-    careLogs: []
+    careLogs: [],
+    phoneConfirmed: false,
+    actualServiceValue: 0
 })
 
 export default function LeadsPage() {
@@ -83,7 +88,7 @@ export default function LeadsPage() {
     const [showCareModal, setShowCareModal] = useState(false)
     const [showBookingModal, setShowBookingModal] = useState(false)
     const [activeLead, setActiveLead] = useState<Lead | null>(null)
-    const [viewCustomer, setViewCustomer] = useState<Customer | null>(null)
+    const [viewCustomer, setViewCustomer] = useState<any>(null)
 
     const [form, setForm] = useState<Partial<Lead>>(EMPTY_LEAD(currentUser?.id))
     const [careForm, setCareForm] = useState<Partial<LeadCareLog>>({
@@ -93,7 +98,7 @@ export default function LeadsPage() {
     })
 
     const [bookingForm, setBookingForm] = useState({
-        date: new Date().toISOString().split('T')[0],
+        date: getVNToday(),
         time: '09:00',
         notes: '',
         branchId: state.branches.find(b => b.type !== 'hq' && !b.isHeadquarter)?.id || state.branches[0]?.id
@@ -101,39 +106,15 @@ export default function LeadsPage() {
 
     const [isEditingInfo, setIsEditingInfo] = useState(false)
 
+    // Filter states
     const [searchTerm, setSearchTerm] = useState('')
-    const [filterStatus, setFilterStatus] = useState('')
-    const [filterSource, setFilterSource] = useState('')
+    const [filterStatus, setFilterStatus] = useState('all')
+    const [filterSource, setFilterSource] = useState('all')
     const canViewAll = canViewAllBranches(currentUser)
     const [branchFilter, setBranchFilter] = useState(!canViewAll && currentUser?.branchId ? currentUser.branchId : 'all')
+    const [selectedDate, setSelectedDate] = useState(getVNToday())
+    const [selectedMonth, setSelectedMonth] = useState(getVNMonthStr())
 
-    // Logic tính trạng thái thực tế (Effective Status)
-    const getEffectiveStatus = (lead: Lead): string => {
-        if (['booked', 'pending', 'confirmed', 'failed', 'spam_data', 'low_quality_mess', 'no_reach_mess', 'in_care', 'recare', 'arrived', 'completed', 'no_show', 'cancelled'].includes(lead.status)) return lead.status
-        const logsCount = (lead.careLogs || []).length
-        if (logsCount >= 1) return 'contacted'
-        const createdAt = new Date(lead.createdAt).getTime()
-        const now = new Date().getTime()
-        const diffHours = (now - createdAt) / (1000 * 60 * 60)
-        return diffHours < 24 ? 'new_created' : 'new'
-    }
-
-    const getRowColor = (status: string) => {
-        switch (status) {
-            case 'spam_data': return 'bg-rose-900/10 text-rose-900 border-rose-100 hover:bg-rose-900/15'
-            case 'low_quality_mess': return 'bg-amber-900/10 text-amber-900 border-amber-100 hover:bg-amber-900/15'
-            case 'no_reach_mess': return 'bg-yellow-500/10 text-yellow-800 border-yellow-200 hover:bg-yellow-500/20'
-            case 'in_care': return 'bg-emerald-500/10 text-emerald-800 border-emerald-100 hover:bg-emerald-500/20'
-            case 'recare': return 'bg-indigo-500/10 text-indigo-800 border-indigo-100 hover:bg-indigo-500/20'
-            case 'pending': return 'bg-amber-50/50 text-amber-700 border-amber-100 hover:bg-amber-100/50'
-            case 'confirmed': return 'bg-blue-50/50 text-blue-700 border-blue-100 hover:bg-blue-100/50'
-            case 'booked': return 'bg-indigo-50/50 text-indigo-700 border-indigo-100 hover:bg-indigo-100/50'
-            case 'arrived': return 'bg-emerald-50 text-emerald-900 border-emerald-100 hover:bg-emerald-100'
-            case 'completed': return 'bg-indigo-50 text-indigo-900 border-indigo-100 hover:bg-indigo-100'
-            case 'no_show': return 'bg-gray-50 text-gray-500 border-gray-100 opacity-60'
-            default: return 'hover:bg-gray-50 border-gray-50'
-        }
-    }
 
     const filteredLeads = useMemo(() => {
         return (state.leads || [])
@@ -141,8 +122,8 @@ export default function LeadsPage() {
             .filter(l => {
                 const searchMatch = !searchTerm || l.name.toLowerCase().includes(searchTerm.toLowerCase()) || (l.phone && l.phone.includes(searchTerm))
                 if (!searchMatch) return false
-                if (filterStatus && l.effectiveStatus !== filterStatus) return false
-                if (filterSource && l.source !== filterSource) return false
+                if (filterStatus !== 'all' && l.effectiveStatus !== filterStatus) return false
+                if (filterSource !== 'all' && l.source !== filterSource) return false
                 const hasTeamAccess = currentUser?.permissions?.includes('crm_lead_view_team')
                 if (currentUser?.role !== 'admin' && currentUser?.role !== 'manager' && currentUser?.role !== 'director' && !hasTeamAccess && l.salePageId !== currentUser?.id) return false
 
@@ -155,13 +136,15 @@ export default function LeadsPage() {
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     }, [state.leads, searchTerm, filterStatus, filterSource, currentUser, branchFilter, canViewAll])
 
+    // Dashboard Stats
     const stats = useMemo(() => {
-        const todayStr = new Date().toISOString().split('T')[0]
+        const todayStr = getVNToday()
+        const todayLeads = filteredLeads.filter(l => l.createdAt.startsWith(todayStr))
         return {
             total: filteredLeads.length,
-            new: filteredLeads.filter(l => l.effectiveStatus === 'new_created' || l.effectiveStatus === 'new').length,
-            booked: filteredLeads.filter(l => ['booked', 'pending', 'confirmed', 'arrived', 'completed', 'no_show', 'cancelled'].includes(l.effectiveStatus)).length,
-            today: filteredLeads.filter(l => l.createdAt.startsWith(todayStr)).length
+            new: todayLeads.filter(l => l.effectiveStatus === 'new_created' || l.effectiveStatus === 'new').length,
+            booked: todayLeads.filter(l => ['booked', 'pending', 'confirmed', 'arrived', 'completed', 'no_show', 'cancelled'].includes(l.effectiveStatus)).length,
+            today: todayLeads.length
         }
     }, [filteredLeads])
 
@@ -188,7 +171,7 @@ export default function LeadsPage() {
     function openBooking(l: Lead) {
         setActiveLead(l)
         setBookingForm({
-            date: new Date().toISOString().split('T')[0],
+            date: getVNToday(),
             time: '10:00',
             notes: l.notes || '',
             branchId: l.branchId || state.branches.find(b => b.type !== 'hq' && !b.isHeadquarter)?.id || state.branches[0]?.id
@@ -209,7 +192,7 @@ export default function LeadsPage() {
         }
 
         const lead: Lead = {
-            id: activeLead?.id ?? `lead_${crypto.randomUUID().substring(0, 8)}_${crypto.randomUUID().substring(14, 18)}`,
+            id: activeLead?.id ?? generateId('lead'),
             name: form.name!,
             phone: cleanPhone,
             source: form.source!,
@@ -220,7 +203,13 @@ export default function LeadsPage() {
             createdAt: activeLead?.createdAt ?? new Date().toISOString(),
             phoneObtainedAt: activeLead?.phoneObtainedAt,
             careLogs: activeLead?.careLogs || [],
-            customerId: form.customerId
+            customerId: form.customerId,
+            phoneConfirmed: activeLead?.phoneConfirmed || form.phoneConfirmed || false,
+            confirmedAt: activeLead?.confirmedAt || form.confirmedAt,
+            confirmedBy: activeLead?.confirmedBy || form.confirmedBy,
+            actualServiceValue: activeLead?.actualServiceValue || form.actualServiceValue || 0,
+            kpiConfirmed: activeLead?.kpiConfirmed || form.kpiConfirmed,
+            updatedAt: new Date().toISOString()
         }
 
         saveState(saveLead(lead))
@@ -242,7 +231,7 @@ export default function LeadsPage() {
         // 1. Tự động tạo Log nếu SĐT thay đổi
         if (oldLead?.phone !== activeLead.phone) {
             const phoneLog: LeadCareLog = {
-                id: crypto.randomUUID(),
+                id: generateId(),
                 userId: currentUser?.id || '',
                 userName: currentUser?.displayName || 'System',
                 type: 'other',
@@ -257,7 +246,7 @@ export default function LeadsPage() {
         // 2. Tự động tạo Log nếu Tên thay đổi
         if (oldLead?.name !== activeLead.name) {
             const nameLog: LeadCareLog = {
-                id: crypto.randomUUID(),
+                id: generateId(),
                 userId: currentUser?.id || '',
                 userName: currentUser?.displayName || 'System',
                 type: 'other',
@@ -275,7 +264,7 @@ export default function LeadsPage() {
         // - HOẶC: Không có bất kỳ thông tin nào (SĐT/Tên) thay đổi.
         if (careForm.content?.trim() || !hasAutomaticLog) {
             const manualLog: LeadCareLog = {
-                id: crypto.randomUUID(),
+                id: generateId(),
                 userId: currentUser?.id || '',
                 userName: currentUser?.displayName || 'System',
                 type: careForm.type as any,
@@ -342,7 +331,7 @@ export default function LeadsPage() {
                 showToast('Thông tin', `Tự động khớp dữ liệu với khách hàng: ${existingCustomer.fullName}`)
             } else {
                 // Tạo mới Customer nếu thực sự chưa có
-                customerId = crypto.randomUUID()
+                customerId = generateId()
                 const newCustomer = {
                     id: customerId,
                     fullName: activeLead.name,
@@ -362,7 +351,7 @@ export default function LeadsPage() {
         const salePage = state.users.find(u => u.id === activeLead.salePageId)
 
         const apt: Appointment = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             customerId: customerId,
             branchId: bookingForm.branchId,
             staffId: currentUser?.id,
@@ -383,34 +372,50 @@ export default function LeadsPage() {
         saveState(saveAppointment(apt))
         syncAppointment(apt)
 
+        // 3. Tự động xác thực SĐT Lead nếu chưa xác thực (User request)
+        if (!activeLead.phoneConfirmed) {
+            const updatedLead: Lead = {
+                ...activeLead,
+                phoneConfirmed: true,
+                confirmedAt: new Date().toISOString(),
+                confirmedBy: currentUser?.id || 'system',
+                status: 'booked' // Cập nhật trạng thái sang Đã đặt lịch
+            }
+            saveState(saveLead(updatedLead))
+            syncLead(updatedLead)
+            setActiveLead(updatedLead)
+            showToast('Thông tin', `Số điện thoại ${activeLead.phone} đã được tự động xác thực bởi ${currentUser?.displayName}`)
+        }
+
         showToast('Thành công', 'Đã tạo lịch hẹn và cập nhật trạng thái Lead')
         setShowBookingModal(false)
     }
 
-    async function handleSaveInline() {
-        if (!activeLead) return
-        if (!activeLead.name) {
+    async function handleSaveInline(leadToSave?: Lead) {
+        const lead = leadToSave || activeLead
+        if (!lead) return
+        if (!lead.name) {
             await showAlert('Họ tên không được để trống')
             return
         }
 
         // V21.8: Log changes to careLogs
-        const original = state.leads.find(l => l.id === activeLead.id)
+        const original = state.leads.find(l => l.id === lead.id)
         if (original) {
             const changes: string[] = []
-            if (original.name !== activeLead.name) changes.push(`Tên: ${original.name} → ${activeLead.name}`)
-            if (original.phone !== activeLead.phone) changes.push(`SĐT: ${original.phone || '(Trống)'} → ${activeLead.phone || '(Trống)'}`)
-            if (original.branchId !== activeLead.branchId) {
+            if (original.name !== lead.name) changes.push(`Tên: ${original.name} → ${lead.name}`)
+            if (original.phone !== lead.phone) changes.push(`SĐT: ${original.phone || '(Trống)'} → ${lead.phone || '(Trống)'}`)
+            if (original.branchId !== lead.branchId) {
                 const b1 = state.branches.find(b => b.id.toString() === original.branchId?.toString())?.name || 'N/A'
-                const b2 = state.branches.find(b => b.id.toString() === activeLead.branchId?.toString())?.name || 'N/A'
+                const b2 = state.branches.find(b => b.id.toString() === lead.branchId?.toString())?.name || 'N/A'
                 changes.push(`Chi nhánh: ${b1} → ${b2}`)
             }
-            if (original.source !== activeLead.source) changes.push(`Nguồn: ${original.source} → ${activeLead.source}`)
-            if (original.notes !== activeLead.notes) changes.push(`Ghi chú: ${original.notes || '(Trống)'} → ${activeLead.notes || '(Trống)'}`)
+            if (original.source !== lead.source) changes.push(`Nguồn: ${original.source} → ${lead.source}`)
+            if (original.notes !== lead.notes) changes.push(`Ghi chú: ${original.notes || '(Trống)'} → ${lead.notes || '(Trống)'}`)
 
             if (changes.length > 0) {
                 const log: LeadCareLog = {
-                    id: crypto.randomUUID(),
+                    id: generateId(),
                     userId: currentUser?.id || 'unknown',
                     userName: currentUser?.displayName || 'Nhân viên',
                     type: 'call',
@@ -418,12 +423,12 @@ export default function LeadsPage() {
                     content: `Nhân viên đã chỉnh sửa: ${changes.join(', ')}`,
                     createdAt: new Date().toISOString()
                 }
-                activeLead.careLogs = [log, ...(activeLead.careLogs || [])]
+                lead.careLogs = [log, ...(lead.careLogs || [])]
             }
         }
 
-        saveState(saveLead(activeLead))
-        syncLead(activeLead)
+        saveState(saveLead(lead))
+        syncLead(lead)
         showToast('Thành công', 'Đã cập nhật thông tin Lead')
         setIsEditingInfo(false)
     }
@@ -478,6 +483,7 @@ export default function LeadsPage() {
                     getRowColor={getRowColor}
                     getEffectiveStatus={getEffectiveStatus}
                     openCare={openCare}
+                    openBooking={openBooking}
                     statusChips={STATUS_CHIPS}
                     onViewCustomer={setViewCustomer}
                 />

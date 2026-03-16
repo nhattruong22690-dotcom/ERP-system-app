@@ -4,15 +4,17 @@ import { useState, useMemo, useEffect } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
 import { Appointment, Customer, AppointmentStatus, CustomerRank, AppointmentLog, CommissionLog, AppState } from '@/lib/types'
 import { saveAppointment, syncAppointment, saveCommissionLog, syncCommissionLog, saveLead, syncLead, getState, syncDeleteAppointment, saveCustomer, syncCustomer } from '@/lib/storage'
-import { recalculateCustomerStats } from '@/lib/calculations'
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
+import { recalculateCustomerStats } from '@/lib/utils/calculations'
+import { generateId } from '@/lib/utils/id'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
 import { CalendarDays, Search, Store, ChevronLeft, ChevronRight, PlusCircle, Receipt, Loader2, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import PageHeader from '@/components/PageHeader'
-import ServiceOrderModal from '@/components/crm/ServiceOrderModal'
-import CustomerProfileModal from '@/components/crm/CustomerProfileModal'
-import { searchCustomers } from '@/lib/supabaseFetch'
+import PageHeader from '@/components/layout/PageHeader'
+import ServiceOrderModal from '@/components/features/crm/ServiceOrderModal'
+import CustomerProfileModal from '@/components/features/crm/CustomerProfileModal'
+import { searchCustomers } from '@/lib/supabase/supabaseFetch'
+import { getVNToday, getVNString } from '@/lib/utils/date'
 
 const STATUS_CONFIG: Record<AppointmentStatus, { label: string; color: string; icon: string; bg: string }> = {
     pending: { label: 'Chờ đến', color: '#f59e0b', icon: 'schedule', bg: 'bg-amber-50 text-amber-600 border-amber-200' },
@@ -37,7 +39,7 @@ export default function AppointmentsPage() {
     const { showToast } = useToast()
     const router = useRouter()
 
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+    const [selectedDate, setSelectedDate] = useState(getVNToday())
     const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day')
     const canViewAll = canViewAllBranches(currentUser)
     const [branchFilter, setBranchFilter] = useState<string>(!canViewAll && currentUser?.branchId ? currentUser.branchId : 'all')
@@ -194,7 +196,7 @@ export default function AppointmentsPage() {
     function changeDate(days: number) {
         const d = new Date(selectedDate)
         d.setDate(d.getDate() + days)
-        setSelectedDate(d.toISOString().split('T')[0])
+        setSelectedDate(getVNString(d))
     }
 
     function openNew(time?: string) {
@@ -222,7 +224,7 @@ export default function AppointmentsPage() {
     // Helper to add log
     function createLog(action: string, details: string, oldStatus?: AppointmentStatus, newStatus?: AppointmentStatus): AppointmentLog {
         return {
-            id: crypto.randomUUID(),
+            id: generateId(),
             userId: currentUser?.id || 'system',
             userDisplayName: currentUser?.displayName || 'Hệ thống',
             action,
@@ -281,7 +283,7 @@ export default function AppointmentsPage() {
 
                         for (const rule of targetRules) {
                             const commLog: CommissionLog = {
-                                id: crypto.randomUUID(),
+                                id: generateId(),
                                 userId: lead.salePageId,
                                 amount: rule.amount || 0,
                                 type: rule.ruleCode || 'lead_booking',
@@ -322,7 +324,7 @@ export default function AppointmentsPage() {
                             : rule.amount || 0
 
                         const commLog: CommissionLog = {
-                            id: crypto.randomUUID(),
+                            id: generateId(),
                             userId: updated.saleTeleId,
                             amount: commissionAmount,
                             type: rule.ruleCode || 'service_commission',
@@ -426,7 +428,7 @@ export default function AppointmentsPage() {
         const autoSource = editing?.leadId ? 'lead' as const : (currentUser?.departmentType === 'sale' ? 'tele' as const : 'branch' as const)
 
         const appointment: Appointment = {
-            id: editing?.id || crypto.randomUUID(),
+            id: editing?.id || generateId(),
             customerId: finalCustomerId || '',
             customerName: form.customerName || editing?.customerName || customerSearch,
             customerPhone: form.customerPhone || editing?.customerPhone,
@@ -711,7 +713,23 @@ export default function AppointmentsPage() {
                                                                 </div>
 
                                                                 {/* Unified Quick Actions */}
-                                                                <div className="relative pt-2" onClick={e => e.stopPropagation()}>
+                                                                <div className="relative pt-2 flex flex-wrap gap-2" onClick={e => e.stopPropagation()}>
+                                                                    {(a.status === 'confirmed' || a.status === 'arrived') && (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setServiceOrderInitialData({
+                                                                                    appointmentId: a.id,
+                                                                                    customerId: a.customerId,
+                                                                                    branchId: a.branchId || ''
+                                                                                })
+                                                                                setShowServiceOrderForm(true)
+                                                                            }}
+                                                                            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-200/50 hover:bg-emerald-700 transition-all active:scale-95 font-black text-[10px] uppercase tracking-widest animate-in fade-in zoom-in duration-300"
+                                                                        >
+                                                                            <Receipt size={14} strokeWidth={2.5} />
+                                                                            Tạo phiếu DV
+                                                                        </button>
+                                                                    )}
                                                                     <button
                                                                         onClick={() => setActionMenuId(isMenuOpen ? null : a.id)}
                                                                         className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 text-gray-900 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 font-black text-[10px] uppercase tracking-widest"
@@ -1117,7 +1135,24 @@ export default function AppointmentsPage() {
                                 )}
                             </div>
 
-                            <div className="p-8 bg-gray-50/50 border-t border-gray-50 flex gap-4">
+                            <div className="p-8 bg-gray-50/50 border-t border-gray-50 flex flex-wrap gap-4">
+                                {editing && (form.status === 'confirmed' || form.status === 'arrived') && (
+                                    <button
+                                        onClick={() => {
+                                            setServiceOrderInitialData({
+                                                appointmentId: editing.id,
+                                                customerId: editing.customerId,
+                                                branchId: editing.branchId || ''
+                                            })
+                                            setShowServiceOrderForm(true)
+                                            setShowForm(false)
+                                        }}
+                                        className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-2 order-first lg:order-none"
+                                    >
+                                        <Receipt size={18} strokeWidth={2.5} />
+                                        Tạo phiếu dịch vụ (Hot Action)
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => setShowForm(false)}
                                     className="flex-1 py-4 bg-white border border-gray-200 rounded-2xl font-black text-gray-400 hover:bg-gray-100 transition-all active:scale-95 text-xs uppercase tracking-widest"

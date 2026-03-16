@@ -1,10 +1,10 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
-import { calculateAccountBalances, fmtVND, fmtDate } from '@/lib/calculations'
+import { calculateAccountBalances, fmtVND, fmtDate } from '@/lib/utils/calculations'
 import { Landmark, Wallet, CreditCard, ChevronRight, X, Calendar, Filter, QrCode, Download, Database } from 'lucide-react'
-import { useModal } from '@/components/ModalProvider'
-import PageHeader from '@/components/PageHeader'
+import { useModal } from '@/components/layout/ModalProvider'
+import PageHeader from '@/components/layout/PageHeader'
 
 function getBankCode(bankName: string) {
     if (!bankName) return 'vcb'

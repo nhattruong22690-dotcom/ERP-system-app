@@ -2,10 +2,10 @@
 import React, { useState } from 'react'
 import { useApp } from '@/lib/auth'
 import { User, Mail, Lock, User as UserIcon, Camera, Save, Key, CheckCircle2, Loader2, Edit2, X, Store } from 'lucide-react'
-import { useToast } from '@/components/ToastProvider'
-import PageHeader from '@/components/PageHeader'
+import { useToast } from '@/components/layout/ToastProvider'
+import PageHeader from '@/components/layout/PageHeader'
 import imageCompression from 'browser-image-compression'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/supabase'
 
 export default function ProfilePage() {
     const { currentUser, updateProfile, state } = useApp()

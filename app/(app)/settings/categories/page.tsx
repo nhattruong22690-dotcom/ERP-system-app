@@ -5,9 +5,9 @@ import { Category, CategorySection } from '@/lib/types'
 import { saveCategory, deleteCategory, importCategories } from '@/lib/storage'
 import { Plus, Edit2, X, Trash2, Upload, Download, Tag, PlusCircle, Calculator, Check, List, Sparkles, ChevronDown, ArrowRight } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import PageHeader from '@/components/PageHeader'
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
+import PageHeader from '@/components/layout/PageHeader'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
 
 function uid() { return 'cat-' + Math.random().toString(36).slice(2) }
 

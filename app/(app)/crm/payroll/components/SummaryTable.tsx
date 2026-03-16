@@ -1,6 +1,6 @@
 'use client'
 import { FileText, Search, Plus, Briefcase, Star, TrendingUp, Trash2 } from 'lucide-react'
-import UserAvatar from '@/components/UserAvatar'
+import UserAvatar from '@/components/ui/UserAvatar'
 
 interface SummaryProps {
     isRosterEmpty: boolean

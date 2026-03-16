@@ -1,14 +1,16 @@
 'use client'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
-import { useToast } from '@/components/ToastProvider'
-import { calculateLeadCommission, calculateKpiTieredCommissions, calculateAppointmentCommissions } from '@/lib/calculations'
+import { useToast } from '@/components/layout/ToastProvider'
+import { calculateLeadCommission, calculateKpiTieredCommissions, calculateAppointmentCommissions, calculateStaffServiceKpi } from '@/lib/utils/calculations'
 import {
     Calendar, Clock, FileText, Calculator,
     ChevronLeft, ChevronRight,
     Plus, Star, AlertTriangle, CreditCard, CheckCircle2, Gift, PlusCircle
 } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
+import { generateId } from '@/lib/utils/id'
+import { getVNToday, getVNString, getVNMonthStr } from '@/lib/utils/date'
 
 // New Component Imports
 import PayslipModal from './components/PayslipModal'
@@ -20,12 +22,12 @@ import TabTables from './components/TabTables'
 const formatVND = (amount: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 
-const EMPTY_FORM = { userId: '', type: '', amount: '', period: '', date: new Date().toISOString().split('T')[0], note: '' }
+const EMPTY_FORM = { userId: '', type: '', amount: '', period: '', date: getVNToday(), note: '' }
 
 export default function PayrollPage() {
     const { state, saveState, currentUser } = useApp()
     const { showToast } = useToast()
-    const [selectedDate, setSelectedDate] = useState(new Date())
+    const [selectedDate, setSelectedDate] = useState(new Date()) // Still object for logic, but we must be careful
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedBranch, setSelectedBranch] = useState('all')
 
@@ -46,7 +48,7 @@ export default function PayrollPage() {
     const [showDetailsModal, setShowDetailsModal] = useState(false)
     const [selectedDetailData, setSelectedDetailData] = useState<any>(null)
 
-    const monthStr = `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}`
+    const monthStr = getVNMonthStr(selectedDate)
     const isAdminOrAccounting = currentUser?.role === 'admin' || currentUser?.role === 'accountant' || currentUser?.role === 'director'
 
     const payrollData = useMemo(() => {
@@ -121,18 +123,23 @@ export default function PayrollPage() {
                 });
             }
 
-            // Tách biệt Thưởng KPI và Hoa hồng theo yêu cầu
-            const totalBonus = manualBonusTotal + kpiCommission.bonusKpi
-            const userCommission = leadComm.amount + aptComm.amount + logsCommission + kpiCommission.commissionAmount
+            // V23: Service splits for Technicians/Doctors
+            const serviceKpi = calculateStaffServiceKpi(user.id, monthStr, state.serviceOrders || [])
 
             // Attach details for modal
             const kpiDetails = {
                 leads: kpiCommission.matchedLeads || [],
                 appointments: kpiCommission.matchedAppointments || [],
-                breakdown: kpiCommission.details || [],
+                serviceOrders: serviceKpi.details || [],
+                serviceAmount: serviceKpi.totalCommission,
+                breakdown: [...(kpiCommission.details || []), ...(serviceKpi.details.length > 0 ? [`Hoa hồng thực hiện dịch vụ: +${formatVND(serviceKpi.totalCommission)}`] : [])],
                 targetKpi: kpiCommission.targetKpi || 0,
                 actualKpi: kpiCommission.actualKpi || 0
             }
+
+            // Tách biệt Thưởng KPI và Hoa hồng theo yêu cầu
+            const totalBonus = manualBonusTotal + kpiCommission.bonusKpi
+            const userCommission = leadComm.amount + aptComm.amount + logsCommission + kpiCommission.commissionAmount + serviceKpi.totalCommission
 
             // Revenue share for managers
             let revenueShareAmount = 0
@@ -216,7 +223,7 @@ export default function PayrollPage() {
                 .filter(u => canViewAll || u.branchId === currentUser?.branchId)
 
             const newRosters: import('@/lib/types').PayrollRoster[] = activeUsersForInit.map(u => ({
-                id: crypto.randomUUID(),
+                id: generateId(),
                 period: monthStr,
                 userId: u.id,
                 createdBy: currentUser?.id,
@@ -242,7 +249,7 @@ export default function PayrollPage() {
         try {
             const storage = await import('@/lib/storage')
             const roster: import('@/lib/types').PayrollRoster = {
-                id: crypto.randomUUID(),
+                id: generateId(),
                 period: monthStr,
                 userId: userId,
                 createdBy: currentUser?.id,
@@ -366,7 +373,7 @@ export default function PayrollPage() {
             const storage = await import('@/lib/storage')
             const isEditing = !!form.id
             const bonus = {
-                id: form.id || crypto.randomUUID(),
+                id: form.id || generateId(),
                 userId: form.userId,
                 type: form.type,
                 amount: Number(form.amount),
@@ -404,7 +411,7 @@ export default function PayrollPage() {
             const storage = await import('@/lib/storage')
             const isEditing = !!form.id
             const ded: import('@/lib/types').Deduction = {
-                id: form.id || crypto.randomUUID(),
+                id: form.id || generateId(),
                 userId: form.userId,
                 type: 'violation',
                 amount: Number(form.amount),
@@ -442,7 +449,7 @@ export default function PayrollPage() {
             const storage = await import('@/lib/storage')
             const isEditing = !!form.id
             const adv: import('@/lib/types').SalaryAdvance = {
-                id: form.id || crypto.randomUUID(),
+                id: form.id || generateId(),
                 userId: form.userId,
                 amount: Number(form.amount),
                 date: form.date,

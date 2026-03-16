@@ -2,30 +2,42 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { useApp } from '@/lib/auth'
-import { useToast } from '@/components/ToastProvider'
-import UserAvatar from '@/components/UserAvatar'
+import { useToast } from '@/components/layout/ToastProvider'
+import UserAvatar from '@/components/ui/UserAvatar'
 import {
-    Calendar,
-    Edit3,
-    Check,
     AlertCircle,
-    Users,
-    Clock,
+    Building,
+    Calendar,
+    Check,
     CheckCircle2,
-    Landmark,
     ChevronLeft,
     ChevronRight,
-    Search,
-    History as HistoryIcon,
-    X,
-    Plus,
-    Building,
+    Clock,
+    Download,
+    Edit3,
+    ExternalLink,
+    FileText,
+    Filter,
     Grid,
-    LayoutGrid
+    History as HistoryIcon,
+    Landmark,
+    LayoutGrid,
+    MapPin,
+    Pencil,
+    Plus,
+    Save,
+    Search,
+    Store,
+    User,
+    Users,
+    X,
+    XCircle
 } from 'lucide-react'
-import { COLOR_MAP, ROLES, Attendance, User, AppState, Branch } from '@/lib/types'
+import { generateId } from '@/lib/utils/id'
+import { COLOR_MAP, ROLES, Attendance, User as UserType, AppState, Branch } from '@/lib/types'
 import { syncAttendance } from '@/lib/storage'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
+import { getVNToday, getVNTime, getVNString } from '@/lib/utils/date'
 
 // Modal Component for detailed editing
 const AttendanceEditModal = ({
@@ -37,7 +49,7 @@ const AttendanceEditModal = ({
 }: {
     show: boolean,
     onClose: () => void,
-    user: User | null,
+    user: UserType | null,
     record: Attendance | null,
     onSave: (data: Partial<Attendance>) => void
 }) => {
@@ -145,10 +157,10 @@ export default function AttendancePage() {
     const { showToast } = useToast()
 
     const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day')
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+    const [selectedDate, setSelectedDate] = useState(getVNToday())
 
     // Modal state
-    const [editModal, setEditModal] = useState({ show: false, user: null as User | null, record: null as Attendance | null })
+    const [editModal, setEditModal] = useState({ show: false, user: null as UserType | null, record: null as Attendance | null })
 
     // Auto-select branch if restricted to one branch
     // Global Access (HQ/Admin) can see everything
@@ -167,7 +179,7 @@ export default function AttendancePage() {
         return Array.from({ length: 7 }, (_, i) => {
             const d = new Date(start)
             d.setDate(d.getDate() + i)
-            return d.toISOString().split('T')[0]
+            return getVNString(d)
         })
     }, [selectedDate])
 
@@ -177,7 +189,7 @@ export default function AttendancePage() {
         const month = d.getMonth()
         const lastDay = new Date(year, month + 1, 0).getDate()
         return Array.from({ length: lastDay }, (_, i) => {
-            return new Date(year, month, i + 1).toISOString().split('T')[0]
+            return getVNString(new Date(year, month, i + 1))
         })
     }, [selectedDate])
 
@@ -191,7 +203,7 @@ export default function AttendancePage() {
             ...data,
             updatedAt: now.toISOString()
         } : {
-            id: crypto.randomUUID(),
+            id: generateId(),
             userId,
             branchId: state.users.find(u => u.id === userId)?.branchId || '',
             date,
@@ -226,7 +238,7 @@ export default function AttendancePage() {
         const monthStr = selectedDate.substring(0, 7) // 'YYYY-MM'
         const currentRosterUserIds = state.payrollRosters?.filter(r => r.period === monthStr).map(r => r.userId) || []
 
-        return state.users.filter((u: User) => {
+        return state.users.filter((u: UserType) => {
             if (u.workStatus === 'resigned') return false
 
             // KIỂM TRA MỚI: Chỉ lấy NV có trong danh sách lương (Roster) của tháng này
@@ -262,7 +274,7 @@ export default function AttendancePage() {
     const handleQuickAttendance = async (userId: string, type: 'checkIn' | 'checkOut') => {
         const existing = dayAttendance.find((a: Attendance) => a.userId === userId)
         const now = new Date()
-        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+        const timeStr = getVNTime()
 
         const newRecord: Attendance = existing ? {
             ...existing,
@@ -270,9 +282,9 @@ export default function AttendancePage() {
             status: 'present',
             updatedAt: now.toISOString()
         } : {
-            id: crypto.randomUUID(),
+            id: generateId(),
             userId,
-            branchId: state.users.find((u: User) => u.id === userId)?.branchId || '',
+            branchId: state.users.find((u: UserType) => u.id === userId)?.branchId || '',
             date: selectedDate,
             status: 'present',
             [type]: timeStr,
@@ -302,9 +314,9 @@ export default function AttendancePage() {
             status,
             updatedAt: now.toISOString()
         } : {
-            id: crypto.randomUUID(),
+            id: generateId(),
             userId,
-            branchId: state.users.find((u: User) => u.id === userId)?.branchId || '',
+            branchId: state.users.find((u: UserType) => u.id === userId)?.branchId || '',
             date: selectedDate,
             status,
             createdAt: now.toISOString(),
@@ -350,7 +362,7 @@ export default function AttendancePage() {
                             if (viewMode === 'day') d.setDate(d.getDate() - 1)
                             else if (viewMode === 'week') d.setDate(d.getDate() - 7)
                             else d.setMonth(d.getMonth() - 1)
-                            setSelectedDate(d.toISOString().split('T')[0])
+                            setSelectedDate(getVNString(d))
                         }}>
                             <ChevronLeft size={16} strokeWidth={2.5} />
                         </button>
@@ -362,7 +374,7 @@ export default function AttendancePage() {
                             if (viewMode === 'day') d.setDate(d.getDate() + 1)
                             else if (viewMode === 'week') d.setDate(d.getDate() + 7)
                             else d.setMonth(d.getMonth() + 1)
-                            setSelectedDate(d.toISOString().split('T')[0])
+                            setSelectedDate(getVNString(d))
                         }}>
                             <ChevronRight size={16} strokeWidth={2.5} />
                         </button>
@@ -517,7 +529,7 @@ export default function AttendancePage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-50">
-                                            {activeUsers.map((u: User) => {
+                                            {activeUsers.map((u: UserType) => {
                                                 const record = dayAttendance.find((a: Attendance) => a.userId === u.id)
                                                 const status = record?.status || 'absent'
                                                 const jt = state.jobTitles?.find((j: any) => j.id === u.jobTitleId)
@@ -688,7 +700,7 @@ export default function AttendancePage() {
                                         const dayRecs = state.attendance.filter(a => a.date === date)
                                         const presentCount = dayRecs.filter(a => a.status === 'present').length
                                         const leaveCount = dayRecs.filter(a => a.status === 'on_leave').length
-                                        const isToday = date === new Date().toISOString().split('T')[0]
+                                        const isToday = date === getVNToday()
 
                                         return (
                                             <div

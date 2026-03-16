@@ -203,6 +203,28 @@ export default function KpiDetailsModal({
                                 </div>
                             </div>
 
+                            {/* Service Order Splits Section (New) */}
+                            {data.kpiDetails.serviceOrders && data.kpiDetails.serviceOrders.length > 0 && (
+                                <div className="bg-emerald-50/10 border border-emerald-100 rounded-[32px] p-8 mb-6">
+                                    <h5 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-6 flex items-center gap-2 italic">
+                                        <CheckCircle2 size={14} /> Hoa hồng thực hiện dịch vụ (KTV / Bác sĩ)
+                                    </h5>
+                                    <div className="space-y-3">
+                                        {data.kpiDetails.serviceOrders.map((detail: string, i: number) => (
+                                            <div key={i} className="flex justify-between items-center bg-white p-4 rounded-2xl border border-emerald-50 shadow-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                                        <FileText size={14} />
+                                                    </div>
+                                                    <span className="text-[12px] font-bold text-text-main">{detail.split(': +')[0]}</span>
+                                                </div>
+                                                <span className="text-[13px] font-black text-emerald-600 tabular-nums">+{detail.split(': +')[1]}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="bg-white border border-gold-light/20 rounded-[40px] overflow-hidden shadow-luxury">
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">

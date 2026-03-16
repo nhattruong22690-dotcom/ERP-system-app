@@ -3,10 +3,10 @@ import { useState } from 'react'
 import { useApp, canManageUsers } from '@/lib/auth'
 import { PaymentAccount, AccountType } from '@/lib/types'
 import { saveAccount } from '@/lib/storage'
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
 import { Plus, Edit2, X, QrCode, Download, CreditCard, PlusCircle } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 
 function uid() { return 'pa-' + Math.random().toString(36).slice(2) }
 

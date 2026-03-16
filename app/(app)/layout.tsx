@@ -3,17 +3,17 @@ import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useApp, canManageUsers, isPageAllowed, canViewAllBranches } from '@/lib/auth'
-import { buildAlerts, fmtVND } from '@/lib/calculations'
+import { buildAlerts, fmtVND } from '@/lib/utils/calculations'
 import {
     LayoutDashboard, ClipboardList, ArrowLeftRight,
     BarChart3, LogOut, Users, Building2, CreditCard, Tag, X,
     Bell, AlertTriangle, CheckCircle, ArrowRight, Star, TrendingUp, TrendingDown,
     UserCircle, Coins, Calendar, Target, Percent, Award, Settings2, Receipt
 } from 'lucide-react'
-import UserAvatar from '@/components/UserAvatar'
-import PresenceSidebar from '@/components/PresenceSidebar'
-import FloatingChatManager from '@/components/FloatingChatManager'
-import NotificationBanner from '@/components/NotificationBanner'
+import UserAvatar from '@/components/ui/UserAvatar'
+import PresenceSidebar from '@/components/layout/PresenceSidebar'
+import FloatingChatManager from '@/components/chat/FloatingChatManager'
+import NotificationBanner from '@/components/layout/NotificationBanner'
 import { User } from '@/lib/types'
 
 const FINANCE_NAV = [
@@ -28,7 +28,7 @@ const CRM_NAV = [
     { href: '/crm/leads', label: 'Quản lý Lead', icon: ClipboardList },
     { href: '/crm/appointments', label: 'Lịch hẹn & CSKH', icon: Calendar },
     { href: '/crm/service-orders', label: 'Phiếu dịch vụ', icon: Receipt },
-    { href: '/crm/services', label: 'Danh mục dịch vụ', icon: ClipboardList },
+    { href: '/crm/services', label: 'Dịch vụ', icon: ClipboardList },
     { href: '/crm/membership-settings', label: 'Cấu hình Membership', icon: Award },
     { href: '/crm/sale-settings', label: 'Cấu hình Sale', icon: Settings2 },
 ]
@@ -416,15 +416,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 {/* Mobile Top Bar — INSIDE scroll container for sticky to work */}
                 {isMobile && (
                     <div style={{
-                        position: 'sticky',
+                        position: 'fixed',
                         top: 0,
-                        height: '56px',
+                        left: 0,
+                        right: 0,
+                        height: '64px', // Increased from 56px to accommodate larger button
                         background: 'white',
-                        zIndex: 960,
+                        zIndex: 1500, // High z-index but below sidebar overlay
                         display: 'flex',
                         alignItems: 'center',
                         padding: '0 16px',
                         borderBottom: '1px solid rgba(0,0,0,0.06)',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
                         flexShrink: 0,
                     }}>
                         <button
@@ -433,17 +436,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                             style={{
                                 background: 'white',
                                 border: '1.5px solid var(--border)',
-                                borderRadius: '12px',
+                                borderRadius: '14px',
                                 padding: '6px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                                boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                width: '40px',
-                                height: '40px'
+                                width: '48px', // Increased by 20% (40 -> 48)
+                                height: '48px'
                             }}
                         >
-                            <img src="/logo.png" alt="Menu" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+                            <img src="/logo.png" alt="Menu" style={{ width: '30px', height: '30px', objectFit: 'contain' }} />
                         </button>
                         <div style={{ marginLeft: '12px', fontSize: '11px', fontWeight: 900, color: 'var(--gold-muted)', textTransform: 'uppercase', letterSpacing: '2px' }}>
                             Xinh Group
@@ -813,8 +816,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </div>
                 )}
 
-                {/* Page content */}
-                <main style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 1 }}>
+                {/* Content Area */}
+                <main style={{ 
+                    flex: 1, 
+                    minWidth: 0, 
+                    position: 'relative', 
+                    zIndex: 1,
+                    paddingTop: isMobile ? '64px' : '0' // Adjusted for fixed header
+                }}>
                     {children}
                 </main>
             </div>

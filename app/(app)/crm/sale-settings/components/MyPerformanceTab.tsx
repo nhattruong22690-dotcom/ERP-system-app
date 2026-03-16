@@ -3,12 +3,13 @@ import { useState, useMemo } from 'react'
 import { useApp } from '@/lib/auth'
 import { CommissionLog, UserMission } from '@/lib/types'
 import { TrendingUp, Target, Award, Wallet, Clock, CheckCircle2, AlertCircle, ChevronRight, BarChart3, Star, Zap, UserPlus } from 'lucide-react'
+import { getVNToday, getVNMonthStr } from '@/lib/utils/date'
 
 const formatVND = (v: number) => v.toLocaleString('vi-VN') + ' ₫'
 
 export const MyPerformanceTab = () => {
     const { currentUser, state } = useApp()
-    const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7)) // YYYY-MM
+    const [period, setPeriod] = useState(getVNMonthStr()) // YYYY-MM
 
     const myLeads = useMemo(() => {
         return state.leads.filter(l => l.salePageId === currentUser?.id && l.createdAt.startsWith(period))
@@ -145,7 +146,7 @@ export const MyPerformanceTab = () => {
                                 // Simple mock progress calculation
                                 let currentVal = 0
                                 if (m.metricType === 'lead_count') {
-                                    const today = new Date().toISOString().split('T')[0]
+                                    const today = getVNToday()
                                     currentVal = myLeads.filter(l => l.createdAt.startsWith(today)).length
                                 }
                                 else if (m.metricType === 'booking_count') currentVal = myStats.bookedLead

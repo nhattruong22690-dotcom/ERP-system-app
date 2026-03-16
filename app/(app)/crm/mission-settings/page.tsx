@@ -3,9 +3,10 @@ import { useState, useMemo, useEffect } from 'react'
 import { useApp } from '@/lib/auth'
 import { UserMission, User } from '@/lib/types'
 import { saveUserMission, syncUserMission } from '@/lib/storage'
-import { useToast } from '@/components/ToastProvider'
+import { useToast } from '@/components/layout/ToastProvider'
+import { generateId } from '@/lib/utils/id'
 import { Target } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 
 export default function MissionSettingsPage() {
     const { state, saveState } = useApp()
@@ -48,7 +49,7 @@ export default function MissionSettingsPage() {
     const handleAddMission = (cycle: 'daily' | 'weekly' | 'monthly', metricType: 'booking_count' | 'revenue_total' | 'lead_count') => {
         if (!selectedStaff) return
         const newMission: UserMission = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             userId: selectedStaff,
             cycle,
             metricType,

@@ -1,10 +1,10 @@
 'use client'
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
-import { buildCashFlowRows, fmtVND, buildAlerts } from '@/lib/calculations'
+import { buildCashFlowRows, fmtVND, buildAlerts } from '@/lib/utils/calculations'
 import { AlertTriangle, CheckCircle, Star, ArrowRightCircle, Landmark, LayoutDashboard, Database, TrendingUp, TrendingDown, Wallet, Activity, BellOff, ChevronDown, ChevronUp } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 
 const SECTION_LABELS: Record<string, string> = {
     revenue: 'Dòng tiền vào & Doanh thu',

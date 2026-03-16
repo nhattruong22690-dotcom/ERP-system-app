@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { AppProvider } from '@/lib/auth'
-import { ModalProvider } from '@/components/ModalProvider'
-import { ToastProvider } from '@/components/ToastProvider'
+import { ModalProvider } from '@/components/layout/ModalProvider'
+import { ToastProvider } from '@/components/layout/ToastProvider'
 import { Inter, Playfair_Display, Be_Vietnam_Pro } from 'next/font/google'
-import { SystemStyleInjector } from '@/components/SystemStyleInjector'
+import { SystemStyleInjector } from '@/components/layout/SystemStyleInjector'
 
 const inter = Inter({
   subsets: ['latin', 'vietnamese'],

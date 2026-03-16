@@ -1,13 +1,13 @@
 'use client'
 import React, { useState, useMemo } from 'react'
 import { useApp, canEditPlan, canViewAllBranches } from '@/lib/auth'
-import { recalcPlan, fmtVND } from '@/lib/calculations'
+import { recalcPlan, fmtVND } from '@/lib/utils/calculations'
 import { savePlan } from '@/lib/storage'
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
 import { MonthlyPlan } from '@/lib/types'
 import { Save, Copy, Trash2, FileEdit, CheckCircle2, FileText } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 
 const MONTH_NAMES = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12']
 const SECTION_LABELS: Record<string, string> = {

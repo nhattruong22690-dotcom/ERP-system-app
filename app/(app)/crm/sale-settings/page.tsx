@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Percent, Target, Award, Settings } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 import { CommissionSettingsTab } from './components/CommissionSettingsTab'
 import { MissionSettingsTab } from './components/MissionSettingsTab'
 import { MyPerformanceTab } from './components/MyPerformanceTab'

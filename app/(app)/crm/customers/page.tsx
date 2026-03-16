@@ -8,14 +8,15 @@ import {
     saveCustomer,
     updateState
 } from '@/lib/storage'
-import CustomerList from '@/components/crm/CustomerList'
-import CustomerProfileModal from '@/components/crm/CustomerProfileModal'
-import CustomerFormModal from '@/components/crm/CustomerFormModal'
+import CustomerList from '@/components/features/crm/CustomerList'
+import CustomerProfileModal from '@/components/features/crm/CustomerProfileModal'
+import CustomerFormModal from '@/components/features/crm/CustomerFormModal'
 import { ActivityLog, Customer, CustomerRank, User, Branch, MembershipTier, Appointment } from '@/lib/types'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/supabase'
 import { Users } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 import { useRouter } from 'next/navigation'
+import { generateId } from '@/lib/utils/id'
 
 export default function CustomersPage() {
     const { state, currentUser, saveState } = useApp()
@@ -66,7 +67,7 @@ export default function CustomersPage() {
             const now = new Date().toISOString();
             const newCustomer: Customer = {
                 ...customerData,
-                id: crypto.randomUUID(),
+                id: generateId(),
                 rank: CustomerRank.MEMBER,
                 points: 0,
                 totalSpent: 0,
@@ -82,7 +83,7 @@ export default function CustomersPage() {
 
             // 3. Log activity
             const activity: ActivityLog = {
-                id: crypto.randomUUID(),
+                id: generateId(),
                 type: 'customer_created',
                 user: currentUser?.displayName || 'Hệ thống',
                 details: `Đã thêm khách hàng mới: ${newCustomer.fullName}`,

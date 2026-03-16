@@ -1,10 +1,16 @@
 'use client'
 import { useState } from 'react'
-import { Plus, Edit2, Trash2, Save, X, ChevronRight, Calculator, CheckCircle2, Info, Settings2, Power, AlertTriangle, Star, TrendingUp, Gift, Zap, PlusCircle } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import {
+    Plus, Search, Edit2, Trash2, Shield, 
+    CheckCircle2, AlertTriangle, Info, Save, X,
+    ChevronDown, Settings, Zap, Target, Calculator,
+    PlusCircle, TrendingUp, Star, Gift, Power
+} from 'lucide-react'
+import { generateId } from '@/lib/utils/id'
+import PageHeader from '@/components/layout/PageHeader'
 
-import { useModal } from '@/components/ModalProvider'
-import { useToast } from '@/components/ToastProvider'
+import { useModal } from '@/components/layout/ModalProvider'
+import { useToast } from '@/components/layout/ToastProvider'
 import { useApp } from '@/lib/auth'
 import { CommissionSetting, Tier, KpiTier } from '@/lib/types'
 
@@ -83,7 +89,7 @@ export default function CommissionSettingsPage() {
         try {
             const storage = await import('@/lib/storage')
             const newPolicy: CommissionSetting = {
-                id: editingPolicy?.id || crypto.randomUUID(),
+                id: editingPolicy?.id || generateId(),
                 name: formData.name!,
                 ruleCode: formData.ruleCode!,
                 action: formData.action || 'lead_phone',
@@ -169,7 +175,7 @@ export default function CommissionSettingsPage() {
         const currentTiers = formData.kpiTiers || []
         setFormData({
             ...formData,
-            kpiTiers: [...currentTiers, { minKpi: 0, maxKpi: null, bonusNoPayment: 0, bonusWithPayment: 0, commissionRate: 0 }]
+            kpiTiers: [...currentTiers, { minKpi: 0, maxKpi: null, bonusNoPayment: 0, bonusWithPayment: 0, bonusBooking: 0, bonusService: 0, bonusAmount: 0, commissionRate: 0 }]
         })
     }
 
@@ -195,8 +201,8 @@ export default function CommissionSettingsPage() {
                 action: 'appointment_completed',
                 type: 'kpi_tiered',
                 kpiTiers: [
-                    { minKpi: 90, maxKpi: null, bonusNoPayment: 0, bonusWithPayment: 10000, commissionRate: 1 },
-                    { minKpi: 70, maxKpi: 90, bonusNoPayment: 0, bonusWithPayment: 5000, commissionRate: 0.5 }
+                    { minKpi: 90, maxKpi: null, bonusNoPayment: 0, bonusWithPayment: 10000, bonusBooking: 0, bonusService: 0, bonusAmount: 0, commissionRate: 1 },
+                    { minKpi: 70, maxKpi: 90, bonusNoPayment: 0, bonusWithPayment: 5000, bonusBooking: 0, bonusService: 0, bonusAmount: 0, commissionRate: 0.5 }
                 ],
                 condition: 'Thưởng trên SĐT hợp lệ và % Thực thu khi đạt KPI'
             })
@@ -208,8 +214,8 @@ export default function CommissionSettingsPage() {
                 action: 'appointment_arrived',
                 type: 'kpi_tiered',
                 kpiTiers: [
-                    { minKpi: 90, maxKpi: null, bonusNoPayment: 20000, bonusWithPayment: 40000, commissionRate: 1 },
-                    { minKpi: 70, maxKpi: 90, bonusNoPayment: 10000, bonusWithPayment: 20000, commissionRate: 0.5 }
+                    { minKpi: 90, maxKpi: null, bonusNoPayment: 20000, bonusWithPayment: 40000, bonusBooking: 0, bonusService: 0, bonusAmount: 0, commissionRate: 1 },
+                    { minKpi: 70, maxKpi: 90, bonusNoPayment: 10000, bonusWithPayment: 20000, bonusBooking: 0, bonusService: 0, bonusAmount: 0, commissionRate: 0.5 }
                 ],
                 condition: 'Thưởng cố định (Check-in) và % Thực thu khi đạt KPI'
             })
@@ -243,7 +249,7 @@ export default function CommissionSettingsPage() {
                         {policies.length === 0 ? (
                             <div className="bg-white p-16 rounded-[2.5rem] border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-center">
                                 <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
-                                    <Settings2 size={32} />
+                                    <Settings size={32} />
                                 </div>
                                 <h3 className="text-lg font-bold text-gray-400 italic">Chưa có quy tắc nào được thiết lập</h3>
                                 <p className="text-xs text-gray-400 mt-2 max-w-xs">Hãy bắt đầu bằng việc thêm một quy tắc thưởng mới cho đội ngũ của bạn.</p>
@@ -402,7 +408,7 @@ export default function CommissionSettingsPage() {
                             <div className="bg-gray-50 p-8 border-b border-gray-100 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-white rounded-2xl shadow-sm text-indigo-600 border border-indigo-50">
-                                        <Settings2 size={24} />
+                                        <Settings size={24} />
                                     </div>
                                     <div>
                                         <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">{editingPolicy ? 'Chỉnh sửa quy tắc' : 'Thêm quy tắc mới'}</h3>
@@ -640,7 +646,7 @@ export default function CommissionSettingsPage() {
                                     disabled={isSaving}
                                     className="px-10 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs hover:bg-indigo-700 active:scale-95 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2"
                                 >
-                                    {isSaving ? <Settings2 className="animate-spin" size={16} /> : <Save size={16} />}
+                                    {isSaving ? <Settings className="animate-spin" size={16} /> : <Save size={16} />}
                                     {editingPolicy ? 'LƯU THAY ĐỔI' : 'TẠO QUY TẮC'}
                                 </button>
                             </div>

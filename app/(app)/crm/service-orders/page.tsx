@@ -4,9 +4,9 @@ import { useState, useMemo } from 'react'
 import { useApp } from '@/lib/auth'
 import { ServiceOrder, Customer } from '@/lib/types'
 import { Receipt, Search, Edit2, PlusSquare, User } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
-import ServiceOrderModal from '@/components/crm/ServiceOrderModal'
-import CustomerProfileModal from '@/components/crm/CustomerProfileModal'
+import PageHeader from '@/components/layout/PageHeader'
+import ServiceOrderModal from '@/components/features/crm/ServiceOrderModal'
+import CustomerProfileModal from '@/components/features/crm/CustomerProfileModal'
 import { useRouter } from 'next/navigation'
 
 const STATUS_MAP: Record<string, { label: string; bg: string; text: string }> = {

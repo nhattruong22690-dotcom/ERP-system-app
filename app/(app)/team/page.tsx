@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import { useApp } from '@/lib/auth'
 import { Users, ClipboardList, Phone, Star, Sparkles, UserPlus } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import PageHeader from '@/components/layout/PageHeader'
 
 export default function TeamPage() {
     const { state } = useApp()
