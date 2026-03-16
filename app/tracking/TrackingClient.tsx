@@ -35,7 +35,8 @@ export default function TrackingClient({ id }: { id: string }) {
             if (!customerId || customerId === 'undefined') return;
 
             try {
-                const res = await fetch(`/api/tracking/${customerId}`)
+                const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
+                const res = await fetch(`${baseUrl}/api/tracking/${customerId}`)
                 const result = await res.json()
                 if (result.status === 'success') {
                     setData(result.data)
