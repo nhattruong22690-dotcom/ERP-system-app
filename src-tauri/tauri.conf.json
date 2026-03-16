@@ -26,7 +26,7 @@
   "plugins": {
     "updater": {
       "active": true,
-      "pubkey": "RWR8P+sZPyup/7PJmX9yyCdQIsEa3Bm1duMFvvoAxGqy0cIYahg5L2k4+d",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pYmVsc2FwdWlHB1YmxpYyBrZzXk6IDZBMzkyRjBERDVFNjBBRjEKU1ZEU1ZmcWNIU1ZEUzg1YXB0Tmk2UWNIUU1udmYyckMwdG5yWkRpMnM2RGFGb3hCMk5Ka3NQRVJBaSsKRWk4MGVXSEpQQUwzbXZxYktLSDR0MHdZY0tsN3UwTWM9Cg==",
       "endpoints": [
         "https://github.com/nhattruong22690-dotcom/ERP-system-app/releases/latest/download/latest.json"
       ]
