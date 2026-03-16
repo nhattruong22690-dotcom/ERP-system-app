@@ -113,7 +113,7 @@ export default function CustomersPage() {
     if (!currentUser) return null;
 
     return (
-        <div className="page-container">
+        <div className="page-container h-full">
             <PageHeader
                 icon={Users}
                 title="Quản lý Khách hàng"
@@ -138,7 +138,7 @@ export default function CustomersPage() {
                 }
             />
 
-            <div className="flex-1 w-full max-w-[1700px] mx-auto relative">
+            <div className="flex-1 w-full xl:w-[85%] 2xl:w-[80%] mx-auto px-4 md:px-0">
                 <CustomerList
                     currentUser={currentUser}
                     onNavigate={(tab: string) => {

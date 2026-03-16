@@ -235,7 +235,7 @@ const CustomerList: React.FC<CustomerListProps> = ({
     const endRange = Math.min(currentPage * ITEMS_PER_PAGE, effectiveTotal);
 
     return (
-        <div className="flex flex-col h-full space-y-8 animate-fade-in p-10">
+        <div className="flex flex-col space-y-10 animate-fade-in p-10 md:p-14">
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8">
                 <div
@@ -243,17 +243,17 @@ const CustomerList: React.FC<CustomerListProps> = ({
                     className={`bg-white p-8 rounded-[40px] shadow-luxury border border-gold-light/20 relative overflow-hidden group cursor-pointer transition-all duration-500 hover:scale-[1.05] ${selectedTab === 'all' ? 'ring-4 ring-gold-light/50 border-gold-muted/40' : ''}`}
                 >
                     <div className="absolute -right-10 -top-10 w-32 h-32 bg-gold-light/5 rounded-full blur-3xl group-hover:bg-gold-light/10 transition-colors"></div>
-                    <div className="flex items-center gap-5 mb-6">
-                        <div className="w-14 h-14 rounded-2xl bg-gold-light/30 flex items-center justify-center text-gold-muted shadow-sm border border-gold-light/10">
-                            <Users size={28} strokeWidth={1.5} />
+                    <div className="flex items-center gap-6 mb-8">
+                        <div className="w-16 h-16 rounded-2xl bg-gold-light/30 flex items-center justify-center text-gold-muted shadow-sm border border-gold-light/10">
+                            <Users size={34} strokeWidth={1.5} />
                         </div>
-                        <span className="text-[10px] font-black text-text-soft/40 uppercase tracking-[0.3em]">Tổng khách hàng</span>
+                        <span className="text-[12px] font-black text-text-soft/40 uppercase tracking-[0.3em]">Tổng khách hàng</span>
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <h2 className="text-4xl font-serif font-black text-text-main tabular-nums italic whitespace-nowrap">
+                        <h2 className="text-5xl font-serif font-black text-text-main tabular-nums italic whitespace-nowrap">
                             {(localStats?.total ?? 0).toLocaleString()}
                         </h2>
-                        <span className="text-[10px] font-black text-text-soft/40 uppercase tracking-widest italic whitespace-nowrap">Hồ sơ</span>
+                        <span className="text-[11px] font-black text-text-soft/40 uppercase tracking-widest italic whitespace-nowrap">Hồ sơ</span>
                     </div>
                 </div>
 
@@ -262,17 +262,17 @@ const CustomerList: React.FC<CustomerListProps> = ({
                     className={`bg-white p-8 rounded-[40px] shadow-luxury border border-gold-light/20 relative overflow-hidden group cursor-pointer transition-all duration-500 hover:scale-[1.05] ${selectedTab === 'vip' ? 'ring-4 ring-gold-light/50 border-gold-muted/40' : ''}`}
                 >
                     <div className="absolute -right-10 -top-10 w-32 h-32 bg-gold-light/5 rounded-full blur-3xl group-hover:bg-gold-light/10 transition-colors"></div>
-                    <div className="flex items-center gap-5 mb-6">
-                        <div className="w-14 h-14 rounded-2xl bg-indigo-900 flex items-center justify-center text-gold-muted shadow-sm border border-indigo-800">
-                            <Crown size={28} strokeWidth={1.5} />
+                    <div className="flex items-center gap-6 mb-8">
+                        <div className="w-16 h-16 rounded-2xl bg-indigo-900 flex items-center justify-center text-gold-muted shadow-sm border border-indigo-800">
+                            <Crown size={34} strokeWidth={1.5} />
                         </div>
-                        <span className="text-[10px] font-black text-text-soft/40 uppercase tracking-[0.3em]">Khách hàng VIP</span>
+                        <span className="text-[12px] font-black text-text-soft/40 uppercase tracking-[0.3em]">Khách hàng VIP</span>
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <h2 className="text-4xl font-serif font-black text-gold-muted tabular-nums italic whitespace-nowrap">
+                        <h2 className="text-5xl font-serif font-black text-gold-muted tabular-nums italic whitespace-nowrap">
                             {(localStats?.vip ?? 0).toLocaleString()}
                         </h2>
-                        <span className="text-[10px] font-black text-gold-muted uppercase tracking-widest italic opacity-60 whitespace-nowrap">Khách hàng VIP</span>
+                        <span className="text-[11px] font-black text-gold-muted uppercase tracking-widest italic opacity-60 whitespace-nowrap">Khách hàng VIP</span>
                     </div>
                 </div>
 
@@ -288,15 +288,15 @@ const CustomerList: React.FC<CustomerListProps> = ({
                     >
                         <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
                     </button>
-                    <div className="flex items-center gap-5 mb-6">
-                        <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-sm border border-rose-100 relative z-10 shrink-0">
-                            <Cake size={28} strokeWidth={1.5} />
+                    <div className="flex items-center gap-6 mb-8">
+                        <div className="w-16 h-16 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-sm border border-rose-100 relative z-10 shrink-0">
+                            <Cake size={34} strokeWidth={1.5} />
                         </div>
                         <div className="flex flex-col relative z-20">
-                            <span className="text-[10px] font-black text-text-soft/40 uppercase tracking-[0.3em] mb-1.5">Sinh nhật</span>
+                            <span className="text-[12px] font-black text-text-soft/40 uppercase tracking-[0.3em] mb-1.5">Sinh nhật</span>
                             <div className="relative w-fit" onClick={(e) => e.stopPropagation()}>
                                 <select
-                                    className="appearance-none bg-rose-50 hover:bg-rose-100 border border-rose-100/60 text-rose-600 text-[9px] font-black uppercase tracking-widest py-1.5 pl-3 pr-7 rounded-lg cursor-pointer outline-none transition-all shadow-sm focus:ring-2 focus:ring-rose-200"
+                                    className="appearance-none bg-rose-50 hover:bg-rose-100 border border-rose-100/60 text-rose-600 text-[10px] font-black uppercase tracking-widest py-2 pl-4 pr-8 rounded-lg cursor-pointer outline-none transition-all shadow-sm focus:ring-2 focus:ring-rose-200"
                                     value={selectedBirthdayMonth}
                                     onChange={(e) => setSelectedBirthdayMonth(parseInt(e.target.value))}
                                 >
@@ -304,38 +304,38 @@ const CustomerList: React.FC<CustomerListProps> = ({
                                         <option key={i} value={i} className="not-serif">Tháng {i + 1}</option>
                                     ))}
                                 </select>
-                                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-400 pointer-events-none" />
+                                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-400 pointer-events-none" />
                             </div>
                         </div>
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <h2 className="text-4xl font-serif font-black text-rose-600 tabular-nums italic whitespace-nowrap">
+                        <h2 className="text-5xl font-serif font-black text-rose-600 tabular-nums italic whitespace-nowrap">
                             {(localStats?.birthdays ?? 0).toLocaleString()}
                         </h2>
-                        <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest italic opacity-60 whitespace-nowrap">Khách hàng</span>
+                        <span className="text-[11px] font-black text-rose-600 uppercase tracking-widest italic opacity-60 whitespace-nowrap">Khách hàng</span>
                     </div>
                 </div>
 
                 <div className="bg-text-main p-8 rounded-[40px] shadow-luxury border border-white/5 relative overflow-hidden group transition-all duration-500 hover:scale-[1.05]">
                     <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
-                    <div className="flex items-center gap-5 mb-6">
-                        <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-gold-muted shadow-sm border border-white/5">
-                            <TrendingUp size={28} strokeWidth={1.5} />
+                    <div className="flex items-center gap-6 mb-8">
+                        <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-gold-muted shadow-sm border border-white/5">
+                            <TrendingUp size={34} strokeWidth={1.5} />
                         </div>
-                        <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Tỉ lệ quay lại</span>
+                        <span className="text-[12px] font-black text-white/30 uppercase tracking-[0.3em]">Tỉ lệ quay lại</span>
                         <button
                             onClick={handleSync}
                             disabled={isSyncing}
-                            className="absolute right-6 top-8 p-2 text-white/20 hover:text-gold-muted transition-colors disabled:opacity-50"
+                            className="absolute right-8 top-9 p-2 text-white/20 hover:text-gold-muted transition-colors disabled:opacity-50"
                         >
-                            <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
+                            <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
                         </button>
                     </div>
                     <div className="flex flex-col gap-1">
-                        <h2 className="text-4xl font-serif font-black text-white tabular-nums italic">84%</h2>
+                        <h2 className="text-5xl font-serif font-black text-white tabular-nums italic">84%</h2>
                         <div className="flex items-center gap-2">
-                            <div className="px-2 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">+5.2%</span>
+                            <div className="px-2.5 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                                <span className="text-[11px] font-black text-emerald-500 uppercase tracking-widest">+5.2%</span>
                             </div>
                         </div>
                     </div>
@@ -399,43 +399,43 @@ const CustomerList: React.FC<CustomerListProps> = ({
                 </div>
             </div>
 
-            <div className="overflow-x-auto flex-1 luxury-scrollbar">
-                <table className="w-full text-left luxury-table border-collapse">
+            <div className="p-1">
+                <table className="w-full text-left luxury-table border-separate border-spacing-y-6">
                     <thead>
-                        <tr className="bg-beige-soft/50 border-b border-gold-light/20">
-                            <th className="w-6 p-0 bg-gold-muted/5 border-r border-gold-light/10" />
-                            <th className="px-6 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest pl-10">Chân dung</th>
-                            <th className="px-10 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest">Định danh</th>
-                            <th className="px-10 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest">Liên hệ</th>
-                            <th className="px-10 py-5 text-right w-32" />
+                        <tr className="bg-beige-soft/90">
+                            <th className="sticky top-0 z-50 w-16 p-0 rounded-l-[30px] border-y border-l border-gold-muted/30 h-24 bg-[#FAF7F2]" />
+                            <th className="sticky top-0 z-50 px-6 py-6 text-[18px] font-black text-gold-muted uppercase tracking-widest border-y border-gold-muted/30 bg-[#FAF7F2] text-center">ẢNH ĐD</th>
+                            <th className="sticky top-0 z-50 px-10 py-6 text-[18px] font-black text-gold-muted uppercase tracking-widest border-y border-gold-muted/30 bg-[#FAF7F2] text-center">HỌ VÀ TÊN</th>
+                            <th className="sticky top-0 z-50 px-10 py-6 text-[18px] font-black text-gold-muted uppercase tracking-widest border-y border-gold-muted/30 bg-[#FAF7F2] text-center">SỐ ĐIỆN THOẠI</th>
+                            <th className="sticky top-0 z-50 px-10 py-6 rounded-r-[30px] border-y border-r border-gold-muted/30 bg-[#FAF7F2]" />
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gold-light/10">
+                    <tbody>
                         {paginatedCustomers.map((customer) => (
                             <tr
                                 key={customer.id}
                                 className="hover:bg-beige-soft/30 transition-colors group cursor-pointer relative"
                                 onClick={() => onViewCustomer(customer)}
                             >
-                                <td className="w-6 p-0 relative overflow-hidden bg-gold-muted/5 group-hover:bg-gold-muted/10 transition-colors border-r border-gold-light/10">
+                                <td className="w-16 p-0 relative overflow-hidden bg-gold-muted/5 group-hover:bg-gold-muted/10 transition-colors border-y border-l border-[#9b1b30]/30 rounded-l-[30px] border-l-[3px] border-y-[3px]">
                                     <div className="absolute inset-0 flex items-center justify-center p-0">
-                                        <span className="rotate-[-90deg] whitespace-nowrap text-[14px] font-black tracking-tighter text-gold-muted opacity-60 flex items-center justify-center uppercase">
+                                        <span className="rotate-[-90deg] whitespace-nowrap text-[22px] font-black tracking-tighter text-gold-muted opacity-80 flex items-center justify-center uppercase">
                                             {branches.find(b => b.id === customer.branchId)?.code || 'HQ'}
                                         </span>
                                     </div>
                                 </td>
 
-                                <td className="px-6 py-8 md:px-10">
-                                    <div className="flex flex-col items-center justify-center gap-3 w-[100px] relative">
+                                <td className="px-6 py-10 md:px-12 border-y border-[#9b1b30]/30 border-y-[3px]">
+                                    <div className="flex flex-col items-center justify-center gap-3 w-[140px] relative">
                                         <div className="relative">
                                             <RankAvatar
                                                 src={customer.avatar || `https://ui-avatars.com/api/?name=${customer.fullName}&background=FAF7F2&color=C5A059&bold=true`}
                                                 rank={customer.rank}
-                                                size={80}
+                                                size={120}
                                             />
-                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm z-10 animate-pulse"></div>
+                                            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-white shadow-sm z-10 animate-pulse"></div>
                                             {customer.isVip && (
-                                                <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 z-[15] w-16 h-12 flex items-center justify-center">
+                                                <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 z-[15] w-24 h-20 flex items-center justify-center">
                                                     <img
                                                         src="/images/vip-badge-luxury.png"
                                                         alt="VIP"
@@ -447,56 +447,56 @@ const CustomerList: React.FC<CustomerListProps> = ({
                                     </div>
                                 </td>
 
-                                <td className="px-10 py-8">
-                                    <div className="flex flex-col gap-2">
-                                        <h3 className="text-[16px] font-bold text-text-main group-hover:text-gold-muted transition-colors tracking-tight leading-tight text-tight-wrap max-w-[200px]">
+                                <td className="px-10 py-10 border-y border-[#9b1b30]/30 border-y-[3px]">
+                                    <div className="flex flex-col gap-2.5">
+                                        <h3 className="text-[22px] font-black text-text-main group-hover:text-gold-muted transition-colors tracking-tight leading-tight text-tight-wrap max-w-[280px]">
                                             {customer.fullName}
                                         </h3>
-                                        <div className="flex items-center gap-2 bg-gold-light/5 px-3 py-1.5 rounded-xl border border-gold-light/10 w-fit force-nowrap flex-shrink-0">
-                                            <Fingerprint size={14} className="text-gold-muted flex-shrink-0" />
-                                            <span className="text-[10px] text-text-soft font-black uppercase tracking-widest">
+                                        <div className="flex items-center gap-2 bg-gold-light/10 px-4 py-2 rounded-xl border border-gold-light/20 w-fit force-nowrap flex-shrink-0">
+                                            <Fingerprint size={16} className="text-gold-muted flex-shrink-0" />
+                                            <span className="text-[11px] text-text-soft font-black uppercase tracking-widest">
                                                 {customer.id.replace(/-/g, '').slice(0, 10).toUpperCase()}
                                             </span>
                                         </div>
                                     </div>
                                 </td>
 
-                                <td className="px-6 py-6 md:px-10">
-                                    <div className="flex flex-col gap-1.5 min-w-[max-content]">
-                                        <div className="flex items-center gap-2 text-[12px] md:text-[13px] font-bold text-text-main">
-                                            <div className="w-5 h-5 rounded-lg bg-gold-muted/5 flex items-center justify-center">
-                                                <Phone size={10} className="text-gold-muted" />
+                                <td className="px-6 py-10 md:px-12 border-y border-[#9b1b30]/30 border-y-[3px]">
+                                    <div className="flex flex-col gap-2 min-w-[max-content]">
+                                        <div className="flex items-center gap-3 text-[14px] md:text-[16px] font-black text-text-main">
+                                            <div className="w-6 h-6 rounded-lg bg-gold-muted/10 flex items-center justify-center">
+                                                <Phone size={12} className="text-gold-muted" />
                                             </div>
                                             {customer.phone}
                                         </div>
                                         {customer.email && (
-                                            <div className="flex items-center gap-2 text-[10px] text-text-soft italic ml-7">
+                                            <div className="flex items-center gap-2 text-[11px] text-text-soft italic ml-9">
                                                 {customer.email}
                                             </div>
                                         )}
                                     </div>
                                 </td>
 
-                                <td className="px-6 py-6 text-right md:px-10">
-                                    <div className="flex items-center justify-end gap-2">
+                                <td className="px-6 py-10 text-right md:px-12 border-y border-r border-[#9b1b30]/30 rounded-r-[30px] border-r-[3px] border-y-[3px]">
+                                    <div className="flex items-center justify-end gap-3">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onViewCustomer(customer); }}
-                                            className="w-10 h-10 flex items-center justify-center bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl transition-all shadow-lg shadow-emerald-200/50 active:scale-90 border border-emerald-500"
+                                            className="w-14 h-14 flex items-center justify-center bg-emerald-600 text-white hover:bg-emerald-700 rounded-2xl transition-all shadow-lg shadow-emerald-200/50 active:scale-90 border border-emerald-500"
                                             title="Xem hồ sơ"
                                         >
-                                            <UserIcon size={16} strokeWidth={2.5} />
+                                            <UserIcon size={24} strokeWidth={2.5} />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onOpenForm(customer); }}
-                                            className="w-10 h-10 flex items-center justify-center bg-white text-gold-muted hover:bg-gold-light/10 border border-transparent hover:border-gold-light/30 rounded-xl transition-all shadow-sm active:scale-90"
+                                            className="w-14 h-14 flex items-center justify-center bg-white text-gold-muted hover:bg-gold-light/10 border border-transparent hover:border-gold-light/30 rounded-2xl transition-all shadow-sm active:scale-90"
                                         >
-                                            <Edit3 size={15} strokeWidth={2} />
+                                            <Edit3 size={20} strokeWidth={2} />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); if (confirm('Xóa khách hàng này?')) onDeleteCustomer(customer.id); }}
-                                            className="w-10 h-10 flex items-center justify-center bg-white text-rose-300 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-xl transition-all shadow-sm active:scale-90"
+                                            className="w-14 h-14 flex items-center justify-center bg-white text-rose-300 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-2xl transition-all shadow-sm active:scale-90"
                                         >
-                                            <Trash2 size={15} strokeWidth={2} />
+                                            <Trash2 size={20} strokeWidth={2} />
                                         </button>
                                     </div>
                                 </td>
@@ -504,6 +504,20 @@ const CustomerList: React.FC<CustomerListProps> = ({
                         ))}
                     </tbody>
                 </table>
+                <style jsx>{`
+                    .luxury-table tbody tr {
+                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.02));
+                    }
+                    .luxury-table tbody tr:hover {
+                        transform: translateY(-4px) scale(1.005);
+                        filter: drop-shadow(0 12px 20px rgba(197, 160, 89, 0.15));
+                    }
+                    .luxury-table tbody tr:hover td {
+                        border-color: #9b1b30 !important;
+                        background: white;
+                    }
+                `}</style>
 
                 {!isSearching && effectiveTotal === 0 && (
                     <div className="py-32 flex flex-col items-center justify-center text-text-soft/20 text-center">

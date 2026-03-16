@@ -6,12 +6,16 @@ interface RankAvatarProps {
     src: string
     rank?: string
     size?: number
+    className?: string
+    style?: React.CSSProperties
 }
 
 export default function RankAvatar({
     src,
     rank = "gold",
-    size = 120
+    size = 120,
+    className = "",
+    style = {}
 }: RankAvatarProps) {
 
     // Map Vietnamese rank labels to style keys
@@ -40,8 +44,8 @@ export default function RankAvatar({
 
     return (
         <div
-            style={{ width: size, height: size }}
-            className="relative flex items-center justify-center shrink-0"
+            style={{ ...style, width: size, height: size }}
+            className={`relative flex items-center justify-center shrink-0 ${className}`}
         >
             {/* Glow */}
             <div className={`absolute inset-0 rounded-full blur-xl opacity-70 bg-gradient-to-br ${selectedStyle}`} />
