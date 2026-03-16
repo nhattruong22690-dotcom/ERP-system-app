@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Xinh Group ERP",
-  "version": "0.1.8",
+  "productName": "ERP-System",
+  "version": "0.1.9",
   "identifier": "com.taichinh.erp",
   "build": {
     "frontendDist": "../out",
@@ -26,7 +26,7 @@
   "plugins": {
     "updater": {
       "active": true,
-      "pubkey": "RWTWo9MDn8J9k/N92vHFOx48ZLLKJhA0jvZx9bGlT37yY4PorTSpi+GU",
+       "pubkey": "untrusted comment: minisign public key: 937DC29F03D3A3D6\nRWTWo9MDn8J9k/N92vHFOx48ZLLKJhA0jvZx9bGlT37yY4PorTSpi+GU",
       "endpoints": [
         "https://github.com/nhattruong22690-dotcom/ERP-system-app/releases/latest/download/latest.json"
       ]
@@ -34,7 +34,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
