@@ -25,6 +25,8 @@
   },
   "plugins": {
     "updater": {
+      "active": true,
+      "pubkey": "RWR8P+sZPyup/7PJmX9yyCdQIsEa3Bm1duMFvvoAxGqy0cIYahg5L2k4+d",
       "endpoints": [
         "https://github.com/nhattruong22690-dotcom/ERP-system-app/releases/latest/download/latest.json"
       ]
