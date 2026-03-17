@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "ERP-App",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "identifier": "com.taichinh.erp",
   "build": {
     "frontendDist": "../out",
@@ -26,7 +26,7 @@
   "plugins": {
     "updater": {
       "active": true,
-      "pubkey": "RWTtsuVV8enuzUn15rB1fy+D7xr5REmMY4PhNKHsm3MzwqGVgV+KtAmK",
+      "pubkey": "RUTtsuVV8enuzUn15rB1fy+D7xr5REmMY4PhNKHsm3MzwqGVgV+KtAmK",
       "endpoints": [
         "https://github.com/nhattruong22690-dotcom/ERP-system-app/releases/latest/download/latest.json"
       ]
