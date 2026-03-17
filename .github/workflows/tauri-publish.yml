@@ -25,11 +25,6 @@ jobs:
           cache: 'npm'
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
-      - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
       - name: install frontend dependencies
         run: npm install
       - name: build tauri app
@@ -46,66 +41,7 @@ jobs:
           IS_TAURI: 'true'
         with:
           tagName: v__VERSION__
-          releaseName: "ERPApp v__VERSION__"
-          releaseBody: "See the assets for the installer."
+          releaseName: "ERP-App v__VERSION__"
+          releaseBody: "Bản build chính thức. Vui lòng tải file .exe bên dưới. Bản cập nhật sẽ được thông báo tự động."
           releaseDraft: true
           prerelease: false
-
-      - name: "Debug: List Files"
-        shell: pwsh
-        run: |
-          Get-ChildItem -Path src-tauri/target/release/bundle -Recurse | Select-Object FullName
-
-      - name: Generate Updater JSON
-        shell: pwsh
-        run: |
-          $version = "0.1.14"
-          $repo = "nhattruong22690-dotcom/ERP-system-app"
-          
-          Write-Host "Current Directory: $((Get-Location).Path)"
-          
-          # Search RECURSIVELY from root for artifacts
-          $bundle = Get-ChildItem -Path "." -Filter "*.nsis.zip" -Recurse | Select-Object -First 1
-          $signatureFile = Get-ChildItem -Path "." -Filter "*.nsis.zip.sig" -Recurse | Select-Object -First 1
-          
-          if (-not $bundle) { 
-            Write-Warning "ZIP bundle not found, trying fallback to any .exe and .sig file"
-            $bundle = Get-ChildItem -Path "." -Filter "*.exe" -Recurse | Select-Object -First 1
-            $signatureFile = Get-ChildItem -Path "." -Filter "*.sig" -Recurse | Select-Object -First 1
-          }
-          
-          if (-not $bundle) { throw "No build artifacts found anywhere in the workspace" }
-          if (-not $signatureFile) { throw "No signature (.sig) files found anywhere in the workspace" }
-          
-          Write-Host "Found Artifact: $($bundle.FullName)"
-          Write-Host "Found Signature File: $($signatureFile.FullName)"
-          
-          $signature = Get-Content $signatureFile.FullName -Raw
-          $signature = $signature.Trim()
-          
-          $json = @{
-            version = $version
-            notes = "Xinh Group ERP Update v$version"
-            pub_date = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-            platforms = @{
-              "windows-x86_64" = @{
-                signature = $signature
-                url = "https://github.com/$repo/releases/latest/download/$($bundle.Name)"
-              }
-            }
-          }
-          
-          # Final path to save (using a safe known path)
-          $manifestPath = "src-tauri/latest.json"
-          $json | ConvertTo-Json -Depth 10 | Out-File -FilePath $manifestPath -Encoding utf8
-          Write-Host "Manually generated latest.json at $manifestPath"
-
-      - name: Upload latest.json manually
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
-        with:
-          files: src-tauri/latest.json
-          tag_name: v0.1.14
-          token: ${{ secrets.GITHUB_TOKEN }}
-          append_body: true
-          draft: true
