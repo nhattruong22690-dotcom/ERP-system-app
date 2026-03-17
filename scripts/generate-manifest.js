@@ -16,20 +16,32 @@ const RELEASE_NOTES = `Xinh Group ERP v${APP_VERSION} Release`;
 const nsisPath = path.join(__dirname, '../src-tauri/target/release/bundle/nsis');
 
 function trySign(bundle) {
-  const password = process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD;
-  const keyPath = process.env.TAURI_SIGNING_PRIVATE_KEY_PATH;
+  const password = process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || process.env.TAURI_KEY_PASSWORD;
+  const keyPath = process.env.TAURI_SIGNING_PRIVATE_KEY_PATH || process.env.TAURI_PRIVATE_KEY_PATH;
 
-  if (password && keyPath) {
+  if (password && keyPath && fs.existsSync(keyPath)) {
     console.log(`✍️  Đang thử ký tên file: ${bundle}...`);
     try {
-      execSync(`npx tauri signer sign -k "${keyPath}" "${path.join(nsisPath, bundle)}"`, {
+      const keyContent = fs.readFileSync(keyPath, 'utf8').trim();
+      const env = { ...process.env };
+      
+      // Use environment variables instead of -k flag to avoid "cannot be used with" error
+      // In Tauri v2, setting TAURI_PRIVATE_KEY and TAURI_KEY_PASSWORD is the most reliable way
+      execSync(`npx tauri signer sign "${path.join(nsisPath, bundle)}"`, {
         stdio: 'inherit',
-        env: { ...process.env, TAURI_SIGNING_PRIVATE_KEY_PASSWORD: password }
+        env: { 
+          ...env, 
+          TAURI_PRIVATE_KEY: keyContent,
+          TAURI_KEY_PASSWORD: password 
+        }
       });
       return true;
     } catch (e) {
-      console.error('❌ Lỗi khi ký tên phẩm:', e.message);
+      console.error('❌ Lỗi khi ký tên sản phẩm:', e.message);
     }
+  } else {
+    console.log('⚠️  Thiếu thông tin khóa hoặc mật khẩu để tự động ký.');
+    console.log(`   Key Path: ${keyPath || 'Chưa đặt'}`);
   }
   return false;
 }
@@ -43,9 +55,7 @@ function findArtifacts() {
   let files = fs.readdirSync(nsisPath);
   
   // Tìm kiếm file bundle (.zip hoặc .exe) có chứa số version hiện tại
-  const bundle = files.find(f => (f.endsWith('.exe') || f.endsWith('.zip')) && f.includes(APP_VERSION)) ||
-                 files.find(f => f.endsWith('.zip')) || 
-                 files.find(f => f.endsWith('.exe'));
+  const bundle = files.find(f => (f.endsWith('.exe') || f.endsWith('.zip')) && f.includes(APP_VERSION));
 
   if (!bundle) return null;
 
@@ -56,11 +66,6 @@ function findArtifacts() {
       files = fs.readdirSync(nsisPath); // Cập nhật lại danh sách file
       sig = files.find(f => f.endsWith('.sig') && f.includes(APP_VERSION));
     }
-  }
-
-  // Fallback nếu không tìm thấy file sig có version, tìm file sig bất kỳ
-  if (!sig) {
-    sig = files.find(f => f.endsWith('.sig'));
   }
 
   if (bundle && sig) {

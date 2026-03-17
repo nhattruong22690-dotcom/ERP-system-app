@@ -4,6 +4,8 @@ const path = require('path');
 
 const apiPath = path.join(__dirname, '..', 'app', 'api');
 const hiddenApiPath = path.join(__dirname, '..', 'app', '_api_hidden');
+const trackingPath = path.join(__dirname, '..', 'app', 'tracking');
+const hiddenTrackingPath = path.join(__dirname, '..', 'app', '_tracking_hidden');
 
 let hidden = false;
 
@@ -43,11 +45,18 @@ try {
     fs.rmSync(nextCachePath, { recursive: true, force: true });
   }
 
-  // Hide API routes (Next.js static export fails on API routes)
+  // Hide API and Tracking routes (Next.js static export fails on API routes and dynamic routes)
   if (fs.existsSync(apiPath)) {
     console.log('Hiding API routes for Tauri static export...');
     fs.renameSync(apiPath, hiddenApiPath);
     hidden = true;
+  }
+  
+  let trackingHidden = false;
+  if (fs.existsSync(trackingPath)) {
+    console.log('Hiding Tracking routes for Tauri static export...');
+    fs.renameSync(trackingPath, hiddenTrackingPath);
+    trackingHidden = true;
   }
 
   console.log('Running Next.js build (static export mode)...');
@@ -74,5 +83,10 @@ try {
   if (hidden && fs.existsSync(hiddenApiPath)) {
     console.log('Restoring API routes...');
     fs.renameSync(hiddenApiPath, apiPath);
+  }
+  
+  if (typeof trackingHidden !== 'undefined' && trackingHidden && fs.existsSync(hiddenTrackingPath)) {
+    console.log('Restoring Tracking routes...');
+    fs.renameSync(hiddenTrackingPath, trackingPath);
   }
 }

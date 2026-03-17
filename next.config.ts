@@ -24,31 +24,31 @@ const nextConfig: NextConfig = {
     optimizeCss: true,
   },
 
-  // Configure headers for caching static assets
-  async headers() {
-    if (process.env.IS_TAURI) return [];
-    return [
-
-      {
-        source: '/:all*(svg|jpg|jpeg|png|gif|ico|webp|avif)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        source: '/:all*(js|css)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-    ];
-  },
+  // Configure headers for caching static assets (Vercel only)
+  ...(process.env.IS_TAURI ? {} : {
+    async headers() {
+      return [
+        {
+          source: '/:all*(svg|jpg|jpeg|png|gif|ico|webp|avif)',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'public, max-age=31536000, immutable',
+            },
+          ],
+        },
+        {
+          source: '/:all*(js|css)',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'public, max-age=31536000, immutable',
+            },
+          ],
+        },
+      ];
+    },
+  }),
 };
 
 export default nextConfig;
