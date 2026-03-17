@@ -299,7 +299,7 @@ export default function TrackingClient({ id }: { id: string }) {
                                             </div>
                                             <div className="flex justify-between text-[10px] font-black tracking-widest text-slate-500 uppercase italic">
                                                 <span>Sử dụng: {card.used}/{card.total}</span>
-                                                {card.expiry_date && <span>Hạn: {new Date(card.expiry_date).toLocaleDateString('vi-VN')}</span>}
+                                                {card.expiryDate && <span>Hạn: {new Date(card.expiryDate).toLocaleDateString('vi-VN')}</span>}
                                             </div>
                                         </div>
                                     </div>

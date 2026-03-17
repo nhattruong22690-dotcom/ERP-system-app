@@ -8,6 +8,7 @@ export function UpdateChecker() {
     const [status, setStatus] = useState<'idle' | 'checking' | 'available' | 'uptodate' | 'error' | 'downloading' | 'installing'>('idle')
     const [updateInfo, setUpdateInfo] = useState<any>(null)
     const [error, setError] = useState<string | null>(null)
+    const [detailedError, setDetailedError] = useState<any>(null)
     const [isTauri, setIsTauri] = useState(false)
 
     useEffect(() => {
@@ -50,6 +51,7 @@ export function UpdateChecker() {
         } catch (e: any) {
             console.error('Update check failed', e)
             setError(e.message || 'Lỗi khi kiểm tra cập nhật.')
+            setDetailedError(e)
             setStatus('error')
         }
     }
@@ -75,6 +77,7 @@ export function UpdateChecker() {
         } catch (e: any) {
             console.error('Update failed', e)
             setError(e.message || 'Lỗi khi tải hoặc cài đặt bản cập nhật.')
+            setDetailedError(e)
             setStatus('error')
         }
     }
@@ -168,6 +171,23 @@ export function UpdateChecker() {
                             </div>
                             <h3 className="text-lg font-bold text-rose-700">Lỗi kiểm tra cập nhật</h3>
                             <p className="text-sm text-rose-600 mt-2 p-3 bg-rose-50 rounded-xl border border-rose-100 max-w-sm shadow-sm">{error || 'Đã có lỗi không xác định xảy ra.'}</p>
+                            
+                            {detailedError && (
+                                <div className="mt-4 w-full max-w-md">
+                                    <button 
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(JSON.stringify(detailedError, null, 2));
+                                            alert('Đã sao chép mã lỗi chi tiết vào bộ nhớ tạm.');
+                                        }}
+                                        className="text-xs text-rose-400 underline hover:text-rose-600 transition-colors"
+                                    >
+                                        Sao chép mã lỗi chi tiết
+                                    </button>
+                                    <pre className="mt-2 p-3 bg-slate-900 text-slate-300 text-[10px] text-left rounded-lg overflow-x-auto max-h-32 luxury-scrollbar">
+                                        {typeof detailedError === 'string' ? detailedError : JSON.stringify(detailedError, null, 2)}
+                                    </pre>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

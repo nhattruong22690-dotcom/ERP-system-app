@@ -1,7 +1,7 @@
 import React, { use } from 'react'
 import TrackingClient from './TrackingClient'
 
-export const dynamicParams = false
+export const dynamicParams = true
 
 export function generateStaticParams() {
     return [{ id: 'placeholder' }]

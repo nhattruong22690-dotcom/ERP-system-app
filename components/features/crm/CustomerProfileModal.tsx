@@ -1197,7 +1197,7 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                     <div className="w-full h-full relative z-10 p-4 bg-white rounded-2xl shadow-inner flex flex-col items-center justify-center border border-gold-muted/10 overflow-hidden">
                                         <img
                                             src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                                                (typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin) : '') + `/tracking?id=${activeCustomer.id}`
+                                                `https://xinhgroup.vercel.app/tracking/${activeCustomer.id}`
                                             )}`}
                                             alt="Tracking QR Code"
                                             className="w-full h-full object-contain"
@@ -1208,7 +1208,7 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                 <div className="w-full space-y-3">
                                     <button
                                         onClick={() => {
-                                            const url = (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin) + `/tracking?id=${activeCustomer.id}`;
+                                            const url = `https://xinhgroup.vercel.app/tracking/${activeCustomer.id}`;
                                             navigator.clipboard.writeText(url);
                                             setCopySuccess(true);
                                             setTimeout(() => setCopySuccess(false), 2000);
@@ -1220,7 +1220,7 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                                     </button>
 
                                     <a
-                                        href={`/tracking?id=${activeCustomer.id}`}
+                                        href={`/tracking/${activeCustomer.id}`}
                                         target="_blank"
                                         className="w-full py-4 bg-text-main text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-gold-muted transition-all shadow-lg active:scale-95"
                                     >

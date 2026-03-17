@@ -50,12 +50,17 @@ function findArtifacts() {
   if (!bundle) return null;
 
   // Nếu thiếu file .sig, thử ký tên ngay bây giờ
-  let sig = files.find(f => f.endsWith('.sig'));
+  let sig = files.find(f => f.endsWith('.sig') && f.includes(APP_VERSION));
   if (!sig) {
     if (trySign(bundle)) {
       files = fs.readdirSync(nsisPath); // Cập nhật lại danh sách file
-      sig = files.find(f => f.endsWith('.sig'));
+      sig = files.find(f => f.endsWith('.sig') && f.includes(APP_VERSION));
     }
+  }
+
+  // Fallback nếu không tìm thấy file sig có version, tìm file sig bất kỳ
+  if (!sig) {
+    sig = files.find(f => f.endsWith('.sig'));
   }
 
   if (bundle && sig) {

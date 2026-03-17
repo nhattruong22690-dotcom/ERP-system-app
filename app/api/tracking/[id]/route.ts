@@ -72,8 +72,23 @@ export async function GET(
                     avatar: customer.avatar,
                     isVip: customer.is_vip
                 },
-                treatmentCards: treatmentCards || [],
-                appointments: appointments || [],
+                treatmentCards: (treatmentCards || []).map((c: any) => ({
+                    id: c.id,
+                    name: c.name,
+                    total: c.total,
+                    used: c.used,
+                    remaining: c.remaining,
+                    status: c.status,
+                    expiryDate: c.expiry_date,
+                    purchase_date: c.purchase_date,
+                })),
+                appointments: (appointments || []).map((a: any) => ({
+                    id: a.id,
+                    appointment_date: a.appointment_date,
+                    appointment_time: a.appointment_time,
+                    status: a.status,
+                    notes: a.notes
+                })),
                 membershipTiers: tiers || []
             }
         })
