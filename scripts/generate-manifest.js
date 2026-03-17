@@ -22,17 +22,17 @@ function trySign(bundle) {
   if (password && keyPath && fs.existsSync(keyPath)) {
     console.log(`✍️  Đang thử ký tên file: ${bundle}...`);
     try {
-      const keyContent = fs.readFileSync(keyPath, 'utf8').trim();
+      // Đọc và loại bỏ tất cả khoảng trắng, ký tự xuống dòng (\r, \n) để tránh lỗi "Invalid symbol 13" trên Windows CI
+      const keyContent = fs.readFileSync(keyPath, 'utf8').replace(/\s+/g, '');
       const env = { ...process.env };
       
       // Use environment variables instead of -k flag to avoid "cannot be used with" error
-      // In Tauri v2, setting TAURI_PRIVATE_KEY and TAURI_KEY_PASSWORD is the most reliable way
       execSync(`npx tauri signer sign "${path.join(nsisPath, bundle)}"`, {
         stdio: 'inherit',
         env: { 
           ...env, 
-          TAURI_PRIVATE_KEY: keyContent,
-          TAURI_KEY_PASSWORD: password 
+          TAURI_SIGNING_PRIVATE_KEY: keyContent,
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: password 
         }
       });
       return true;
