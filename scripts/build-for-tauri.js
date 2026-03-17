@@ -7,6 +7,23 @@ const hiddenApiPath = path.join(__dirname, '..', 'app', '_api_hidden');
 
 let hidden = false;
 
+// Load environment variables from .env or .env.local if missing
+const envPaths = ['.env.local', '.env'];
+for (const envPath of envPaths) {
+  const fullPath = path.join(__dirname, '..', envPath);
+  if (fs.existsSync(fullPath)) {
+    const envContent = fs.readFileSync(fullPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      const parts = line.split('=');
+      if (parts.length === 2) {
+        const key = parts[0].trim();
+        const value = parts[1].trim().replace(/^["']|["']$/g, '');
+        if (!process.env[key]) process.env[key] = value;
+      }
+    });
+  }
+}
+
 try {
   console.log('--- TAURI BUILD DIAGNOSTICS ---');
   console.log('IS_TAURI:', process.env.IS_TAURI);
@@ -15,7 +32,7 @@ try {
   
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     console.error('CRITICAL ERROR: Supabase environment variables are missing.');
-    console.error('Static export will fail. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your GitHub Secrets.');
+    console.log('💡 Gợi ý: Hãy đảm bảo bạn có file .env.local hoặc .env chứa đầy đủ NEXT_PUBLIC_SUPABASE_URL và NEXT_PUBLIC_SUPABASE_ANON_KEY');
     process.exit(1);
   }
 
