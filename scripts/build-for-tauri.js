@@ -64,13 +64,6 @@ try {
     throw new Error('Build succeeded but "out" directory is missing. Check next.config.ts output: "export"');
   }
 
-  console.log('\n--- 🏗️ Bắt đầu biên dịch ứng dụng Tauri ---');
-  execSync('npx tauri build', { 
-    stdio: 'inherit', 
-    shell: true, 
-    env: { ...process.env } 
-  });
-
 } catch (error) {
   console.error('\n--- TAURI BUILD HELPER ERROR ---');
   console.error('Error during Next.js build process.');
