@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useApp, isPageAllowed } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
+import { UpdateChecker } from '@/components/features/settings/UpdateChecker'
 
 export default function SystemSettingsPage() {
     const { state, currentUser, updateSystemConfig, mounted } = useApp()
@@ -171,6 +172,9 @@ export default function SystemSettingsPage() {
                         ))}
                     </div>
                 </section>
+
+                {/* Application Update Section */}
+                <UpdateChecker />
 
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-6">
