@@ -13,24 +13,48 @@ const RELEASE_NOTES = `Xinh Group ERP v${APP_VERSION} Release`;
 
 const nsisPath = path.join(__dirname, '../src-tauri/target/release/bundle/nsis');
 
+function trySign(bundle) {
+  const password = process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD;
+  const keyPath = process.env.TAURI_SIGNING_PRIVATE_KEY_PATH;
+
+  if (password && keyPath) {
+    console.log(`✍️  Đang thử ký tên file: ${bundle}...`);
+    try {
+      execSync(`npx tauri signer sign -k "${keyPath}" "${path.join(nsisPath, bundle)}"`, {
+        stdio: 'inherit',
+        env: { ...process.env, TAURI_SIGNING_PRIVATE_KEY_PASSWORD: password }
+      });
+      return true;
+    } catch (e) {
+      console.error('❌ Lỗi khi ký tên phẩm:', e.message);
+    }
+  }
+  return false;
+}
+
 function findArtifacts() {
   if (!fs.existsSync(nsisPath)) {
     console.error(`❌ Không tìm thấy thư mục build: ${nsisPath}`);
     return null;
   }
 
-  const files = fs.readdirSync(nsisPath);
-  console.log('📂 Các file tìm thấy trong thư mục build:');
-  files.forEach(f => console.log(`  - ${f}`));
+  let files = fs.readdirSync(nsisPath);
   
   // Tìm kiếm file bundle (.zip hoặc .exe)
-  // Ưu tiên .zip cho updater, sau đó là .exe không phải setup
   const bundle = files.find(f => f.endsWith('.zip')) || 
                  files.find(f => f.endsWith('.exe') && !f.includes('setup')) ||
-                 files.find(f => f.endsWith('.exe')); // Chấp nhận cả setup nếu không còn gì khác
+                 files.find(f => f.endsWith('.exe'));
 
-  // Tìm kiếm bất kỳ file .sig nào
-  const sig = files.find(f => f.endsWith('.sig'));
+  if (!bundle) return null;
+
+  // Nếu thiếu file .sig, thử ký tên ngay bây giờ
+  let sig = files.find(f => f.endsWith('.sig'));
+  if (!sig) {
+    if (trySign(bundle)) {
+      files = fs.readdirSync(nsisPath); // Cập nhật lại danh sách file
+      sig = files.find(f => f.endsWith('.sig'));
+    }
+  }
 
   if (bundle && sig) {
     return { bundle, sig };
@@ -47,13 +71,11 @@ function generate() {
   if (!artifacts) {
     console.error('\n❌ LỖI: Không tìm thấy bộ đôi file build và chữ ký (.sig).');
     console.log('----------------------------------------------------');
-    console.log('💡 Nguyên nhân có thể là:');
-    console.log('1. Bạn chưa nạp Private Key vào môi trường (env).');
-    console.log('2. Lệnh build chưa thực sự ký tên sản phẩm.');
-    console.log('\n🔧 CÁCH KHẮC PHỤC:');
-    console.log('Hãy chạy lệnh này để kiểm tra xem Private Key đã có chưa:');
-    console.log('   dir env:TAURI_SIGNING_PRIVATE_KEY');
-    console.log('\nNếu không thấy, hãy nạp lại Key và Mật khẩu, sau đó chạy lại Build.');
+    console.log('💡 Gợi ý xử lý:');
+    console.log('Bạn hãy chạy bộ lệnh này để ký tên và tạo manifest:');
+    console.log('   $env:TAURI_SIGNING_PRIVATE_KEY_PATH="C:\\Users\\PC\\.tauri\\erp-key.key"');
+    console.log('   $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD="Mật khẩu của bạn"');
+    console.log('   node scripts/generate-manifest.js');
     console.log('----------------------------------------------------');
     return;
   }
