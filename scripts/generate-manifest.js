@@ -7,7 +7,7 @@ const { execSync } = require('child_process');
  * Bạn nên chạy script này sau khi đã build thành công ứng dụng tại máy (có kèm chữ ký).
  */
 
-const APP_VERSION = '0.1.15'; // Cập nhật version này khớp với tauri.conf.json
+const APP_VERSION = '0.1.16'; // Cập nhật version này khớp với tauri.conf.json
 const REPO = 'nhattruong22690-dotcom/ERP-system-app';
 const RELEASE_NOTES = `Xinh Group ERP v${APP_VERSION} Release`;
 

@@ -36,6 +36,13 @@ try {
     process.exit(1);
   }
 
+  // Clear .next cache to avoid stale type validation errors for hidden routes
+  const nextCachePath = path.join(__dirname, '..', '.next');
+  if (fs.existsSync(nextCachePath)) {
+    console.log('Clearing .next cache...');
+    fs.rmSync(nextCachePath, { recursive: true, force: true });
+  }
+
   // Hide API routes (Next.js static export fails on API routes)
   if (fs.existsSync(apiPath)) {
     console.log('Hiding API routes for Tauri static export...');
