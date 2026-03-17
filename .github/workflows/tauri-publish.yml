@@ -45,3 +45,4 @@ jobs:
           releaseBody: "Bản build chính thức. Vui lòng tải file .exe bên dưới. Bản cập nhật sẽ được thông báo tự động."
           releaseDraft: true
           prerelease: false
+          args: "--sign"
