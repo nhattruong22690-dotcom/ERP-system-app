@@ -7,7 +7,9 @@ const { execSync } = require('child_process');
  * Bạn nên chạy script này sau khi đã build thành công ứng dụng tại máy (có kèm chữ ký).
  */
 
-const APP_VERSION = '0.1.16'; // Cập nhật version này khớp với tauri.conf.json
+// Đọc tauri.conf.json để lấy thông tin version tự động
+const tauriConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '../src-tauri/tauri.conf.json'), 'utf8'));
+const APP_VERSION = tauriConfig.version;
 const REPO = 'nhattruong22690-dotcom/ERP-system-app';
 const RELEASE_NOTES = `Xinh Group ERP v${APP_VERSION} Release`;
 
@@ -40,9 +42,9 @@ function findArtifacts() {
 
   let files = fs.readdirSync(nsisPath);
   
-  // Tìm kiếm file bundle (.zip hoặc .exe)
-  const bundle = files.find(f => f.endsWith('.zip')) || 
-                 files.find(f => f.endsWith('.exe') && !f.includes('setup')) ||
+  // Tìm kiếm file bundle (.zip hoặc .exe) có chứa số version hiện tại
+  const bundle = files.find(f => (f.endsWith('.exe') || f.endsWith('.zip')) && f.includes(APP_VERSION)) ||
+                 files.find(f => f.endsWith('.zip')) || 
                  files.find(f => f.endsWith('.exe'));
 
   if (!bundle) return null;

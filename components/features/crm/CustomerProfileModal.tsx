@@ -289,35 +289,35 @@ const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
             onClick={onClose}
         >
             <div
-                className="bg-white w-[calc(0.80*(100vw-var(--sidebar-width,280px)))] h-[80vh] rounded-[24px] md:rounded-[40px] shadow-2xl flex flex-col animate-modal-up relative border border-white/20 cursor-default overflow-hidden"
+                className="bg-white w-[95%] h-[94vh] rounded-[24px] md:rounded-[40px] shadow-2xl flex flex-col animate-modal-up relative border border-white/20 cursor-default overflow-hidden"
                 style={{
                     fontSize: 'clamp(12px, 1vw, 15px)',
-                    maxWidth: '1800px'
+                    maxWidth: '1920px'
                 }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Fixed Top Section: Header + Profile + Tabs */}
                 <div className="flex-none relative h-fit bg-beige-soft/5">
                     {/* Header Actions - Positioned between modal edge and info frame */}
-                    <div className="absolute top-4 sm:top-6 xl:top-8 right-6 md:right-10 flex items-center gap-3 md:gap-4 z-[150]">
+                    <div className="absolute top-4 sm:top-5 right-6 md:right-10 flex items-center gap-2 md:gap-3 z-[150]">
                         <button
                             onClick={(e) => { e.stopPropagation(); setShowQrModal(true); }}
-                            className="h-10 px-5 md:h-12 md:px-8 rounded-2xl bg-gold-muted text-text-main flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 group shadow-xl font-black text-[clamp(10px,0.8vw,12px)] uppercase tracking-widest border border-white/40"
+                            className="h-8 px-4 md:h-9 md:px-6 rounded-xl bg-gold-muted text-text-main flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 group shadow-lg font-black text-[clamp(9px,0.7vw,11px)] uppercase tracking-wider border border-white/40"
                         >
-                            <QrCode size={20} className="md:w-5 md:h-5 text-text-main" />
+                            <QrCode size={16} className="md:w-4 md:h-4 text-text-main" />
                             <span className="hidden sm:inline">QR Theo dõi</span>
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white text-text-main flex items-center justify-center transition-all hover:text-gold-muted hover:scale-110 active:scale-90 shadow-xl border border-gold-muted/20 group"
+                            className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-white text-text-main flex items-center justify-center transition-all hover:text-gold-muted hover:scale-110 active:scale-90 shadow-lg border border-gold-muted/20 group"
                         >
-                            <Edit3 size={20} className="md:w-5 md:h-5 transition-colors" />
+                            <Edit3 size={16} className="md:w-4 md:h-4 transition-colors" />
                         </button>
                         <button
                             onClick={onClose}
-                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white text-rose-500 flex items-center justify-center transition-all hover:bg-rose-50 hover:scale-110 active:scale-90 group shadow-xl border border-rose-100"
+                            className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-white text-rose-500 flex items-center justify-center transition-all hover:bg-rose-50 hover:scale-110 active:scale-90 group shadow-lg border border-rose-100"
                         >
-                            <X size={20} className="transition-colors md:w-5 md:h-5" />
+                            <X size={16} className="transition-colors md:w-4 md:h-4" />
                         </button>
                     </div>
 
