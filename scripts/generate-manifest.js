@@ -20,21 +20,20 @@ function findArtifacts() {
   }
 
   const files = fs.readdirSync(nsisPath);
+  console.log('📂 Các file tìm thấy trong thư mục build:');
+  files.forEach(f => console.log(`  - ${f}`));
   
-  // Ưu tiên tìm file .zip (chuẩn cho updater)
-  const bundle = files.find(f => f.endsWith('.nsis.zip'));
-  const sig = files.find(f => f.endsWith('.nsis.zip.sig'));
+  // Tìm kiếm file bundle (.zip hoặc .exe)
+  // Ưu tiên .zip cho updater, sau đó là .exe không phải setup
+  const bundle = files.find(f => f.endsWith('.zip')) || 
+                 files.find(f => f.endsWith('.exe') && !f.includes('setup')) ||
+                 files.find(f => f.endsWith('.exe')); // Chấp nhận cả setup nếu không còn gì khác
+
+  // Tìm kiếm bất kỳ file .sig nào
+  const sig = files.find(f => f.endsWith('.sig'));
 
   if (bundle && sig) {
     return { bundle, sig };
-  }
-
-  // Fallback tìm file .exe
-  const exe = files.find(f => f.endsWith('.exe') && !f.includes('setup'));
-  const exeSig = files.find(f => f.endsWith('.exe.sig'));
-
-  if (exe && exeSig) {
-    return { bundle: exe, sig: exeSig };
   }
 
   return null;
@@ -42,11 +41,20 @@ function findArtifacts() {
 
 function generate() {
   console.log('--- 🚀 Bắt đầu tạo Manifest ---');
+  console.log(`📍 Thư mục kiểm tra: ${nsisPath}`);
   
   const artifacts = findArtifacts();
   if (!artifacts) {
-    console.error('❌ Không tìm thấy file build (.zip/.exe) và chữ ký (.sig) tương ứng.');
-    console.log('💡 Gợi ý: Hãy đảm bảo bạn đã chạy "npm run build:tauri" và có khóa ký hợp lệ.');
+    console.error('\n❌ LỖI: Không tìm thấy bộ đôi file build và chữ ký (.sig).');
+    console.log('----------------------------------------------------');
+    console.log('💡 Nguyên nhân có thể là:');
+    console.log('1. Bạn chưa nạp Private Key vào môi trường (env).');
+    console.log('2. Lệnh build chưa thực sự ký tên sản phẩm.');
+    console.log('\n🔧 CÁCH KHẮC PHỤC:');
+    console.log('Hãy chạy lệnh này để kiểm tra xem Private Key đã có chưa:');
+    console.log('   dir env:TAURI_SIGNING_PRIVATE_KEY');
+    console.log('\nNếu không thấy, hãy nạp lại Key và Mật khẩu, sau đó chạy lại Build.');
+    console.log('----------------------------------------------------');
     return;
   }
 
