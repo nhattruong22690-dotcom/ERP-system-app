@@ -48,3 +48,23 @@ jobs:
           releaseBody: "Bản build chính thức. Vui lòng tải file .exe bên dưới. Bản cập nhật sẽ được thông báo tự động."
           releaseDraft: true
           prerelease: false
+
+      - name: Generate Manifest and Sign
+        env:
+          TAURI_SIGNING_PRIVATE_KEY_PATH: ${{ github.workspace }}/tauri-key.key
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        run: node scripts/generate-manifest.js
+        
+      - name: Get exact version
+        id: package-version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Upload Missing Signature and Manifest
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.version }}
+          draft: true
+          files: |
+            src-tauri/target/release/bundle/nsis/*.sig
+            src-tauri/target/release/bundle/nsis/latest.json
