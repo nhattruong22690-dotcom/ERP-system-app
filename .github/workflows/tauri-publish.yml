@@ -51,19 +51,30 @@ jobs:
           releaseDraft: true
           prerelease: false
 
+      - name: "Debug: List Files"
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path src-tauri/target/release/bundle -Recurse | Select-Object FullName
+
       - name: Generate Updater JSON
         shell: pwsh
         run: |
-          $version = "0.1.12"
+          $version = "0.1.13"
           $repo = "nhattruong22690-dotcom/ERP-system-app"
           $basePath = "src-tauri/target/release/bundle/nsis"
           
-          # Find installer and signature
-          $installer = Get-ChildItem "$basePath/*.exe" | Select-Object -First 1
-          $signatureFile = Get-ChildItem "$basePath/*.exe.sig" | Select-Object -First 1
+          # For updater, we need the .zip file and its .sig
+          $bundle = Get-ChildItem "$basePath/*.nsis.zip" | Select-Object -First 1
+          $signatureFile = Get-ChildItem "$basePath/*.nsis.zip.sig" | Select-Object -First 1
           
-          if (-not $installer) { throw "Installer not found" }
-          if (-not $signatureFile) { throw "Signature file not found" }
+          if (-not $bundle) { 
+            Write-Warning "ZIP bundle not found, trying fallback to any .sig file"
+            $bundle = Get-ChildItem "$basePath/*.exe" | Select-Object -First 1
+            $signatureFile = Get-ChildItem "$basePath/*.sig" | Select-Object -First 1
+          }
+          
+          if (-not $bundle) { throw "No build artifacts found to generate manifest" }
+          if (-not $signatureFile) { throw "Signature file not found even as fallback" }
           
           $signature = Get-Content $signatureFile.FullName -Raw
           $signature = $signature.Trim()
@@ -75,20 +86,20 @@ jobs:
             platforms = @{
               "windows-x86_64" = @{
                 signature = $signature
-                url = "https://github.com/$repo/releases/latest/download/$($installer.Name)"
+                url = "https://github.com/$repo/releases/latest/download/$($bundle.Name)"
               }
             }
           }
           
           $json | ConvertTo-Json -Depth 10 | Out-File -FilePath "src-tauri/target/release/bundle/nsis/latest.json" -Encoding utf8
-          Write-Host "Manually generated latest.json with signature: $signature"
+          Write-Host "Manually generated latest.json with artifact: $($bundle.Name)"
 
       - name: Upload latest.json manually
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
           files: src-tauri/target/release/bundle/nsis/latest.json
-          tag_name: v0.1.12
+          tag_name: v0.1.13
           token: ${{ secrets.GITHUB_TOKEN }}
           append_body: true
           draft: true
