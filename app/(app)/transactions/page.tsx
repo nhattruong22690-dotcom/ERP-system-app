@@ -7,12 +7,13 @@ import { Transaction, ActivityLog, AppState } from '@/lib/types'
 import { useModal } from '@/components/layout/ModalProvider'
 import { useToast } from '@/components/layout/ToastProvider'
 import UserAvatar from '@/components/ui/UserAvatar'
-import { Plus, Search, Filter, Calendar, CreditCard, User, Edit2, Trash2, X, Download, AlertCircle, AlertTriangle, CheckCircle2, MoreHorizontal, ArrowRightCircle, Building, LayoutGrid, Eye, Database, TrendingUp, TrendingDown, Activity, LockKeyhole } from 'lucide-react'
+import { Plus, Search, Filter, Calendar, CreditCard, User, Edit2, Trash2, X, Download, AlertCircle, AlertTriangle, CheckCircle2, MoreHorizontal, ArrowRightCircle, Building, LayoutGrid, Eye, Database, TrendingUp, TrendingDown, Activity, LockKeyhole, ChevronLeft, ChevronRight } from 'lucide-react'
 import { MoneyInput } from '../planning/page'
 
 import PageHeader from '@/components/layout/PageHeader'
 import { getVNToday, getVNMonth, getVNYear } from '@/lib/utils/date'
 
+const PAGE_SIZE = 30
 function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36) }
 
 const EMPTY_TX = (): Partial<Transaction> => ({
@@ -38,6 +39,7 @@ export default function TransactionsPage() {
     const [filterCat, setFilterCat] = useState('')
     const [filterAccount, setFilterAccount] = useState('')
     const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
+    const [currentPage, setCurrentPage] = useState(1)
     const [initialFormStateRef] = useState<{ snapshot: string }>({ snapshot: '' })
 
     const visibleBranches = canViewAllBranches(currentUser)
@@ -79,6 +81,17 @@ export default function TransactionsPage() {
                 return (b.createdAt || '').localeCompare(a.createdAt || '')
             })
     }, [state.transactions, state.users, filterBranch, filterType, filterMonth, filterYear, filterCat, filterAccount, filterDate, currentUser])
+
+    // Reset to page 1 when any filter changes
+    useMemo(() => {
+        setCurrentPage(1)
+    }, [filterBranch, filterType, filterDate, filterMonth, filterYear, filterCat, filterAccount])
+
+    const totalPages = Math.ceil(filteredTx.length / PAGE_SIZE)
+    const paginatedTx = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE
+        return filteredTx.slice(start, start + PAGE_SIZE)
+    }, [filteredTx, currentPage])
 
     // Calculate current month totals for warning
     const checkOverBudget = (tx: Partial<Transaction>): { over: boolean; pct: number } => {
@@ -259,16 +272,16 @@ export default function TransactionsPage() {
                 subtitle="Giao dịch"
                 description="Nhật ký dòng tiền"
                 actions={
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full md:w-auto">
                         <button
-                            className="flex items-center gap-3 bg-white text-text-soft/60 px-6 py-4 rounded-[20px] font-black text-[10px] uppercase tracking-widest border border-gold-light/30 shadow-sm hover:text-gold-muted hover:border-gold-muted/30 transition-all group"
+                            className="flex items-center justify-center gap-3 bg-white text-text-soft/60 px-6 py-4 rounded-[20px] font-black text-[10px] uppercase tracking-widest border border-gold-light/30 shadow-sm hover:text-gold-muted hover:border-gold-muted/30 transition-all group w-full md:w-auto"
                             onClick={() => setShowBulk(true)}
                         >
                             <LayoutGrid size={18} strokeWidth={1.5} className="group-hover:rotate-90 transition-transform duration-500" /> Nhập nhanh
                         </button>
                         {hasPermission(currentUser, 'transaction_create') && (
                             <button
-                                className="flex items-center gap-3 bg-text-main text-white px-10 py-5 rounded-[22px] font-black text-[11px] uppercase tracking-widest shadow-luxury hover:bg-gold-muted transition-all active:scale-95 group relative overflow-hidden"
+                                className="flex items-center justify-center gap-3 bg-text-main text-white px-10 py-5 rounded-[22px] font-black text-[11px] uppercase tracking-widest shadow-luxury hover:bg-gold-muted transition-all active:scale-95 group relative overflow-hidden w-full md:w-auto"
                                 onClick={openNew}
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -281,52 +294,52 @@ export default function TransactionsPage() {
 
             <div className="py-12 pb-32 animate-fade-in space-y-12">
                 {/* Luxury Filter Bar */}
-                <div className="bg-white p-10 rounded-[48px] border border-gold-light/20 shadow-luxury flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative overflow-hidden">
+                <div className="bg-white p-6 md:p-10 rounded-[40px] md:rounded-[48px] border border-gold-light/20 shadow-luxury flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-10 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-gold-light/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
 
                     <div className="flex flex-wrap items-center gap-5 relative z-10">
-                        <div className="flex items-center gap-4 bg-gold-light/20 px-6 py-4 rounded-2xl border border-gold-light/30 shadow-inner">
+                        <div className="flex items-center gap-4 bg-gold-light/20 px-6 py-4 rounded-2xl border border-gold-light/30 shadow-inner w-full md:w-auto justify-center md:justify-start">
                             <Filter size={18} className="text-gold-muted" strokeWidth={2} />
                             <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Bộ Lọc</span>
                         </div>
 
                         <div className="h-10 w-px bg-gold-light/20 mx-2 hidden lg:block" />
 
-                        <div className="flex flex-wrap items-center gap-4">
-                            <input type="date" className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-5 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all italic tracking-tight" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
+                        <div className="flex flex-wrap items-center gap-4 w-full">
+                            <input type="date" className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-5 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all italic tracking-tight w-full md:w-auto" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
 
-                            <select className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-6 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all cursor-pointer italic tracking-tight appearance-none min-w-[140px]" value={filterMonth} onChange={e => setFilterMonth(+e.target.value)}>
+                            <select className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-6 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all cursor-pointer italic tracking-tight appearance-none w-full md:min-w-[140px] md:w-auto text-center md:text-left" value={filterMonth} onChange={e => setFilterMonth(+e.target.value)}>
                                 <option value={0}>Cả năm {filterYear}</option>
                                 {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>Tháng {i + 1}</option>)}
                             </select>
 
                             {canViewAllBranches(currentUser) && (
-                                <select className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-6 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all cursor-pointer italic tracking-tight appearance-none min-w-[180px]" value={filterBranch} onChange={e => setFilterBranch(e.target.value)}>
-                                    <option value="">🏠 Tất cả chi nhánh</option>
+                                <select className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-6 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all cursor-pointer italic tracking-tight appearance-none w-full md:min-w-[180px] md:w-auto text-center md:text-left" value={filterBranch} onChange={e => setFilterBranch(e.target.value)}>
+                                    <option value="">Tất cả chi nhánh</option>
                                     {state.branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                 </select>
                             )}
 
-                            <select className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-6 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all cursor-pointer italic tracking-tight appearance-none min-w-[140px]" value={filterType} onChange={e => setFilterType(e.target.value)}>
-                                <option value="">💎 Tất cả loại</option>
-                                <option value="income">↑ Chỉ Thu</option>
-                                <option value="expense">↓ Chỉ Chi</option>
+                            <select className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-6 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all cursor-pointer italic tracking-tight appearance-none w-full md:min-w-[140px] md:w-auto text-center md:text-left" value={filterType} onChange={e => setFilterType(e.target.value)}>
+                                <option value="">Tất cả loại</option>
+                                <option value="income"> Chỉ Thu</option>
+                                <option value="expense"> Chỉ Chi</option>
                             </select>
 
-                            <select className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-6 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all cursor-pointer italic tracking-tight appearance-none min-w-[180px]" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
-                                <option value="">📁 Tất cả danh mục</option>
+                            <select className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-6 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all cursor-pointer italic tracking-tight appearance-none w-full md:min-w-[180px] md:w-auto text-center md:text-left" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
+                                <option value=""> Tất cả danh mục</option>
                                 {state.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
 
-                            <select className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-6 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all cursor-pointer italic tracking-tight appearance-none min-w-[180px]" value={filterAccount} onChange={e => setFilterAccount(e.target.value)}>
-                                <option value="">💳 Tất cả tài khoản</option>
+                            <select className="bg-beige-soft/40 border border-gold-light/10 rounded-2xl px-6 py-4 text-[12px] font-black text-text-main focus:ring-2 focus:ring-gold-muted/20 outline-none transition-all cursor-pointer italic tracking-tight appearance-none w-full md:min-w-[180px] md:w-auto text-center md:text-left" value={filterAccount} onChange={e => setFilterAccount(e.target.value)}>
+                                <option value=""> Tất cả tài khoản</option>
                                 {state.accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                             </select>
                         </div>
                     </div>
 
                     {(filterDate || filterBranch || filterType || filterCat || filterAccount || filterMonth !== getVNMonth() || filterYear !== getVNYear()) && (
-                        <button className="relative z-10 flex items-center gap-2 px-6 py-3 bg-rose-50 border border-rose-100 rounded-xl text-[10px] font-black text-rose-600 hover:bg-rose-100 transition-all uppercase tracking-[0.2em] italic group-hover:scale-105" onClick={() => {
+                        <button className="relative z-10 flex items-center justify-center gap-2 px-6 py-3 bg-rose-50 border border-rose-100 rounded-xl text-[10px] font-black text-rose-600 hover:bg-rose-100 transition-all uppercase tracking-[0.2em] italic w-full lg:w-auto" onClick={() => {
                             setFilterDate(''); setFilterBranch(''); setFilterType(''); setFilterCat(''); setFilterAccount('');
                             setFilterMonth(getVNMonth());
                             setFilterYear(getVNYear());
@@ -368,14 +381,22 @@ export default function TransactionsPage() {
                 <div className="bg-white rounded-[48px] border border-gold-light/20 shadow-luxury overflow-hidden relative w-full max-w-full min-w-0">
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gold-light/5 rounded-full -mr-[250px] -mt-[250px] blur-[100px] pointer-events-none" />
 
+                    {/* Top Pagination */}
+                    <div className="px-10 pt-8 pb-4 border-b border-gold-light/10 relative z-20 flex justify-between items-center">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-text-soft/40 italic">
+                            Hiển thị {((currentPage - 1) * PAGE_SIZE) + 1}-{Math.min(currentPage * PAGE_SIZE, filteredTx.length)} / {filteredTx.length} giao dịch
+                        </div>
+                        <Pagination current={currentPage} total={totalPages} onChange={setCurrentPage} />
+                    </div>
+
                     <div className="overflow-x-auto luxury-scrollbar relative z-10 px-8 pb-8 min-h-[600px] w-full min-w-0">
-                        <table className="w-full text-left border-separate border-spacing-y-4 table-fixed min-w-[1200px]">
-                            <thead>
+                        <table className="w-full text-left border-separate border-spacing-y-4 table-fixed min-w-0 md:min-w-[1200px]">
+                            <thead className="hidden md:table-header-group">
                                 <tr className="bg-beige-soft/40">
                                     <th className="w-[100px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Ngày</th>
                                     <th className="w-[140px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Cơ sở</th>
                                     <th className="w-[150px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Tài khoản</th>
-                                    <th className="w-[110px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Thủ quỹ</th>
+                                    <th className="w-[110px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Nhân viên</th>
                                     <th className="w-[160px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Danh mục</th>
                                     <th className="w-[110px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Loại hình</th>
                                     <th className="w-[180px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-right whitespace-nowrap">Số dư (VND)</th>
@@ -383,7 +404,7 @@ export default function TransactionsPage() {
                                     <th className="w-[100px] px-8 py-8 border-b border-gold-light/10"></th>
                                 </tr>
                             </thead>
-                            <tbody className="relative">
+                            <tbody className="relative hidden md:table-row-group">
                                 {filteredTx.length === 0 ? (
                                     <tr>
                                         <td colSpan={9} className="px-10 py-32 text-center">
@@ -394,7 +415,7 @@ export default function TransactionsPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredTx.map(tx => {
+                                    paginatedTx.map(tx => {
                                         const cat = state.categories.find(c => c.id === tx.categoryId)
                                         const branch = state.branches.find(b => b.id === tx.branchId)
                                         const account = state.accounts.find(a => a.id === tx.paymentAccountId)
@@ -418,8 +439,7 @@ export default function TransactionsPage() {
                                                 </td>
                                                 <td className="px-8 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap">
                                                     <div className="flex items-center gap-2 px-3 py-1.5 bg-beige-soft/50 rounded-xl border border-gold-light/10 w-fit">
-                                                        <CreditCard size={14} strokeWidth={2} className="text-gold-muted" />
-                                                        <span className="text-[11px] font-black text-text-soft/60 italic tabular-nums">{account?.name?.split(' ').pop()}</span>
+                                                        <span className="text-[11px] font-black text-text-soft/60 italic tabular-nums">{account?.name}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap text-[12px] font-black text-text-main italic">
@@ -482,6 +502,71 @@ export default function TransactionsPage() {
                                 )}
                             </tbody>
                         </table>
+
+                        {/* Mobile List View */}
+                        <div className="md:hidden space-y-4">
+                            {filteredTx.length === 0 ? (
+                                <div className="px-10 py-16 text-center opacity-30">
+                                    <Database size={40} className="mx-auto mb-4" />
+                                    <p className="text-[12px] font-black uppercase tracking-widest italic">Trống</p>
+                                </div>
+                            ) : (
+                                paginatedTx.map(tx => {
+                                    const cat = state.categories.find(c => c.id === tx.categoryId)
+                                    const branch = state.branches.find(b => b.id === tx.branchId)
+                                    const account = state.accounts.find(a => a.id === tx.paymentAccountId)
+                                    const isLocked = tx.status === 'locked'
+                                    return (
+                                        <div key={tx.id} onClick={() => setSelectedTxId(tx.id)} className="p-6 bg-white rounded-[24px] border border-gold-light/10 shadow-sm active:scale-[0.98] transition-all">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-[11px] font-black text-text-main/60 tabular-nums">
+                                                            {new Date(tx.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                                                        </span>
+                                                        <div className="w-1 h-1 rounded-full bg-gold-muted/30" />
+                                                        <span className="text-[10px] font-black text-gold-muted uppercase tracking-tight">{branch?.name}</span>
+                                                    </div>
+                                                    <h4 className="text-[14px] font-serif font-black text-text-main italic line-clamp-1">
+                                                        {tx.type === 'transfer' ? 'Chuyển quỹ' : (cat?.name ?? 'Loại khác')}
+                                                    </h4>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className={`text-[18px] font-serif font-black italic tabular-nums tracking-tighter ${tx.type === 'income' ? 'text-emerald-600' : tx.type === 'transfer' ? 'text-amber-600' : 'text-rose-600'}`}>
+                                                        {tx.type === 'income' ? '+' : '-'}{Math.abs(tx.amount).toLocaleString('vi-VN')}
+                                                    </div>
+                                                    <div className={`inline-block px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.1em] border mt-1 shadow-sm ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                        tx.type === 'transfer' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                            'bg-rose-50 text-rose-600 border-rose-100'
+                                                        }`}>
+                                                        {tx.type === 'income' ? 'Thu' : tx.type === 'transfer' ? 'Chuyển' : 'Chi'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between pt-3 border-t border-gold-light/5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="px-2 py-1 bg-beige-soft/50 rounded-lg border border-gold-light/10 text-[9px] font-black text-text-soft/60 italic uppercase tracking-wider">
+                                                        {account?.name}
+                                                    </div>
+                                                    {isLocked && <LockKeyhole size={10} className="text-rose-600" />}
+                                                </div>
+                                                <div className="text-[10px] font-medium text-text-soft/40 italic truncate max-w-[150px]">
+                                                    {tx.note || '---'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Bottom Pagination */}
+                    <div className="px-10 py-10 border-t border-gold-light/10 relative z-20 flex justify-between items-center bg-beige-soft/10">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-text-soft/40 italic">
+                            Trang {currentPage} trên {totalPages}
+                        </div>
+                        <Pagination current={currentPage} total={totalPages} onChange={setCurrentPage} />
                     </div>
                 </div>
                 {/* Bulk Modal */}
@@ -520,7 +605,7 @@ export default function TransactionsPage() {
 
             {/* Luxury Transaction Form Modal */}
             {showForm && (
-                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-6 bg-black/40 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer md:left-[280px]" onClick={handleBackdropClick}>
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={handleBackdropClick}>
                     <div className="bg-white w-full max-w-2xl h-fit rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
 
                         {/* Left Side Branding */}
@@ -1125,6 +1210,59 @@ function BulkTransactionModal({ onClose, onSave, branches, categories, accounts,
                     </button>
                 </div>
             </div>
+        </div>
+    )
+}
+
+function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
+    if (total <= 1) return null
+    const pages: number[] = []
+    for (let i = 1; i <= total; i++) {
+        if (i === 1 || i === total || Math.abs(i - current) <= 1) {
+            pages.push(i)
+        } else if (i === current - 2 || i === current + 2) {
+            pages.push(-1) // ellipsis
+        }
+    }
+
+    const uniquePages = pages.filter((p, i) => p !== -1 || pages[i - 1] !== -1)
+
+    return (
+        <div className="flex items-center gap-2">
+            <button
+                disabled={current === 1}
+                onClick={() => onChange(current - 1)}
+                className="w-10 h-10 rounded-xl bg-white border border-gold-light/20 flex items-center justify-center text-text-soft hover:text-gold-muted disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm hover:border-gold-muted/30 active:scale-90"
+            >
+                <ChevronLeft size={18} strokeWidth={2} />
+            </button>
+
+            <div className="flex items-center gap-1.5">
+                {uniquePages.map((p, i) => (
+                    p === -1 ? (
+                        <span key={`el-${i}`} className="px-2 text-text-soft/30 font-black tracking-widest">...</span>
+                    ) : (
+                        <button
+                            key={p}
+                            onClick={() => onChange(p)}
+                            className={`w-10 h-10 rounded-xl text-[11px] font-black transition-all shadow-sm border ${current === p
+                                ? 'bg-text-main text-white border-text-main shadow-luxury'
+                                : 'bg-white text-text-soft border-gold-light/20 hover:border-gold-muted/30 hover:text-gold-muted'
+                                }`}
+                        >
+                            {p}
+                        </button>
+                    )
+                ))}
+            </div>
+
+            <button
+                disabled={current === total}
+                onClick={() => onChange(current + 1)}
+                className="w-10 h-10 rounded-xl bg-white border border-gold-light/20 flex items-center justify-center text-text-soft hover:text-gold-muted disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm hover:border-gold-muted/30 active:scale-90"
+            >
+                <ChevronRight size={18} strokeWidth={2} />
+            </button>
         </div>
     )
 }

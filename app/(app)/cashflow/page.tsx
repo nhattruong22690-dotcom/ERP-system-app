@@ -137,9 +137,9 @@ export default function CashflowPage() {
                 subtitle="& Kế hoạch"
                 description="Phân tích tài chính & Hiệu suất kinh doanh"
                 actions={
-                    <div className="flex items-center gap-4 bg-white p-2.5 rounded-[30px] border border-gold-light/30 shadow-sm">
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-white p-4 md:p-2.5 rounded-[24px] md:rounded-[30px] border border-gold-light/30 shadow-sm w-full md:w-auto">
                         {canViewAllBranches(currentUser) && (
-                            <div className="flex items-center gap-2 pl-5">
+                            <div className="flex items-center justify-between md:justify-start gap-2 px-2 md:pl-5">
                                 <span className="text-[11px] font-black text-text-soft uppercase tracking-widest opacity-40">Chi nhánh:</span>
                                 <select
                                     className="bg-transparent border-none text-[15px] font-bold text-text-main py-2.5 px-4 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors font-sans"
@@ -151,7 +151,7 @@ export default function CashflowPage() {
                                 </select>
                             </div>
                         )}
-                        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 px-4 border-l border-gold-light/20">
+                        <div className={`flex flex-col md:flex-row items-stretch md:items-center gap-2 px-2 md:px-4 ${canViewAllBranches(currentUser) ? 'border-t md:border-t-0 md:border-l border-gold-light/20 pt-4 md:pt-0' : ''}`}>
                             <div className="flex items-center justify-between w-full md:w-auto mb-1 md:mb-0">
                                 <span className="text-[11px] font-black text-text-soft uppercase tracking-widest opacity-40">Chu kỳ:</span>
                                 <button
@@ -163,7 +163,7 @@ export default function CashflowPage() {
                             </div>
 
                             {!useDateFilter ? (
-                                <div className="flex items-center gap-1.5 bg-beige-soft/50 rounded-xl pr-3">
+                                <div className="flex items-center justify-center md:justify-start gap-1.5 bg-beige-soft/50 rounded-xl pr-3 w-full md:w-auto">
                                     <select
                                         className="bg-transparent border-none text-[15px] font-bold text-text-main py-2 pl-3 pr-1.5 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors"
                                         value={month}
@@ -180,17 +180,17 @@ export default function CashflowPage() {
                                     </select>
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-2.5 bg-beige-soft/50 rounded-xl px-3 py-1.5">
+                                <div className="flex flex-col sm:flex-row items-center gap-2.5 bg-beige-soft/50 rounded-xl px-3 py-1.5 w-full md:w-auto">
                                     <input
                                         type="date"
-                                        className="bg-transparent border-none text-[14px] font-bold text-text-main py-1.5 px-2 focus:ring-0 cursor-pointer w-[135px]"
+                                        className="bg-transparent border-none text-[14px] font-bold text-text-main py-1.5 px-2 focus:ring-0 cursor-pointer w-full sm:w-[135px]"
                                         value={fromDate}
                                         onChange={e => setFromDate(e.target.value)}
                                     />
-                                    <span className="text-text-soft opacity-40 text-[12px]">đến</span>
+                                    <span className="text-text-soft opacity-40 text-[12px] hidden sm:inline">đến</span>
                                     <input
                                         type="date"
-                                        className="bg-transparent border-none text-[14px] font-bold text-text-main py-1.5 px-2 focus:ring-0 cursor-pointer w-[135px]"
+                                        className="bg-transparent border-none text-[14px] font-bold text-text-main py-1.5 px-2 focus:ring-0 cursor-pointer w-full sm:w-[135px]"
                                         value={toDate}
                                         onChange={e => setToDate(e.target.value)}
                                     />
@@ -267,7 +267,7 @@ export default function CashflowPage() {
             )}
             {/* Summary cards Luxury */}
             {plan && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8 mb-20">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-20">
                     {[
                         { label: 'KPI Mục tiêu', value: plan.kpiRevenue || 0, actual: plan.kpiRevenue || 0, icon: LayoutDashboard, color: 'text-text-main', bg: 'bg-white', iconColor: 'text-gold-muted' },
                         { label: 'Doanh thu thực đạt', value: plan.kpiRevenue || 0, actual: totalRevenueActual, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-white', iconColor: 'text-emerald-600' },
@@ -331,7 +331,7 @@ export default function CashflowPage() {
                             </div>
 
                             <div className="overflow-x-auto luxury-scrollbar w-full max-w-full min-w-0 px-4">
-                                <table className="w-full min-w-[1000px] text-left border-separate border-spacing-y-4">
+                                <table className="hidden md:table w-full min-w-[1000px] text-left border-separate border-spacing-y-4">
                                     <thead>
                                         <tr className="bg-beige-soft/40">
                                             <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic">Danh mục</th>
@@ -431,6 +431,79 @@ export default function CashflowPage() {
                                         </tr>
                                     </tfoot>
                                 </table>
+
+                                {/* Mobile Cashflow Section Cards */}
+                                <div className="md:hidden space-y-4">
+                                    {rowsBySection(section).map(r => {
+                                        const isExceeded = r.status === 'exceeded'
+                                        const isWarning = r.status === 'warning'
+                                        const isOK = r.status === 'ok'
+                                        const starKey = `${currentUser?.id}:${selectedBranch}|${month}|${year}|${r.categoryId}`
+                                        const isStarred = (state.starredAlerts || []).includes(starKey)
+
+                                        return (
+                                            <div key={r.categoryId} className="p-6 bg-white rounded-[32px] border border-gold-light/20 shadow-sm transition-all active:scale-[0.98]">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="text-[14px] font-serif font-black text-text-main italic truncate">{r.categoryName}</h4>
+                                                        <div className="flex items-center gap-2 mt-1.5 min-w-0 flex-wrap">
+                                                            {isOK ? (
+                                                                <span className="flex items-center gap-1 text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+                                                                    <CheckCircle size={10} /> Tối ưu
+                                                                </span>
+                                                            ) : (
+                                                                <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ${isExceeded ? 'text-rose-600' : 'text-amber-600'}`}>
+                                                                    <AlertTriangle size={10} /> {isExceeded ? 'Vượt định mức' : 'Cảnh báo'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => toggleStar(r.categoryId)} className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all flex-shrink-0 ml-2 ${isStarred ? 'bg-gold-muted text-white' : 'border-gold-light/40 text-text-soft/40'}`}>
+                                                        <Star size={12} fill={isStarred ? 'currentColor' : 'none'} />
+                                                    </button>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4 mb-4 pt-4 border-t border-gold-light/5">
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-text-soft/40 uppercase tracking-[0.2em] mb-1">Dự kiến</p>
+                                                        <p className="text-[14px] font-serif font-black text-blue-600 italic tabular-nums">{fmtVND(r.planned)}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-text-soft/40 uppercase tracking-[0.2em] mb-1">Thực đạt</p>
+                                                        <p className="text-[14px] font-serif font-black text-text-main italic tabular-nums">{fmtVND(r.actual)}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-1.5 w-16 bg-beige-soft rounded-full overflow-hidden">
+                                                            <div className={`h-full rounded-full ${isExceeded ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(r.pct, 100)}%` }} />
+                                                        </div>
+                                                        <span className={`text-[11px] font-black tabular-nums ${isExceeded ? 'text-rose-600' : isWarning ? 'text-amber-600' : 'text-emerald-600'}`}>{r.pct.toFixed(0)}%</span>
+                                                    </div>
+                                                    <div className={`text-[14px] font-serif font-black italic tracking-tight ${r.remaining < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                                        {r.remaining < 0 ? '-' : '+'}{fmtVND(Math.abs(r.remaining))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+
+                                    {/* Mobile totals for section */}
+                                    <div className="mt-8 p-8 bg-[#9F1D35] rounded-[32px] text-white shadow-xl">
+                                        <p className="text-[9px] font-black uppercase tracking-[0.4em] italic opacity-60 mb-4">Tổng cộng {SECTION_LABELS[section]}</p>
+                                        <div className="flex justify-between items-end">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-blue-200/60 uppercase mb-1">Dự kiến</p>
+                                                <p className="text-xl font-serif font-black italic text-blue-200">{fmtVND(rowsBySection(section).reduce((s, r) => s + r.planned, 0))}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Thực hiện</p>
+                                                <p className="text-2xl font-serif font-black italic">{fmtVND(rowsBySection(section).reduce((s, r) => s + r.actual, 0))}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -445,7 +518,7 @@ export default function CashflowPage() {
                         </div>
 
                         <div className="overflow-x-auto luxury-scrollbar px-4 pb-4">
-                            <table className="w-full min-w-[1000px] text-left border-separate border-spacing-y-4">
+                            <table className="hidden md:table w-full min-w-[1000px] text-left border-separate border-spacing-y-4">
                                 <thead>
                                     <tr className="bg-beige-soft/40">
                                         <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Tài khoản tài sản</th>
@@ -496,6 +569,49 @@ export default function CashflowPage() {
                                     })}
                                 </tbody>
                             </table>
+
+                            {/* Mobile account health cards */}
+                            <div className="md:hidden space-y-4">
+                                {state.accounts.filter(a => !a.branchId || a.branchId === selectedBranch).map(acc => {
+                                    const txs = state.transactions.filter(tx => {
+                                        if (tx.paymentAccountId !== acc.id) return false
+                                        if (useDateFilter && fromDate && toDate) {
+                                            const txDate = tx.date.split('T')[0]
+                                            return txDate >= fromDate && txDate <= toDate
+                                        } else {
+                                            return new Date(tx.date).getFullYear() === year &&
+                                                new Date(tx.date).getMonth() + 1 === month
+                                        }
+                                    })
+                                    const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+                                    const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+                                    if (income === 0 && expense === 0) return null
+                                    const net = income - expense
+                                    return (
+                                        <div key={acc.id} className="p-6 bg-white rounded-[32px] border border-gold-light/20 shadow-sm transition-all active:scale-[0.98]">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <h4 className="text-[14px] font-black text-text-main uppercase mb-1 tracking-tight">{acc.name}</h4>
+                                                    <span className="text-[8px] font-black text-gold-muted/60 uppercase tracking-widest italic">{acc.type === 'bank' ? 'Ngân hàng' : acc.type === 'cash' ? 'Tiền mặt' : 'POS'}</span>
+                                                </div>
+                                                <div className={`text-[18px] font-serif font-black italic tabular-nums ${net >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                    {net > 0 ? '+' : ''}{fmtVND(net)}
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gold-light/5">
+                                                <div>
+                                                    <p className="text-[10px] font-black text-blue-600/40 uppercase tracking-[0.2em] mb-1">Thu (+)</p>
+                                                    <p className="text-[14px] font-serif font-black text-blue-600 italic tabular-nums">{income > 0 ? `+${fmtVND(income)}` : '—'}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[10px] font-black text-rose-600/40 uppercase tracking-[0.2em] mb-1">Chi (-)</p>
+                                                    <p className="text-[14px] font-serif font-black text-rose-600 italic tabular-nums">{expense > 0 ? `-${fmtVND(expense)}` : '—'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>

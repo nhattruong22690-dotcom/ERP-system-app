@@ -36,6 +36,23 @@ export default function ActivityPage() {
 
     const logs = [...(state.activityLogs || [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 
+    const isEntityDeleted = (log: ActivityLog) => {
+        if (!log.entityId || !log.entityType || log.type === 'delete') return false
+        const type = log.entityType.toLowerCase()
+        if (type === 'transaction') return !state.transactions.some(t => t.id === log.entityId)
+        if (type === 'plan') return !state.plans.some(p => p.id === log.entityId)
+        if (type === 'account') return !state.accounts.some(a => a.id === log.entityId)
+        if (type === 'category') return !state.categories.some(c => c.id === log.entityId)
+        if (type === 'branch') return !state.branches.some(b => b.id === log.entityId)
+        if (type === 'user') return !state.users.some(u => u.id === log.entityId)
+        if (type === 'customer') return !state.customers.some(c => c.id === log.entityId)
+        if (type === 'appointment') return !state.appointments.some(a => a.id === log.entityId)
+        if (type === 'service') return !state.services.some(s => s.id === log.entityId)
+        if (type === 'lead') return !state.leads.some(l => l.id === log.entityId)
+        if (type === 'serviceorder') return !state.serviceOrders.some(so => so.id === log.entityId)
+        return false
+    }
+
     return (
         <div className="page-container">
             {/* Header Luxury Section */}
@@ -59,6 +76,7 @@ export default function ActivityPage() {
                     ) : (
                         <div className="space-y-6">
                             {logs.map((log, i) => {
+                                const isDeleted = isEntityDeleted(log)
                                 const isIncome = log.details.includes('[THU]')
                                 const isExpense = log.details.includes('[CHI]')
 
@@ -80,7 +98,7 @@ export default function ActivityPage() {
                                 const date = fmtDate(log.createdAt)
 
                                 return (
-                                    <div key={log.id} className="bg-white border border-gold-light/20 rounded-[24px] p-6 shadow-luxury hover:border-gold-muted/30 transition-all duration-300 group flex gap-6 items-center">
+                                    <div key={log.id} className={`bg-white border border-gold-light/20 rounded-[24px] p-6 shadow-luxury hover:border-gold-muted/30 transition-all duration-300 group flex gap-6 items-center ${isDeleted ? 'opacity-40 grayscale-[0.5]' : ''}`}>
 
                                         <div className="relative flex-shrink-0">
                                             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:bg-opacity-80 transition-colors ${log.type === 'create' ? 'bg-emerald-50 text-emerald-600' : log.type === 'update' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
@@ -93,8 +111,8 @@ export default function ActivityPage() {
 
                                         <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-[14px] font-bold text-text-main leading-relaxed tracking-tight">
-                                                    {log.details}
+                                                <p className={`text-[14px] font-bold text-text-main leading-relaxed tracking-tight ${isDeleted ? 'line-through decoration-rose-500/50 decoration-2' : ''}`}>
+                                                    {log.details} {isDeleted && <span className="text-[10px] text-rose-500 font-black ml-1 no-underline inline-block">(Đã xóa)</span>}
                                                 </p>
                                                 <div className="flex items-center gap-4 mt-2">
                                                     <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${log.type === 'create' ? 'bg-emerald-50 text-emerald-600' : log.type === 'update' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>

@@ -20,7 +20,7 @@ const FINANCE_NAV = [
     { href: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
     { href: '/cashflow', label: 'Dòng tiền', icon: BarChart3 },
     { href: '/transactions', label: 'Sổ cái giao dịch', icon: ArrowLeftRight },
-    { href: '/accounts', label: 'Tài khoản & Ví', icon: CreditCard },
+    { href: '/accounts', label: 'Tài khoản', icon: CreditCard },
     { href: '/activity', label: 'Bản tin hệ thống', icon: Bell, restrictedToAdmin: true },
 ]
 const CRM_NAV = [
@@ -77,6 +77,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const bellRef = useRef<HTMLDivElement>(null)
 
     const [openChats, setOpenChats] = useState<User[]>([])
+    const [lastSeenActivityId, setLastSeenActivityId] = useState<string | null>(null)
+
+    useEffect(() => {
+        const savedId = localStorage.getItem('lastSeenActivityId')
+        if (savedId) setLastSeenActivityId(savedId)
+    }, [])
+
+    const hasNewActivities = useMemo(() => {
+        if (!state.activityLogs || state.activityLogs.length === 0) return false
+        return state.activityLogs[0].id !== lastSeenActivityId
+    }, [state.activityLogs, lastSeenActivityId])
 
     const handleOpenChat = useCallback((user: User) => {
         setOpenChats(prev => {
@@ -95,7 +106,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const allAlerts = useMemo(() => buildAlerts(state.plans, state.categories, state.transactions, state.branches), [state.plans, state.categories, state.transactions, state.branches])
     const allItemsForWatchlist = useMemo(() => buildAlerts(state.plans, state.categories, state.transactions, state.branches, true), [state.plans, state.categories, state.transactions, state.branches])
 
+    useEffect(() => {
+        if (bellOpen && state.activityLogs?.[0]) {
+            const latestId = state.activityLogs[0].id
+            setLastSeenActivityId(latestId)
+            localStorage.setItem('lastSeenActivityId', latestId)
+        }
+    }, [bellOpen, state.activityLogs])
+
     useEffect(() => { closeSidebar(); setBellOpen(false) }, [pathname, closeSidebar])
+
+    const isEntityDeleted = useCallback((log: any) => {
+        if (!log.entityId || !log.entityType || log.type === 'delete') return false
+        const type = log.entityType.toLowerCase()
+        if (type === 'transaction') return !state.transactions.some(t => t.id === log.entityId)
+        if (type === 'plan') return !state.plans.some(p => p.id === log.entityId)
+        if (type === 'account') return !state.accounts.some(a => a.id === log.entityId)
+        if (type === 'category') return !state.categories.some(c => c.id === log.entityId)
+        if (type === 'branch') return !state.branches.some(b => b.id === log.entityId)
+        if (type === 'user') return !state.users.some(u => u.id === log.entityId)
+        if (type === 'customer') return !state.customers.some(c => c.id === log.entityId)
+        if (type === 'appointment') return !state.appointments.some(a => a.id === log.entityId)
+        if (type === 'service') return !state.services.some(s => s.id === log.entityId)
+        if (type === 'lead') return !state.leads.some(l => l.id === log.entityId)
+        if (type === 'serviceorder') return !state.serviceOrders.some(so => so.id === log.entityId)
+        return false
+    }, [state])
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
@@ -456,28 +492,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                             <button
                                 onClick={() => setBellOpen(v => !v)}
                                 aria-label="Thông báo"
+                                className={hasNewActivities ? 'animate-bell-glow' : ''}
                                 style={{
-                                    width: 40, height: 40, borderRadius: '12px', border: '1px solid rgba(0,0,0,0.08)', cursor: 'pointer',
-                                    background: totalCount > 0
-                                        ? (exceededCount > 0 ? 'rgba(254, 226, 226, 0.85)' : 'rgba(254, 243, 199, 0.85)')
-                                        : 'rgba(255, 255, 255, 0.7)',
-                                    backdropFilter: 'blur(12px)',
-                                    WebkitBackdropFilter: 'blur(12px)',
+                                    width: 44, height: 44, borderRadius: '14px', border: '1.5px solid rgba(197, 160, 89, 0.3)', cursor: 'pointer',
+                                    background: hasNewActivities
+                                        ? 'linear-gradient(135deg, #FFFDF8 0%, #FBF3E4 100%)'
+                                        : 'rgba(255, 255, 255, 0.8)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    position: 'relative', transition: 'all 0.2s ease',
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                    position: 'relative', transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                    boxShadow: hasNewActivities ? '0 4px 15px rgba(197, 160, 89, 0.3), 0 0 0 1px rgba(197, 160, 89, 0.1)' : '0 2px 8px rgba(0,0,0,0.06)',
+                                    transform: bellOpen ? 'scale(0.95)' : 'scale(1)',
                                 }}
                             >
-                                <Bell size={18} color={exceededCount > 0 ? '#dc2626' : warningCount > 0 ? '#d97706' : '#6b7280'} />
+                                <div className={hasNewActivities ? 'animate-bell-ring' : ''} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Bell
+                                        size={22}
+                                        strokeWidth={hasNewActivities ? 2.5 : 2}
+                                        color={hasNewActivities ? '#B08E4F' : '#6b7280'}
+                                        fill={hasNewActivities ? 'rgba(197, 160, 89, 0.15)' : 'none'}
+                                    />
+                                </div>
                                 {totalCount > 0 && (
                                     <span style={{
                                         position: 'absolute', top: -4, right: -4,
-                                        background: exceededCount > 0 ? '#dc2626' : '#d97706',
+                                        background: exceededCount > 0 ? '#dc2626' : (warningCount > 0 ? '#d97706' : 'var(--color-gold-muted)'),
                                         color: 'white', borderRadius: '99px',
-                                        fontSize: '0.6rem', fontWeight: 800,
-                                        padding: '1px 5px', lineHeight: 1.4,
+                                        fontSize: '0.65rem', fontWeight: 900,
+                                        padding: '1px 6px', lineHeight: 1.4,
                                         border: '2px solid white',
-                                        boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                                        zIndex: 10
                                     }}>
                                         {totalCount}
                                     </span>
@@ -574,17 +618,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                                         const time = new Date(log.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
                                                         const isIncome = log.details.includes('[THU]')
                                                         const isExpense = log.details.includes('[CHI]')
+                                                        const isDeleted = isEntityDeleted(log)
                                                         const semanticColor = isIncome ? 'var(--success)' : isExpense ? 'var(--danger)' : 'var(--foreground)'
 
                                                         return (
                                                             <div key={log.id} style={{
                                                                 padding: '10px 16px',
                                                                 borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)',
-                                                                display: 'flex', gap: 12, alignItems: 'center'
+                                                                display: 'flex', gap: 12, alignItems: 'center',
+                                                                opacity: isDeleted ? 0.4 : 1
                                                             }}>
                                                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                                                    <div style={{ fontSize: '0.8rem', color: semanticColor, lineHeight: 1.4, fontWeight: 600 }}>
-                                                                        {log.details}
+                                                                    <div style={{
+                                                                        fontSize: '0.8rem',
+                                                                        color: semanticColor,
+                                                                        lineHeight: 1.4,
+                                                                        fontWeight: 600,
+                                                                        textDecoration: isDeleted ? 'line-through' : 'none'
+                                                                    }}>
+                                                                        {log.details} {isDeleted && <span style={{ fontSize: '0.65rem', color: '#ef4444', textDecoration: 'none', display: 'inline-block', marginLeft: 4 }}>(Đã xóa)</span>}
                                                                     </div>
                                                                 </div>
                                                                 <div style={{ flexShrink: 0, textAlign: 'center', minWidth: '70px' }}>
@@ -697,28 +749,40 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         <button
                             onClick={() => setBellOpen(v => !v)}
                             aria-label="Thông báo"
+                            className={hasNewActivities ? 'animate-bell-glow' : ''}
                             style={{
-                                width: 44, height: 44, borderRadius: '14px', border: '1px solid rgba(0,0,0,0.08)', cursor: 'pointer',
-                                background: totalCount > 0
-                                    ? (exceededCount > 0 ? 'rgba(254, 226, 226, 0.85)' : 'rgba(254, 243, 199, 0.85)')
-                                    : 'rgba(255, 255, 255, 0.7)',
-                                backdropFilter: 'blur(12px)',
-                                WebkitBackdropFilter: 'blur(12px)',
+                                width: 44, height: 44, borderRadius: '14px',
+                                border: '1.5px solid rgba(197, 160, 89, 0.3)',
+                                cursor: 'pointer',
+                                background: hasNewActivities 
+                                    ? 'linear-gradient(135deg, #FFFDF8 0%, #FBF3E4 100%)' 
+                                    : 'rgba(255, 255, 255, 0.9)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                position: 'relative', transition: 'all 0.2s ease',
-                                boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+                                position: 'relative', transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                boxShadow: hasNewActivities 
+                                    ? '0 6px 20px rgba(197, 160, 89, 0.3), 0 0 0 1px rgba(197, 160, 89, 0.1)' 
+                                    : '0 4px 12px rgba(0,0,0,0.06)',
+                                transform: bellOpen ? 'scale(0.95)' : 'scale(1)',
                             }}
                         >
-                            <Bell size={20} color={exceededCount > 0 ? '#dc2626' : warningCount > 0 ? '#d97706' : '#6b7280'} />
+                            <div className={hasNewActivities ? 'animate-bell-ring' : ''} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Bell 
+                                    size={22} 
+                                    strokeWidth={hasNewActivities ? 2.5 : 2}
+                                    color={hasNewActivities ? '#B08E4F' : '#6b7280'} 
+                                    fill={hasNewActivities ? 'rgba(197, 160, 89, 0.15)' : 'none'}
+                                />
+                            </div>
                             {totalCount > 0 && (
                                 <span style={{
-                                    position: 'absolute', top: -5, right: -5,
-                                    background: exceededCount > 0 ? '#dc2626' : '#d97706',
+                                    position: 'absolute', top: -3, right: -3,
+                                    background: exceededCount > 0 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : (warningCount > 0 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'var(--color-gold-muted)'),
                                     color: 'white', borderRadius: '99px',
                                     fontSize: '0.65rem', fontWeight: 800,
-                                    padding: '2px 6px', lineHeight: 1.4,
+                                    padding: '1px 5px', lineHeight: 1.2,
                                     border: '2px solid white',
-                                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                                    zIndex: 2
                                 }}>
                                     {totalCount}
                                 </span>
@@ -773,10 +837,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                                     const time = new Date(log.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
                                                     const isIncome = log.details.includes('[THU]')
                                                     const isExpense = log.details.includes('[CHI]')
+                                                    const isDeleted = isEntityDeleted(log)
                                                     const semanticColor = isIncome ? 'var(--success)' : isExpense ? 'var(--danger)' : 'var(--foreground)'
                                                     return (
-                                                        <div key={log.id} style={{ padding: '10px 16px', borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)', display: 'flex', gap: 12, alignItems: 'center' }}>
-                                                            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: '0.8rem', color: semanticColor, lineHeight: 1.4, fontWeight: 600 }}>{log.details}</div></div>
+                                                        <div key={log.id} style={{
+                                                            padding: '10px 16px',
+                                                            borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)',
+                                                            display: 'flex', gap: 12, alignItems: 'center',
+                                                            opacity: isDeleted ? 0.4 : 1
+                                                        }}>
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <div style={{
+                                                                    fontSize: '0.8rem',
+                                                                    color: semanticColor,
+                                                                    lineHeight: 1.4,
+                                                                    fontWeight: 600,
+                                                                    textDecoration: isDeleted ? 'line-through' : 'none'
+                                                                }}>
+                                                                    {log.details} {isDeleted && <span style={{ fontSize: '0.65rem', color: '#ef4444', textDecoration: 'none', display: 'inline-block', marginLeft: 4 }}>(Đã xóa)</span>}
+                                                                </div>
+                                                            </div>
                                                             <div style={{ flexShrink: 0, textAlign: 'center', minWidth: '70px' }}>
                                                                 <div style={{ fontWeight: 700, fontSize: '0.65rem', color: 'var(--primary)', lineHeight: 1.2 }}>{u?.displayName || 'System'}</div>
                                                                 {branchName && <div style={{ fontSize: '0.6rem', color: 'var(--gold-muted)', lineHeight: 1.2 }}>{branchName}</div>}
@@ -817,10 +897,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 )}
 
                 {/* Content Area */}
-                <main style={{ 
-                    flex: 1, 
-                    minWidth: 0, 
-                    position: 'relative', 
+                <main style={{
+                    flex: 1,
+                    minWidth: 0,
+                    position: 'relative',
                     zIndex: 1,
                     paddingTop: isMobile ? '64px' : '0' // Adjusted for fixed header
                 }}>
