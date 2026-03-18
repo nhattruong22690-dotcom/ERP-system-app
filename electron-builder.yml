@@ -12,7 +12,7 @@ publish:
   repo: "ERP-system-app"
 win:
   target: "nsis"
-  icon: "public/favicon.ico"
+  icon: "public/logo.png"
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
