@@ -8,8 +8,8 @@ files:
   - "out/**/*"
 publish:
   provider: "github"
-  owner: "" # Update with GitHub username/org
-  repo: ""  # Update with GitHub repo name
+  owner: "nhattruong22690-dotcom"
+  repo: "ERP-system-app"
 win:
   target: "nsis"
   icon: "public/favicon.ico"
