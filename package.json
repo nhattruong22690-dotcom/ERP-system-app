@@ -1,9 +1,13 @@
 {
   "name": "xinh-group-erp",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "description": "Xinh Group ERP System",
   "author": "Trương Minh Nhật",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nhattruong22690-dotcom/ERP-system-app.git"
+  },
   "main": "main/main.js",
   "scripts": {
     "dev": "next dev",
