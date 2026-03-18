@@ -9,7 +9,7 @@ import PageHeader from '@/components/layout/PageHeader'
 import {
     Bell, Plus, Edit2, Trash2, Save, X,
     AlertTriangle, Info, Calendar, Clock,
-    Monitor, RefreshCw, CheckCircle2, Search, Zap
+    Monitor, RefreshCw, CheckCircle2, Search, Zap, Palette, Timer
 } from 'lucide-react'
 
 interface Notification {
@@ -24,6 +24,13 @@ interface Notification {
     interval_minutes: number
     expires_at: string | null
     created_at: string
+    // New fields
+    is_transaction_alert?: boolean
+    min_amount?: number
+    bg_color?: string
+    text_color?: string
+    highlight_color?: string
+    trigger_at?: string | null
 }
 
 export default function NotificationSettingsPage() {
@@ -47,7 +54,12 @@ export default function NotificationSettingsPage() {
         show_on_day: false,
         show_interval: false,
         interval_minutes: 60,
-        expires_at: null
+        expires_at: null,
+        is_transaction_alert: false,
+        min_amount: 0,
+        bg_color: '#ffffff',
+        text_color: '#374151',
+        highlight_color: '#d97706'
     })
 
     useEffect(() => {
@@ -80,7 +92,12 @@ export default function NotificationSettingsPage() {
             show_on_day: false,
             show_interval: false,
             interval_minutes: 60,
-            expires_at: null
+            expires_at: null,
+            is_transaction_alert: false,
+            min_amount: 0,
+            bg_color: '#ffffff',
+            text_color: '#374151',
+            highlight_color: '#d97706'
         })
         setShowForm(true)
     }
@@ -130,6 +147,24 @@ export default function NotificationSettingsPage() {
                 showToast('Thành công', 'Đã xoá thông báo')
                 fetchNotifications()
             }
+        }
+    }
+
+    const handleTriggerCountdown = async (id: string, minutes: number) => {
+        const triggerAt = new Date(Date.now() + minutes * 60000).toISOString()
+        const { error } = await supabase
+            .from('global_notifications')
+            .update({ 
+                trigger_at: triggerAt,
+                last_triggered_at: new Date().toISOString() // Force global update
+            })
+            .eq('id', id)
+
+        if (error) {
+            showToast('Lỗi', 'Không thể đặt đếm ngược', 'error' as any)
+        } else {
+            showToast('Thành công', `Đã đặt đếm ngược ${minutes} phút`)
+            fetchNotifications()
         }
     }
 
@@ -201,6 +236,16 @@ export default function NotificationSettingsPage() {
                                                     }`}>
                                                     {n.type}
                                                 </span>
+                                                {n.is_transaction_alert && (
+                                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-amber-200/50">
+                                                        <Zap size={10} /> {n.min_amount?.toLocaleString()}đ
+                                                    </div>
+                                                )}
+                                                {n.trigger_at && new Date(n.trigger_at) > new Date() && (
+                                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-indigo-200/50">
+                                                        <Timer size={10} /> Đang đếm ngược
+                                                    </div>
+                                                )}
                                                 {n.is_active ? (
                                                     <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-1">
                                                         <CheckCircle2 size={10} /> Đang chạy
@@ -210,6 +255,11 @@ export default function NotificationSettingsPage() {
                                                 )}
                                             </div>
                                             <p className="text-[15px] font-bold text-text-main truncate">{n.content}</p>
+                                            <div className="flex gap-2 mt-2">
+                                                <div className="w-4 h-4 rounded border border-gold-light/20" style={{ backgroundColor: n.bg_color || '#ffffff' }} title="Màu nền" />
+                                                <div className="w-4 h-4 rounded border border-gold-light/20" style={{ backgroundColor: n.text_color || '#374151' }} title="Màu chữ" />
+                                                <div className="w-4 h-4 rounded border border-gold-light/20" style={{ backgroundColor: n.highlight_color || '#d97706' }} title="Màu highlight" />
+                                            </div>
                                         </div>
                                     </div>
 
@@ -369,6 +419,116 @@ export default function NotificationSettingsPage() {
                                                 onChange={e => setForm({ ...form, interval_minutes: parseInt(e.target.value) })}
                                             />
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-[24px]">
+                                <div className="flex items-center gap-3">
+                                    <Zap size={16} className="text-text-soft" />
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-text-soft">Thông báo giao dịch</span>
+                                </div>
+                                <div
+                                    className={`w-12 h-6 rounded-full relative cursor-pointer transition-all ${form.is_transaction_alert ? 'bg-gold-muted' : 'bg-gray-200'}`}
+                                    onClick={() => setForm({ ...form, is_transaction_alert: !form.is_transaction_alert })}
+                                >
+                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${form.is_transaction_alert ? 'left-7' : 'left-1'}`} />
+                                </div>
+                            </div>
+
+                            {form.is_transaction_alert && (
+                                <div className="space-y-3 animate-fade-in">
+                                    <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest pl-2">Số tiền tối thiểu (đ)</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[20px] px-6 py-4 text-[14px] font-bold text-text-main outline-none"
+                                        value={form.min_amount || 0}
+                                        onChange={e => setForm({ ...form, min_amount: parseFloat(e.target.value) })}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 pl-2">
+                                    <Palette size={14} className="text-gold-muted" />
+                                    <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest">Bảng màu gợi ý (Luxury Presets)</label>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    {[
+                                        { name: 'Luxury Gold', bg: '#1e293b', text: '#ffffff', highlight: '#fbbf24' },
+                                        { name: 'Emerald', bg: '#064e3b', text: '#ffffff', highlight: '#34d399' },
+                                        { name: 'Royal Blue', bg: '#1e3a8a', text: '#ffffff', highlight: '#60a5fa' },
+                                        { name: 'Classic Warm', bg: '#ffffff', text: '#374151', highlight: '#d97706' },
+                                        { name: 'Rose Dark', bg: '#4c0519', text: '#ffffff', highlight: '#fb7185' },
+                                        { name: 'Violet Premium', bg: '#2e1065', text: '#ffffff', highlight: '#a78bfa' },
+                                        { name: 'Clean Minimal', bg: '#f8fafc', text: '#0f172a', highlight: '#3b82f6' },
+                                        { name: 'Sunset Alert', bg: '#7c2d12', text: '#ffffff', highlight: '#fb923c' }
+                                    ].map(p => (
+                                        <div
+                                            key={p.name}
+                                            onClick={() => setForm({ ...form, bg_color: p.bg, text_color: p.text, highlight_color: p.highlight })}
+                                            className="group cursor-pointer p-3 rounded-2xl border border-gold-light/20 hover:border-gold-muted hover:shadow-luxury transition-all space-y-2 bg-white"
+                                        >
+                                            <div className="h-6 w-full rounded-lg flex overflow-hidden border border-gray-100">
+                                                <div className="flex-1" style={{ backgroundColor: p.bg }} />
+                                                <div className="w-1/3" style={{ backgroundColor: p.highlight }} />
+                                            </div>
+                                            <div className="text-[9px] font-black uppercase text-text-soft/60 group-hover:text-gold-muted transition-colors text-center">{p.name}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest pl-2">Màu nền</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="color"
+                                            className="w-10 h-10 rounded-lg overflow-hidden border-none p-0 cursor-pointer"
+                                            value={form.bg_color || '#ffffff'}
+                                            onChange={e => setForm({ ...form, bg_color: e.target.value })}
+                                        />
+                                        <input
+                                            type="text"
+                                            className="flex-1 bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[15px] px-3 py-2 text-[12px] font-bold outline-none uppercase"
+                                            value={form.bg_color || '#ffffff'}
+                                            onChange={e => setForm({ ...form, bg_color: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest pl-2">Màu chữ</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="color"
+                                            className="w-10 h-10 rounded-lg overflow-hidden border-none p-0 cursor-pointer"
+                                            value={form.text_color || '#374151'}
+                                            onChange={e => setForm({ ...form, text_color: e.target.value })}
+                                        />
+                                        <input
+                                            type="text"
+                                            className="flex-1 bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[15px] px-3 py-2 text-[12px] font-bold outline-none uppercase"
+                                            value={form.text_color || '#374151'}
+                                            onChange={e => setForm({ ...form, text_color: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase text-text-soft/40 tracking-widest pl-2">Highlight</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="color"
+                                            className="w-10 h-10 rounded-lg overflow-hidden border-none p-0 cursor-pointer"
+                                            value={form.highlight_color || '#d97706'}
+                                            onChange={e => setForm({ ...form, highlight_color: e.target.value })}
+                                        />
+                                        <input
+                                            type="text"
+                                            className="flex-1 bg-beige-soft/20 border-2 border-transparent focus:border-gold-muted/30 focus:bg-white rounded-[15px] px-3 py-2 text-[12px] font-bold outline-none uppercase"
+                                            value={form.highlight_color || '#d97706'}
+                                            onChange={e => setForm({ ...form, highlight_color: e.target.value })}
+                                        />
                                     </div>
                                 </div>
                             </div>

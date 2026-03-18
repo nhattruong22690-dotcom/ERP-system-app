@@ -379,6 +379,14 @@ export interface GlobalNotification {
   lastTriggeredAt?: string
   expiresAt?: string
   createdAt: string
+  // New fields for transaction alerts and styling
+  isTransactionAlert?: boolean
+  minAmount?: number
+  bgColor?: string
+  textColor?: string
+  highlightColor?: string
+  metadata?: any // For storing dynamic data like {amount}, {branch}
+  triggerAt?: string // For scheduled countdowns
 }
 
 export interface UserNotificationStatus {

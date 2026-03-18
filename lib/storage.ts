@@ -582,6 +582,11 @@ export async function syncTransaction(tx: Transaction, currentUserId: string | u
             details += ` (${account.name})`
         }
         if (tx.note) details += ` - ${tx.note}`
+        
+        // 1b. Check for Transaction Alerts
+        if (isNew) {
+            triggerTransactionAlerts(tx)
+        }
 
         const id = generateId()
         const createdAt = new Date().toISOString()
@@ -1520,4 +1525,46 @@ export function removeServiceCategoryState(id: string) {
         ...s,
         serviceCategories: s.serviceCategories?.filter(x => x.id !== id) || []
     })
+}
+
+/**
+ * Kiểm tra và kích hoạt thông báo toàn hệ thống nếu giao dịch vượt ngưỡng
+ */
+async function triggerTransactionAlerts(tx: Transaction) {
+    try {
+        // 1. Lấy tất cả thông báo giao dịch đang kích hoạt
+        const { data: alerts, error } = await supabase
+            .from('global_notifications')
+            .select('*')
+            .eq('is_active', true)
+            .eq('is_transaction_alert', true)
+
+        if (error || !alerts || alerts.length === 0) return
+
+        const state = getState()
+        const branch = state.branches.find(b => b.id === tx.branchId)
+        const branchName = branch?.name || tx.branchId
+
+        for (const alert of alerts) {
+            // 2. Kiểm tra ngưỡng số tiền
+            if (tx.amount >= (alert.min_amount || 0)) {
+                // 3. Cập nhật thông báo để kích hoạt realtime cho tất cả user
+                const metadata = {
+                    amount: tx.amount.toLocaleString('vi-VN') + 'đ',
+                    branch: branchName,
+                    date: new Date(tx.date).toLocaleDateString('vi-VN')
+                }
+
+                await supabase
+                    .from('global_notifications')
+                    .update({
+                        last_triggered_at: new Date().toISOString(),
+                        metadata: metadata
+                    })
+                    .eq('id', alert.id)
+            }
+        }
+    } catch (err) {
+        console.error('Error triggering transaction alerts:', err)
+    }
 }
