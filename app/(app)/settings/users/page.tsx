@@ -364,12 +364,12 @@ export default function UsersPage() {
                                     <table className="w-full text-left luxury-table border-collapse">
                                         <thead>
                                             <tr className="bg-beige-soft/50 border-b border-gold-light/20">
-                                                <th className="px-10 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest">Thành viên</th>
-                                                <th className="px-10 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest">Chức vụ & Vị trí</th>
-                                                <th className="px-10 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Phân quyền</th>
-                                                <th className="px-10 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Trạng thái</th>
-                                                <th className="px-10 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Tài khoản</th>
-                                                <th className="px-10 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-right">Hệ thống</th>
+                                                <th className="px-4 md:px-10 py-4 md:py-5 text-[9px] font-black text-text-soft uppercase tracking-widest">Thành viên</th>
+                                                <th className="px-4 md:px-10 py-4 md:py-5 text-[9px] md:text-[10px] font-black text-text-soft uppercase tracking-widest">Chức vụ & Vị trí</th>
+                                                <th className="px-4 md:px-10 py-4 md:py-5 text-[9px] md:text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Phân quyền</th>
+                                                <th className="px-4 md:px-10 py-4 md:py-5 text-[9px] md:text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Trạng thái</th>
+                                                <th className="px-4 md:px-10 py-4 md:py-5 text-[9px] md:text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Tài khoản</th>
+                                                <th className="px-4 md:px-10 py-4 md:py-5 text-[9px] md:text-[10px] font-black text-text-soft uppercase tracking-widest text-right">Hệ thống</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gold-light/10">
@@ -379,19 +379,19 @@ export default function UsersPage() {
                                                 const jtColor = COLOR_MAP[jt?.color || 'slate']
                                                 return (
                                                     <tr key={u.id} className="hover:bg-beige-soft/30 transition-colors group cursor-pointer" onClick={() => openEdit(u)}>
-                                                        <td className="px-10 py-6">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="relative">
+                                                        <td className="px-4 md:px-10 py-4 md:py-6">
+                                                            <div className="flex items-center gap-3 md:gap-4">
+                                                                <div className="relative shrink-0">
                                                                     <UserAvatar user={u} size="md" className="ring-2 ring-gold-light ring-offset-2 group-hover:scale-110 transition-transform" />
-                                                                    {u.isActive !== false && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" />}
+                                                                    {u.isActive !== false && <div className="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-emerald-500 border-2 border-white rounded-full" />}
                                                                 </div>
-                                                                <div>
-                                                                    <div className="text-[14px] font-bold text-text-main tracking-tight leading-none">{u.displayName}</div>
-                                                                    <div className="text-[11px] font-medium text-text-soft mt-1.5 opacity-60 tracking-wider italic">@{u.username}</div>
+                                                                <div className="min-w-0">
+                                                                    <div className="text-[13px] md:text-[14px] font-bold text-text-main tracking-tight leading-none truncate">{u.displayName}</div>
+                                                                    <div className="text-[10px] md:text-[11px] font-medium text-text-soft mt-1 md:mt-1.5 opacity-60 tracking-wider italic truncate">@{u.username}</div>
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td className="px-10 py-6">
+                                                        <td className="px-4 md:px-10 py-4 md:py-6 whitespace-nowrap">
                                                             {jt ? (
                                                                 <span
                                                                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all"
@@ -481,21 +481,21 @@ export default function UsersPage() {
 
 
             {showForm && (
-                <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={async e => { if (e.target === e.currentTarget && await showConfirm('Bạn có chắc chắn muốn đóng? Dữ liệu đang nhập sẽ bị mất.')) setShowForm(false) }}>
-                    <div className="bg-white w-full max-w-5xl h-[90vh] max-h-[900px] min-h-[600px] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
+                <div className="fixed inset-0 z-[2200] flex items-center justify-center p-0 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={async e => { if (e.target === e.currentTarget && await showConfirm('Bạn có chắc chắn muốn đóng? Dữ liệu đang nhập sẽ bị mất.')) setShowForm(false) }}>
+                    <div className="bg-white w-full md:max-w-5xl h-full md:h-[90vh] md:max-h-[900px] md:min-h-[600px] rounded-none md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border-none md:border md:border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
 
                         {/* Left Side: Branding & Profile Sidebar */}
-                        <div className="w-full md:w-[240px] bg-text-main relative overflow-hidden flex flex-col p-8 text-white shrink-0 items-center justify-between border-b md:border-b-0 md:border-r border-white/5 h-full">
+                        <div className="w-full md:w-[240px] bg-text-main relative overflow-hidden flex flex-row md:flex-col p-6 md:p-8 text-white shrink-0 items-center justify-between border-b md:border-b-0 md:border-r border-white/5 h-auto md:h-full">
                             <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 20% 150%, #C5A059, transparent), radial-gradient(circle at 80% -50%, #F2EBE1, transparent)' }}></div>
 
-                            <div className="relative z-10 flex flex-col items-center w-full">
-                                <div className="relative mb-8 group">
-                                    <div className="w-32 h-32 rounded-[40px] bg-white p-1.5 shadow-2xl transform group-hover:rotate-3 transition-all duration-500">
-                                        <div className="w-full h-full rounded-[32px] bg-beige-soft overflow-hidden border border-gold-light/20 flex items-center justify-center relative">
+                            <div className="relative z-10 flex items-center md:flex-col gap-4 md:gap-0 w-full">
+                                <div className="relative mb-0 md:mb-8 group">
+                                    <div className="w-20 h-20 md:w-32 md:h-32 rounded-[24px] md:rounded-[40px] bg-white p-1 shadow-2xl transform group-hover:rotate-3 transition-all duration-500">
+                                        <div className="w-full h-full rounded-[20px] md:rounded-[32px] bg-beige-soft overflow-hidden border border-gold-light/20 flex items-center justify-center relative">
                                             {form.avatarUrl ? (
                                                 <img src={form.avatarUrl} className="w-full h-full object-cover" />
                                             ) : (
-                                                <div className="text-4xl font-serif font-black text-gold-muted uppercase">
+                                                <div className="text-2xl md:text-4xl font-serif font-black text-gold-muted uppercase">
                                                     {form.displayName ? form.displayName[0] : '?'}
                                                 </div>
                                             )}
@@ -504,27 +504,27 @@ export default function UsersPage() {
                                     </div>
                                     <button
                                         onClick={() => setShowSalaryModal(true)}
-                                        className="absolute -bottom-2 -right-2 w-11 h-11 rounded-2xl bg-gold-muted text-white flex items-center justify-center shadow-luxury border-4 border-text-main hover:bg-gold-light transition-all active:scale-90 group"
+                                        className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 w-8 h-8 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-gold-muted text-white flex items-center justify-center shadow-luxury border-2 md:border-4 border-text-main hover:bg-gold-light transition-all active:scale-90 group"
                                         title="Thiết lập lương"
                                     >
-                                        <DollarSign size={18} strokeWidth={3} className="group-hover:scale-110 transition-transform" />
+                                        <DollarSign size={16} strokeWidth={3} className="group-hover:scale-110 transition-transform" />
                                     </button>
                                 </div>
 
-                                <div className="text-center space-y-2">
-                                    <h4 className="text-[10px] text-gold-muted font-black uppercase tracking-[0.3em] italic">Hồ sơ công tác</h4>
-                                    <p className="text-[14px] text-white font-serif font-black uppercase tracking-widest leading-tight">
+                                <div className="text-left md:text-center space-y-1 md:space-y-2 flex-1 md:w-full">
+                                    <h4 className="text-[9px] text-gold-muted font-black uppercase tracking-[0.2em] md:tracking-[0.3em] italic">Hồ sơ công tác</h4>
+                                    <p className="text-[12px] md:text-[14px] text-white font-serif font-black uppercase tracking-widest leading-tight">
                                         {form.displayName || 'Nhân sự mới'}
                                     </p>
-                                    <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 mt-2">
-                                        <span className="text-[9px] font-black text-gold-muted uppercase tracking-widest">
+                                    <div className="inline-block px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-white/5 border border-white/10 mt-1">
+                                        <span className="text-[8px] md:text-[9px] font-black text-gold-muted uppercase tracking-widest">
                                             {form.username ? `@${form.username}` : 'ID: NEW'}
                                         </span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="relative z-10 w-full space-y-4 mt-8">
+                            <div className="relative z-10 hidden md:flex w-full space-y-4 mt-8">
                                 <div className={`p-4 rounded-2xl transition-all border ${form.isActive !== false ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
                                     <div className="flex items-center justify-center gap-2">
                                         <div className={`w-2 h-2 rounded-full ${form.isActive !== false ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></div>
@@ -542,24 +542,24 @@ export default function UsersPage() {
                         {/* Right Side: Tabbed Content */}
                         <div className="flex-1 bg-white flex flex-col relative min-w-0">
                             {/* Header + Close */}
-                            <div className="px-8 pt-8 md:px-10 md:pt-10 flex justify-between items-start shrink-0">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Shield size={14} className="text-gold-muted" />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-soft/60 italic">Quản trị nhân sự</span>
+                            <div className="px-6 pt-6 md:px-10 md:pt-10 flex justify-between items-start shrink-0">
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2 mb-1 md:mb-2">
+                                        <Shield size={12} className="text-gold-muted" />
+                                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-text-soft/60 italic">Quản trị nhân sự</span>
                                     </div>
-                                    <h3 className="text-3xl font-serif font-black text-text-main tracking-tighter uppercase leading-none italic">
+                                    <h3 className="text-2xl md:text-3xl font-serif font-black text-text-main tracking-tighter uppercase leading-none italic truncate">
                                         {editing ? 'Hiệu chỉnh' : 'Khởi tạo'} <span className="text-gold-muted">Hồ Sơ</span>
                                     </h3>
                                 </div>
-                                <button onClick={() => setShowForm(false)} className="w-12 h-12 rounded-2xl bg-white text-text-soft hover:text-rose-500 flex items-center justify-center transition-all shadow-sm border border-gold-light/20 active:scale-90">
-                                    <X size={22} strokeWidth={2.5} />
+                                <button onClick={() => setShowForm(false)} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white text-text-soft hover:text-rose-500 flex items-center justify-center transition-all shadow-sm border border-gold-light/20 active:scale-90 shrink-0">
+                                    <X size={20} strokeWidth={2.5} />
                                 </button>
                             </div>
 
                             {/* Tab Bar */}
-                            <div className="px-8 md:px-10 pt-6 shrink-0">
-                                <div className="flex gap-1 p-1 bg-beige-soft/50 rounded-2xl">
+                            <div className="px-6 md:px-10 pt-4 md:pt-6 shrink-0">
+                                <div className="flex gap-1 p-1 bg-beige-soft/50 rounded-2xl overflow-x-auto luxury-scrollbar">
                                     {([
                                         { key: 'info' as const, label: 'Thông tin', icon: UserCircle },
                                         { key: 'permissions' as const, label: 'Phân quyền', icon: Shield },
@@ -568,7 +568,7 @@ export default function UsersPage() {
                                         <button
                                             key={tab.key}
                                             onClick={() => setModalTab(tab.key)}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${modalTab === tab.key ? 'bg-text-main text-white shadow-luxury' : 'text-text-soft/50 hover:text-gold-muted hover:bg-white'}`}
+                                            className={`flex-1 min-w-[90px] flex items-center justify-center gap-2 py-2.5 md:py-3 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${modalTab === tab.key ? 'bg-text-main text-white shadow-luxury' : 'text-text-soft/50 hover:text-gold-muted hover:bg-white'}`}
                                         >
                                             <tab.icon size={14} strokeWidth={2} />
                                             {tab.label}
@@ -578,7 +578,7 @@ export default function UsersPage() {
                             </div>
 
                             {/* Tab Content — Scrollable */}
-                            <div className="flex-1 overflow-y-auto luxury-scrollbar p-8 md:p-10">
+                            <div className="flex-1 overflow-y-auto luxury-scrollbar p-6 md:p-10">
 
                                 {/* ═══ TAB 1: THÔNG TIN CƠ BẢN ═══ */}
                                 {modalTab === 'info' && (
@@ -872,10 +872,10 @@ export default function UsersPage() {
                             </div>
 
                             {/* Footer */}
-                            <div className="p-6 md:p-8 bg-beige-soft/30 border-t border-gold-light/10 flex gap-4 shrink-0">
-                                <button className="flex-1 py-4 rounded-2xl bg-white text-text-soft/60 text-[11px] font-black uppercase tracking-widest border border-gold-light/20 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-95 italic" onClick={() => setShowForm(false)}>Hủy bỏ</button>
-                                <button className="flex-[2] py-4 rounded-2xl bg-text-main text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-muted transition-all active:scale-95 shadow-lg flex items-center justify-center gap-3 italic" onClick={handleSave}>
-                                    <CheckCircle2 size={16} strokeWidth={2.5} /> Lưu hồ sơ nhân sự
+                            <div className="p-5 md:p-8 bg-beige-soft/30 border-t border-gold-light/10 flex gap-3 md:gap-4 shrink-0">
+                                <button className="flex-1 py-3.5 md:py-4 rounded-xl md:rounded-2xl bg-white text-text-soft/60 text-[10px] md:text-[11px] font-black uppercase tracking-widest border border-gold-light/20 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-95 italic" onClick={() => setShowForm(false)}>Hủy</button>
+                                <button className="flex-[2] py-3.5 md:py-4 rounded-xl md:rounded-2xl bg-text-main text-white text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] shadow-luxury hover:bg-gold-muted transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2 md:gap-3 italic" onClick={handleSave}>
+                                    <CheckCircle2 size={16} strokeWidth={2.5} /> Lưu hồ sơ
                                 </button>
                             </div>
                         </div>
@@ -971,7 +971,7 @@ function SalaryConfigModal({ user, initialConfig, onSave, onClose }: { user: Use
     }
 
     return (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+        <div className="fixed inset-0 z-[2300] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
             <div className="bg-white w-full max-w-2xl h-[85vh] max-h-[850px] min-h-[500px] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
 
                 {/* Left Side: Compact Branding Sidebar */}

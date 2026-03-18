@@ -297,7 +297,15 @@ export default function PresenceSidebar({ onOpenChat, isOpen: propIsOpen, onTogg
                 </button>
             )}
 
-            <aside className={`fixed right-0 top-0 w-[320px] h-screen bg-white border-l border-gold-light/10 shadow-2xl flex flex-col z-[110] transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            {/* Backdrop for Mobile */}
+            {isOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[2050] lg:hidden animate-fade-in"
+                    onClick={() => setIsOpen(false)}
+                />
+            )}
+
+            <aside className={`fixed right-0 top-0 w-full xs:w-[320px] h-screen bg-white border-l border-gold-light/10 shadow-2xl flex flex-col z-[2100] transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 {/* Header */}
                 <div className="p-6 border-b border-gold-light/10 bg-beige-soft/5">
                     <div className="flex items-center justify-between mb-4">
@@ -312,10 +320,10 @@ export default function PresenceSidebar({ onOpenChat, isOpen: propIsOpen, onTogg
                         </div>
                         <button
                             onClick={() => setIsOpen(false)}
-                            className="p-1.5 hover:bg-beige-soft rounded-lg text-text-soft/40 transition-colors focus:outline-offset-2"
+                            className="p-3 -m-3 hover:bg-beige-soft rounded-full text-text-main transition-colors focus:outline-offset-2 lg:p-1.5 lg:m-0"
                             aria-label="Đóng sidebar"
                         >
-                            <X size={18} />
+                            <X size={20} strokeWidth={2.5} />
                         </button>
                     </div>
 

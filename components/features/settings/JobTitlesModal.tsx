@@ -163,7 +163,7 @@ export default function JobTitlesModal({ onClose }: { onClose: () => void }) {
     }
 
     return (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+        <div className="fixed inset-0 z-[2400] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
             <div className="bg-white w-full max-w-6xl h-[85vh] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
 
                 {/* Left Side: Branding Sidebar */}
@@ -288,7 +288,7 @@ export default function JobTitlesModal({ onClose }: { onClose: () => void }) {
 
                 {/* Sub Modal: Form Edit Overlay */}
                 {showForm && (
-                    <div className="absolute inset-0 z-[150] flex items-center justify-center p-4 md:p-10 bg-text-main/20 backdrop-blur-xl animate-fade-in rounded-[32px] md:rounded-[40px]">
+                    <div className="absolute inset-0 z-[250] flex items-center justify-center p-4 md:p-10 bg-text-main/20 backdrop-blur-xl animate-fade-in rounded-[32px] md:rounded-[40px]">
                         <div className="bg-white w-full max-w-2xl h-fit max-h-[90%] rounded-[32px] shadow-[0_30px_100px_rgba(0,0,0,0.3)] flex flex-col border border-gold-light/20 overflow-hidden animate-modal-up">
 
                             {/* Sub-Modal Header */}
