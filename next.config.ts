@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Output configuration for Tauri (static export) or Vercel (default)
-  output: process.env.IS_TAURI ? 'export' : undefined,
+  // Output configuration for Electron (static export) or Vercel (default)
+  output: process.env.IS_ELECTRON ? 'export' : undefined,
 
   // Enable React strict mode for better development warnings
   reactStrictMode: true,
@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
   },
 
   // Configure headers for caching static assets (Vercel only)
-  ...(process.env.IS_TAURI ? {} : {
+  ...(process.env.IS_ELECTRON ? {} : {
     async headers() {
       return [
         {

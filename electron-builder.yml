@@ -1,0 +1,20 @@
+appId: "com.taichinh.app"
+productName: "Taichinh"
+directories:
+  output: "dist"
+  buildResources: "public"
+files:
+  - "main/**/*"
+  - "out/**/*"
+publish:
+  provider: "github"
+  owner: "" # Update with GitHub username/org
+  repo: ""  # Update with GitHub repo name
+win:
+  target: "nsis"
+  icon: "public/favicon.ico"
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  shortcutName: "Taichinh App"

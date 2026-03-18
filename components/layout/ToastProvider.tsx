@@ -38,6 +38,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         const id = generateId()
         setToasts(prev => [...prev, { id, message, description, type }])
 
+        // Play system beep sound natively
+        if (typeof window !== 'undefined' && (window as any).electronAPI) {
+            (window as any).electronAPI.playBeep()
+        }
+
         setTimeout(() => {
             removeToast(id)
         }, 5000)

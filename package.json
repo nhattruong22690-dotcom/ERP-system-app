@@ -1,41 +1,45 @@
 {
-  "name": "taichinh-app",
-  "version": "0.1.19",
+  "name": "xinh-group-erp",
+  "version": "0.1.20",
+  "description": "Xinh Group ERP System",
+  "author": "Trương Minh Nhật",
   "private": true,
+  "main": "main/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:export": "node scripts/build-next-export.js",
     "start": "next start",
-    "tauri:dev": "cross-env IS_TAURI=true tauri dev",
-    "tauri": "tauri",
-    "tauri:build": "tauri build",
-    "build:tauri": "node scripts/build-for-tauri.js"
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on tcp:3000 && cross-env NODE_ENV=development electron .\"",
+    "electron:build": "npm run build:export && electron-builder build --win"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
-    "@tauri-apps/plugin-process": "^2.3.1",
     "@types/nodemailer": "^7.0.11",
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",
+    "electron-is-dev": "^3.0.1",
+    "electron-updater": "^6.8.3",
     "lucide-react": "^0.575.0",
-    "next": "16.1.6",
+    "next": "^16.2.0",
     "nodemailer": "^8.0.1",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@tauri-apps/api": "^2.10.1",
-    "@tauri-apps/cli": "^2.10.1",
-    "@tauri-apps/plugin-updater": "^2.1.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "dotenv": "^17.3.1",
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^9.0.4"
   }
 }

@@ -9,27 +9,36 @@ export function UpdateChecker() {
     const [updateInfo, setUpdateInfo] = useState<any>(null)
     const [error, setError] = useState<string | null>(null)
     const [detailedError, setDetailedError] = useState<any>(null)
-    const [isTauri, setIsTauri] = useState(false)
+    const [isElectron, setIsElectron] = useState(false)
 
     useEffect(() => {
-        const checkTauri = async () => {
-            // Kiểm tra xem có đang chạy trong môi trường Tauri không
-            if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
-                setIsTauri(true)
+        const checkElectron = async () => {
+            // Kiểm tra xem có đang chạy trong môi trường Electron không
+            if (typeof window !== 'undefined' && (window as any).electronAPI) {
+                setIsElectron(true)
                 try {
-                    const { getVersion } = await import('@tauri-apps/api/app')
-                    const version = await getVersion()
+                    const version = await (window as any).electronAPI.getVersion()
                     setCurrentVersion(version)
+                    
+                    // Lắng nghe các event từ Electron
+                    ;(window as any).electronAPI.onUpdateAvailable(() => {
+                        setStatus('downloading')
+                    })
+                    
+                    ;(window as any).electronAPI.onUpdateDownloaded(() => {
+                        setStatus('available')
+                        setUpdateInfo({ version: 'Mới Nhất' }) // Thông tin tuỳ chọn
+                    })
                 } catch (e) {
-                    console.error('Failed to get version', e)
+                    console.error('Failed to init Electron updates', e)
                 }
             }
         }
-        checkTauri()
+        checkElectron()
     }, [])
 
     const handleCheckUpdate = async () => {
-        if (!isTauri) {
+        if (!isElectron) {
             setError('Tính năng cập nhật chỉ khả dụng trên ứng dụng máy tính.')
             setStatus('error')
             return
@@ -39,15 +48,11 @@ export function UpdateChecker() {
         setError(null)
 
         try {
-            const { check } = await import('@tauri-apps/plugin-updater')
-            const update = await check()
-
-            if (update) {
-                setUpdateInfo(update)
-                setStatus('available')
-            } else {
+            const hasUpdate = await (window as any).electronAPI.checkForUpdate()
+            if (hasUpdate === false || hasUpdate === null) {
                 setStatus('uptodate')
             }
+            // Nếu có bản cập nhật, event "update-available" sẽ tự trigger -> 'downloading'
         } catch (e: any) {
             console.error('Update check failed', e)
             setError(e.message || 'Lỗi khi kiểm tra cập nhật.')
@@ -57,26 +62,12 @@ export function UpdateChecker() {
     }
 
     const handleDownloadInstall = async () => {
-        if (!updateInfo) return
-
-        setStatus('downloading')
+        setStatus('installing')
         try {
-            // Tauri v2 downloadAndInstall
-            await updateInfo.downloadAndInstall()
-            setStatus('installing')
-            
-            // Re-launching after install (Installer thường tự khởi động lại app trên Windows)
-            setTimeout(async () => {
-              try {
-                const { relaunch } = await import('@tauri-apps/plugin-process')
-                await relaunch()
-              } catch (e) {
-                console.warn('Relaunch plugin not found or failed, app might restart automatically via installer.')
-              }
-            }, 1000)
+            ;(window as any).electronAPI.installUpdate()
         } catch (e: any) {
             console.error('Update failed', e)
-            setError(e.message || 'Lỗi khi tải hoặc cài đặt bản cập nhật.')
+            setError(e.message || 'Lỗi cài đặt bản cập nhật.')
             setDetailedError(e)
             setStatus('error')
         }
@@ -134,11 +125,11 @@ export function UpdateChecker() {
                             </div>
                             <div className="flex-1 text-center md:text-left">
                                 <div className="inline-block px-3 py-1 rounded-full bg-amber-500 text-white text-xs font-bold mb-2 uppercase tracking-widest shadow-sm">Có bản cập nhật mới!</div>
-                                <h3 className="text-xl font-bold text-slate-800">Phiên bản v{updateInfo.version} đã sẵn sàng</h3>
+                                <h3 className="text-xl font-bold text-slate-800">Bản cập nhật đã sẵn sàng cài đặt</h3>
                                 <div className="mt-3 p-4 rounded-xl bg-white border border-slate-200 text-sm text-slate-600 max-h-32 overflow-y-auto luxury-scrollbar shadow-sm">
-                                    <p className="font-bold text-xs text-slate-400 mb-2 uppercase tracking-tighter">Tính năng mới & Sửa lỗi:</p>
+                                    <p className="font-bold text-xs text-slate-400 mb-2 uppercase tracking-tighter">Hành động:</p>
                                     <div className="whitespace-pre-wrap">
-                                        {updateInfo.body || "Cập nhật hệ thống và cải thiện hiệu năng."}
+                                        Vui lòng nhấn nút cài đặt bên dưới để khởi động lại ứng dụng.
                                     </div>
                                 </div>
                             </div>

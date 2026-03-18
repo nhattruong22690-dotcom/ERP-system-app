@@ -236,6 +236,11 @@ export default function NotificationBanner({ userId }: Props) {
 
     useEffect(() => {
         if (isVisible && notification) {
+            // Trigger system beep natively
+            if (typeof window !== 'undefined' && (window as any).electronAPI) {
+                (window as any).electronAPI.playBeep()
+            }
+            
             const timer = setTimeout(async () => {
                 handleDismiss()
             }, 20000)
