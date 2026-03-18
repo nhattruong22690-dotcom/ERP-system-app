@@ -236,7 +236,7 @@ export async function fetchAllData(): Promise<AppState | null> {
                 amount: t.amount, paymentAccountId: t.payment_account_id, toPaymentAccountId: t.to_payment_account_id,
                 paidByBranchId: t.paid_by_branch_id, note: t.note, isDebt: t.is_debt, status: t.status as any,
                 serviceOrderId: t.service_order_id,
-                createdBy: t.created_by, createdAt: t.created_at, updatedBy: t.updated_at, updatedAt: t.updated_at
+                createdBy: t.created_by, createdAt: t.created_at, updatedBy: t.updated_by, updatedAt: t.updated_at
             })),
             activityLogs: resActivityLogs.map((l: any) => ({
                 id: l.id, userId: l.user_id, type: l.type as any,

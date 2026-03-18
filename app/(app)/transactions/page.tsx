@@ -50,8 +50,16 @@ export default function TransactionsPage() {
         const canViewAll = canViewAllBranches(currentUser)
         return state.transactions
             .filter(tx => {
-                // Mandatory branch filter for branch staff
-                if (!canViewAll && tx.branchId !== currentUser?.branchId) return false
+                // RBAC: Branch staff only see transactions in their own branch
+                if (!canViewAll) {
+                    if (tx.branchId !== currentUser?.branchId) return false
+                    
+                    // Hide transactions created by HQ/Admin department staff from branch staff
+                    const creator = state.users.find(u => u.id === tx.createdBy)
+                    if (creator && (creator.departmentType === 'hq' || creator.departmentType === 'admin' || creator.role === 'admin')) {
+                        return false
+                    }
+                }
 
                 if (filterBranch && tx.branchId !== filterBranch) return false
                 if (filterType && tx.type !== filterType) return false
@@ -70,7 +78,7 @@ export default function TransactionsPage() {
                 if (dateComp !== 0) return dateComp
                 return (b.createdAt || '').localeCompare(a.createdAt || '')
             })
-    }, [state.transactions, filterBranch, filterType, filterMonth, filterYear, filterCat, filterAccount, filterDate, currentUser])
+    }, [state.transactions, state.users, filterBranch, filterType, filterMonth, filterYear, filterCat, filterAccount, filterDate, currentUser])
 
     // Calculate current month totals for warning
     const checkOverBudget = (tx: Partial<Transaction>): { over: boolean; pct: number } => {
@@ -271,7 +279,7 @@ export default function TransactionsPage() {
                 }
             />
 
-            <div className="px-10 py-12 pb-32 max-w-[1600px] mx-auto animate-fade-in space-y-12">
+            <div className="px-4 py-12 pb-32 max-w-[98%] mx-auto animate-fade-in space-y-12">
                 {/* Luxury Filter Bar */}
                 <div className="bg-white p-10 rounded-[48px] border border-gold-light/20 shadow-luxury flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-gold-light/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
@@ -335,7 +343,7 @@ export default function TransactionsPage() {
                         { label: 'Tổng chi phí (-)', value: totalExpense, icon: TrendingDown, color: 'text-rose-600', bg: 'bg-rose-50/50', iconBg: 'bg-rose-100/40', sign: '-' },
                         { label: 'Biến động ròng', value: totalIncome - totalExpense, icon: Activity, color: (totalIncome - totalExpense) >= 0 ? 'text-gold-muted' : 'text-rose-600', bg: 'bg-white', iconBg: 'bg-gold-light/30', sign: (totalIncome - totalExpense) >= 0 ? '+' : '' },
                     ].map((c, i) => (
-                        <div key={c.label} className={`p-10 rounded-[48px] border border-gold-light/20 ${c.bg} shadow-luxury group transition-all duration-700 hover:scale-[1.03] relative overflow-hidden`}>
+                        <div key={c.label} className={`p-10 rounded-[48px] border-2 border-dashed border-rose-600/30 ${c.bg} shadow-luxury group transition-all duration-700 hover:scale-[1.03] relative overflow-hidden`}>
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/20 transition-all" />
 
                             <div className="flex justify-between items-start mb-10 relative z-10">
@@ -360,21 +368,25 @@ export default function TransactionsPage() {
                 <div className="bg-white rounded-[48px] border border-gold-light/20 shadow-luxury overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gold-light/5 rounded-full -mr-[250px] -mt-[250px] blur-[100px] pointer-events-none" />
 
-                    <div className="overflow-x-auto relative z-10">
-                        <table className="w-full text-left border-separate border-spacing-0">
+                    <div className="overflow-x-auto relative z-10 px-8 pb-8 min-h-[600px]">
+                        <table className="w-full text-left border-separate border-spacing-y-4 table-fixed min-w-[1500px]">
                             <thead>
                                 <tr className="bg-beige-soft/40">
-                                    <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic">Thời gian / Nhật ký</th>
-                                    <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic">Thực thể / Tài khoản</th>
-                                    <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic">Danh mục / Tính chất</th>
-                                    <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-right">Diễn biến số dư</th>
-                                    <th className="px-10 py-8 border-b border-gold-light/10"></th>
+                                    <th className="w-[140px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Thời gian</th>
+                                    <th className="w-[160px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Cơ sở</th>
+                                    <th className="w-[180px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Tài khoản</th>
+                                    <th className="w-[130px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Người tạo</th>
+                                    <th className="w-[180px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Danh mục</th>
+                                    <th className="w-[120px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Tính chất</th>
+                                    <th className="w-[200px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-right whitespace-nowrap">Diễn biến số dư</th>
+                                    <th className="w-[300px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Chú thích</th>
+                                    <th className="w-[120px] px-10 py-8 border-b border-gold-light/10"></th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gold-light/10">
+                            <tbody className="relative">
                                 {filteredTx.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-10 py-32 text-center">
+                                        <td colSpan={9} className="px-10 py-32 text-center">
                                             <div className="flex flex-col items-center gap-4 opacity-30">
                                                 <Database size={48} strokeWidth={1} className="text-gold-muted" />
                                                 <p className="text-[13px] font-black uppercase tracking-widest text-text-soft italic">Lưu trữ trống - Không tìm thấy giao dịch</p>
@@ -389,71 +401,57 @@ export default function TransactionsPage() {
                                         const paidByBranch = tx.paidByBranchId ? state.branches.find(b => b.id === tx.paidByBranchId) : null
                                         const canEdit_ = canEditTransaction(currentUser, tx)
                                         const isLocked = tx.status === 'locked'
+                                        const creator = state.users.find(u => u.id === tx.createdBy)
                                         return (
-                                            <tr key={tx.id} onClick={() => setSelectedTxId(tx.id)} className="group hover:bg-beige-soft/30 transition-all cursor-pointer">
-                                                <td className="px-10 py-10">
-                                                    <div className="flex items-center gap-5">
-                                                        {isLocked ? (
-                                                            <div className="w-12 h-12 rounded-[18px] bg-rose-50 text-rose-600 flex items-center justify-center shadow-sm border border-rose-100 animate-pulse">
-                                                                <LockKeyhole size={18} strokeWidth={2.5} />
-                                                            </div>
-                                                        ) : (
-                                                            <div className="w-12 h-12 rounded-[18px] bg-gold-light/30 text-gold-muted flex items-center justify-center border border-gold-light/20 shadow-sm group-hover:scale-110 transition-transform duration-500">
-                                                                <Calendar size={18} strokeWidth={2} />
-                                                            </div>
+                                            <tr key={tx.id} onClick={() => setSelectedTxId(tx.id)} className="group hover:bg-rose-50/20 transition-all cursor-pointer">
+                                                <td className="px-10 py-10 border-y-2 border-l-2 border-dashed border-rose-600/50 first:rounded-l-[28px] whitespace-nowrap">
+                                                    <div className="flex items-center gap-4 text-[15px] font-black text-text-main tabular-nums italic tracking-tighter">
+                                                        {isLocked && <LockKeyhole size={14} className="text-rose-600 animate-pulse" />}
+                                                        {new Date(tx.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                    </div>
+                                                </td>
+                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-gold-muted/40" />
+                                                        <span className="text-[13px] font-black text-text-main uppercase tracking-tight">{branch?.name}</span>
+                                                        {paidByBranch && (
+                                                            <span className="px-2.5 py-0.5 bg-text-main text-white text-[8px] font-black uppercase tracking-widest rounded-lg">VP Chi hộ</span>
                                                         )}
-                                                        <div>
-                                                            <div className="text-[15px] font-black text-text-main tabular-nums italic tracking-tighter">
-                                                                {new Date(tx.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                                            </div>
-                                                            <div className="text-[11px] font-bold text-text-soft/50 mt-1.5 line-clamp-1 italic max-w-[280px]">
-                                                                {tx.note || 'Không có bản ghi chi tiết'}
-                                                            </div>
-                                                        </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-10">
-                                                    <div className="space-y-2.5">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-2 h-2 rounded-full bg-gold-muted/40" />
-                                                            <span className="text-[13px] font-black text-text-main uppercase tracking-tight">{branch?.name}</span>
-                                                            {paidByBranch && (
-                                                                <span className="px-2.5 py-0.5 bg-text-main text-white text-[8px] font-black uppercase tracking-widest rounded-lg">VP Chi hộ</span>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-beige-soft/50 rounded-xl border border-gold-light/10 w-fit">
-                                                            <CreditCard size={14} strokeWidth={2} className="text-gold-muted" />
-                                                            <span className="text-[11px] font-black text-text-soft/60 italic tabular-nums">{account?.name}</span>
-                                                        </div>
+                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-beige-soft/50 rounded-xl border border-gold-light/10 w-fit">
+                                                        <CreditCard size={14} strokeWidth={2} className="text-gold-muted" />
+                                                        <span className="text-[11px] font-black text-text-soft/60 italic tabular-nums">{account?.name}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-10">
-                                                    <div className="flex flex-col gap-3">
-                                                        <div className="flex items-center gap-3">
-                                                            {tx.isDebt && (
-                                                                <span className="px-2.5 py-1 bg-rose-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg animate-bounce">NỢ</span>
-                                                            )}
-                                                            <span className="text-[14px] font-serif font-black text-text-main italic">
-                                                                {tx.type === 'transfer' ? 'Chuyển khoản nội bộ' : (cat?.name ?? 'Loại khác')}
-                                                            </span>
-                                                        </div>
-                                                        <div className={`w-fit px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] border shadow-sm ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                                            tx.type === 'transfer' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                                'bg-rose-50 text-rose-600 border-rose-100'
-                                                            }`}>
-                                                            {tx.type === 'income' ? '💎 Thu nhập' : tx.type === 'transfer' ? '⇄ Chuyển quỹ' : '🧱 Chi phí'}
-                                                        </div>
-                                                    </div>
+                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap text-[13px] font-black text-text-main italic">
+                                                    {creator?.displayName || 'Hệ thống'}
                                                 </td>
-                                                <td className="px-10 py-10 text-right">
-                                                    <div className={`text-[24px] font-serif font-black italic tabular-nums tracking-tighter ${tx.type === 'income' ? 'text-emerald-600' :
-                                                        tx.type === 'transfer' ? 'text-text-main/40' :
-                                                            'text-rose-600'
+                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap text-[14px] font-serif font-black text-text-main italic">
+                                                    {tx.type === 'transfer' ? 'Chuyển khoản nội bộ' : (cat?.name ?? 'Loại khác')}
+                                                </td>
+                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap">
+                                                    <div className={`w-fit px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] border shadow-sm ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                        tx.type === 'transfer' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                            'bg-rose-50 text-rose-600 border-rose-100'
                                                         }`}>
-                                                        {tx.type === 'income' ? '+' : tx.type === 'transfer' ? '' : '-'}{fmtVND(tx.amount)}
+                                                        {tx.type === 'income' ? 'Thu nhập' : tx.type === 'transfer' ? 'Chuyển quỹ' : 'Chi phí'}
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-10 text-right" onClick={e => e.stopPropagation()}>
+                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 text-right whitespace-nowrap">
+                                                    <div className={`text-[22px] font-serif font-black italic tabular-nums tracking-tighter ${tx.type === 'income' ? 'text-emerald-600' :
+                                                        tx.type === 'transfer' ? 'text-amber-600' : 'text-rose-600'}`}>
+                                                        {tx.type === 'income' ? '+' : '-'}{Math.abs(tx.amount).toLocaleString('vi-VN')}
+                                                        <span className="text-[12px] ml-1 uppercase opacity-40">đ</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50">
+                                                    <div className="text-[11px] font-bold text-rose-600 italic max-w-[350px]">
+                                                        {tx.note || '---'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-10 py-10 border-y-2 border-r-2 border-dashed border-rose-600/50 last:rounded-r-[28px] text-right" onClick={e => e.stopPropagation()}>
                                                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
                                                         <button
                                                             className="w-10 h-10 rounded-[14px] bg-white text-text-soft/40 hover:text-emerald-600 shadow-sm border border-gold-light/20 flex items-center justify-center transition-all hover:scale-110 hover:shadow-md"
