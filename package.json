@@ -1,6 +1,6 @@
 {
   "name": "xinh-group-erp",
-  "version": "0.1.25",
+  "version": "0.1.26",
   "description": "Xinh Group ERP System",
   "author": "Trương Minh Nhật",
   "private": true,
@@ -15,7 +15,8 @@
     "build:export": "node scripts/build-next-export.js",
     "start": "next start",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on tcp:3000 && cross-env NODE_ENV=development electron .\"",
-    "electron:build": "npm run build:export && electron-builder build --win"
+    "electron:build": "npm run build:export && electron-builder build --win",
+    "publish-app": "node scripts/publish.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
