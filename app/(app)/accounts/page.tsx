@@ -109,7 +109,7 @@ export default function AccountsPage() {
     }, [state.accounts, state.branches, currentUser])
 
     return (
-        <div className="page-container">
+        <div className="page-container px-4 md:px-[10%]">
             <PageHeader
                 icon={Landmark}
                 title="Tài khoản"
@@ -117,7 +117,7 @@ export default function AccountsPage() {
                 description="Dòng tiền & Số dư thời gian thực"
             />
 
-            <div className="px-10 py-12 pb-32 max-w-[1600px] mx-auto animate-fade-in space-y-12">
+            <div className="py-12 pb-32 animate-fade-in space-y-12">
 
                 {/* Luxury Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

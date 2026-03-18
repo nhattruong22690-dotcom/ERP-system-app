@@ -291,7 +291,7 @@ export default function PlanningPage() {
     }
 
     return (
-        <div className="page-container">
+        <div className="page-container px-4 md:px-[10%]">
             <PageHeader
                 icon={FileText}
                 title="Lập kế hoạch"
@@ -314,7 +314,7 @@ export default function PlanningPage() {
                 }
             />
 
-            <div className="px-10 py-12 pb-32 max-w-[1200px] mx-auto animate-fade-in space-y-12">
+            <div className="py-12 pb-32 animate-fade-in space-y-12">
                 {/* Selectors */}
                 <div className="flex flex-wrap items-center gap-6 bg-white p-6 rounded-[32px] border border-gold-light/20 shadow-luxury">
                     <div className="flex-1 min-w-[200px] flex items-center gap-4">

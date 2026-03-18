@@ -252,7 +252,7 @@ export default function TransactionsPage() {
     const totalExpense = filteredTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
 
     return (
-        <div className="page-container">
+        <div className="page-container px-4 md:px-[10%]">
             <PageHeader
                 icon={Database}
                 title="Sổ cái"
@@ -279,7 +279,7 @@ export default function TransactionsPage() {
                 }
             />
 
-            <div className="px-4 py-12 pb-32 max-w-[98%] mx-auto animate-fade-in space-y-12">
+            <div className="py-12 pb-32 animate-fade-in space-y-12">
                 {/* Luxury Filter Bar */}
                 <div className="bg-white p-10 rounded-[48px] border border-gold-light/20 shadow-luxury flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-gold-light/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />

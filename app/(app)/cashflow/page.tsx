@@ -130,7 +130,7 @@ export default function CashflowPage() {
     const actualProfitAfterTax = actualProfit - actualTax
 
     return (
-        <div className="page-container">
+        <div className="page-container px-4 md:px-[10%]">
             <PageHeader
                 icon={Activity}
                 title="Dòng tiền"
@@ -330,7 +330,7 @@ export default function CashflowPage() {
                                 <div className="h-[1px] flex-1 bg-gold-light/30"></div>
                             </div>
 
-                            <div className="overflow-x-auto luxury-scrollbar w-full max-w-full min-w-0">
+                            <div className="overflow-x-auto luxury-scrollbar w-full max-w-full min-w-0 px-4">
                                 <table className="w-full min-w-[1000px] text-left border-separate border-spacing-y-4">
                                     <thead>
                                         <tr className="bg-beige-soft/40">
@@ -354,7 +354,7 @@ export default function CashflowPage() {
                                                 <tr
                                                     key={r.categoryId}
                                                     ref={el => { rowRefs.current[r.categoryId] = el }}
-                                                    className={`transition-all duration-500 hover:scale-[1.01] group bg-white shadow-sm h-24 rounded-[28px] overflow-hidden ${isHighlighted ? 'bg-rose-50/30' : ''}`}
+                                                    className={`transition-all transform-gpu duration-500 hover:scale-[1.01] relative hover:z-[60] group bg-white shadow-sm h-24 rounded-[28px] ${isHighlighted ? 'bg-rose-50/30' : ''}`}
                                                 >
                                                     <td className={`px-10 py-6 border-y-2 border-l-2 border-dashed rounded-l-[28px] transition-colors group-hover:bg-[#9F1D35]/5 ${isHighlighted ? 'border-rose-600/50' : 'border-[#9F1D35]/50'}`}>
                                                         <div className="flex items-center gap-5">
@@ -444,7 +444,7 @@ export default function CashflowPage() {
                             <h3 className="text-xl font-serif font-bold italic text-text-main leading-tight">Tổng quan tài chính <span className="italic font-normal text-gold-muted opacity-80">theo Tài khoản</span></h3>
                         </div>
 
-                        <div className="overflow-x-auto luxury-scrollbar">
+                        <div className="overflow-x-auto luxury-scrollbar px-4 pb-4">
                             <table className="w-full min-w-[1000px] text-left border-separate border-spacing-y-4">
                                 <thead>
                                     <tr className="bg-beige-soft/40">
@@ -473,7 +473,7 @@ export default function CashflowPage() {
                                         if (income === 0 && expense === 0) return null
                                         const net = income - expense
                                         return (
-                                            <tr key={acc.id} className="transition-all duration-500 hover:scale-[1.01] group bg-white shadow-sm h-24 rounded-[28px] overflow-hidden">
+                                            <tr key={acc.id} className="transition-all transform-gpu duration-500 hover:scale-[1.01] relative hover:z-[60] group bg-white shadow-sm h-24 rounded-[28px]">
                                                 <td className="px-10 py-6 border-y-2 border-l-2 border-dashed rounded-l-[28px] border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center">
                                                     <span className="text-[14px] font-black text-text-main tracking-tight uppercase">{acc.name}</span>
                                                 </td>
