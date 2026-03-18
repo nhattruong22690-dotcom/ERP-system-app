@@ -57,6 +57,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [isPreparing, setIsPreparing] = useState(true)
+    const [version, setVersion] = useState<string>('')
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && (window as any).electronAPI) {
+            (window as any).electronAPI.getVersion().then((v: string) => setVersion(`v${v}`))
+        }
+    }, [])
 
     useEffect(() => {
         const timer = setTimeout(() => setIsPreparing(false), 1200)
@@ -374,6 +381,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         }}>
                             ERP SYSTEM
                         </div>
+                        {version && (
+                            <div style={{
+                                color: 'rgba(255,255,255,0.35)',
+                                fontWeight: 600,
+                                fontSize: '10px',
+                                letterSpacing: '1px',
+                                marginTop: '4px',
+                                fontFamily: "var(--font-inter)"
+                            }}>
+                                {version}
+                            </div>
+                        )}
                     </div>
                 </div>
 

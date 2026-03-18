@@ -32,6 +32,11 @@ export const metadata: Metadata = {
   description: 'Hệ thống quản lý Clinic – Spa – Aesthetic Medical System chuyên nghiệp, đẳng cấp. Tối ưu hóa vận hành, quản lý khách hàng và tài chính.',
   keywords: ['ERP', 'Spa Management', 'Clinic Management', 'Aesthetic Medical System', 'Xinh Group'],
   authors: [{ name: 'Xinh Group' }],
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
   openGraph: {
     title: 'Xinh Group ERP | Hệ Thống Quản Lý Spa & Thẩm Mỹ Viện Premium',
     description: 'Hệ thống quản lý Clinic – Spa – Aesthetic Medical System chuyên nghiệp, đẳng cấp.',
