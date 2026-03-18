@@ -119,11 +119,66 @@ export default function PresenceSidebar({ onOpenChat, isOpen: propIsOpen, onTogg
 
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
     const [internalIsOpen, setInternalIsOpen] = useState(false)
+    const [position, setPosition] = useState({ x: 0, y: 0 })
+    const [isDragging, setIsDragging] = useState(false)
+    const [hasDragged, setHasDragged] = useState(false)
+
+    // Refs for real-time tracking during drag
+    const dragStartRef = useRef({ x: 0, y: 0 })
+    const lastPosRef = useRef({ x: 0, y: 0 })
 
     const isOpen = propIsOpen !== undefined ? propIsOpen : internalIsOpen
     const setIsOpen = (val: boolean) => {
         if (onToggle) onToggle(val)
         else setInternalIsOpen(val)
+    }
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+        setIsDragging(true)
+        setHasDragged(false)
+        dragStartRef.current = {
+            x: e.clientX - lastPosRef.current.x,
+            y: e.clientY - lastPosRef.current.y
+        }
+    }
+
+    useEffect(() => {
+        if (!isDragging) return
+
+        const handlePointerMove = (e: PointerEvent) => {
+            const newX = e.clientX - dragStartRef.current.x
+            const newY = e.clientY - dragStartRef.current.y
+
+            if (Math.abs(newX - lastPosRef.current.x) > 2 || Math.abs(newY - lastPosRef.current.y) > 2) {
+                setHasDragged(true)
+            }
+
+            lastPosRef.current = { x: newX, y: newY }
+            setPosition({ x: newX, y: newY })
+        }
+
+        const handlePointerUp = () => {
+            setIsDragging(false)
+        }
+
+        window.addEventListener('pointermove', handlePointerMove)
+        window.addEventListener('pointerup', handlePointerUp)
+        window.addEventListener('pointercancel', handlePointerUp)
+
+        return () => {
+            window.removeEventListener('pointermove', handlePointerMove)
+            window.removeEventListener('pointerup', handlePointerUp)
+            window.removeEventListener('pointercancel', handlePointerUp)
+        }
+    }, [isDragging])
+
+    const handleButtonClick = (e: React.MouseEvent) => {
+        if (hasDragged) {
+            e.preventDefault()
+            e.stopPropagation()
+            return
+        }
+        setIsOpen(true)
     }
 
     // On mobile, default to closed
@@ -284,38 +339,46 @@ export default function PresenceSidebar({ onOpenChat, isOpen: propIsOpen, onTogg
         <>
             {/* Messenger Floating Icon for Mobile/Collapsed */}
             {!isOpen && (
-                <button
-                    onClick={() => setIsOpen(true)}
-                    className="fixed right-6 bottom-24 w-14 h-14 bg-text-main text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-[115] group lg:bottom-6"
+                <div
+                    onPointerDown={handlePointerDown}
+                    onClick={handleButtonClick}
+                    className={`fixed right-6 bottom-24 w-15 h-15 z-[2200] lg:bottom-6 cursor-pointer select-none group ${isDragging ? '' : 'transition-transform duration-300'}`}
+                    style={{
+                        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+                        touchAction: 'none'
+                    }}
                 >
-                    <MessageCircle size={24} className="group-hover:rotate-12 transition-transform" />
-                    {totalUnread > 0 && (
-                        <div className="absolute -top-1 -right-1 min-w-[22px] h-[22px] bg-gold-muted text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 border-2 border-white animate-bounce-slow">
-                            {totalUnread}
-                        </div>
-                    )}
-                </button>
+                    {/* Inner wrapper for CSS Animations (Wiggle/Glow) so it doesn't conflict with inline transform */}
+                    <div className="w-full h-full bg-gold-muted text-white rounded-full shadow-luxury flex items-center justify-center group-hover:scale-110 group-active:scale-95 transition-all animate-pulse-glow animate-wiggle">
+                        <MessageCircle size={28} className="group-hover:rotate-12 transition-transform" />
+                        {totalUnread > 0 && (
+                            <div className="absolute -top-1 -right-1 min-w-[24px] h-[24px] bg-text-main text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 border-2 border-white animate-bounce-slow shadow-lg">
+                                {totalUnread}
+                            </div>
+                        )}
+                    </div>
+                </div>
             )}
 
             {/* Backdrop for Mobile */}
             {isOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[2050] lg:hidden animate-fade-in"
                     onClick={() => setIsOpen(false)}
                 />
             )}
 
-            <aside className={`fixed right-0 top-0 w-full xs:w-[320px] h-screen bg-white border-l border-gold-light/10 shadow-2xl flex flex-col z-[2100] transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <aside className={`fixed right-0 bottom-0 w-[340px] h-[50vh] bg-white border-l border-gold-light/10 shadow-2xl flex flex-col z-[2100] transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 {/* Header */}
                 <div className="p-6 border-b border-gold-light/10 bg-beige-soft/5">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                             <h3 className="text-sm font-black text-text-main uppercase tracking-widest flex items-center gap-2">
                                 <Users size={16} className="text-gold-muted" aria-hidden="true" />
-                                Team
+                                Danh sách
                             </h3>
-                            <span className="flex items-center gap-1 text-[9px] font-black text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-500/10">
-                                {onlineCount} ONLINE
+                            <span className="flex items-center gap-1 text-[9px] font-black text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-500/10 uppercase">
+                                {onlineCount} Trực tuyến
                             </span>
                         </div>
                         <button
@@ -329,11 +392,11 @@ export default function PresenceSidebar({ onOpenChat, isOpen: propIsOpen, onTogg
 
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-soft/40" size={14} aria-hidden="true" />
-                        <label htmlFor="user-search" className="sr-only">Tìm kiếm đồng nghiệp</label>
+                        <label htmlFor="user-search" className="sr-only">Tìm kiếm</label>
                         <input
                             id="user-search"
                             type="text"
-                            placeholder="Find coworker..."
+                            placeholder="Tìm kiếm..."
                             className="w-full bg-white border border-gold-light/20 rounded-xl pl-9 pr-4 py-2.5 text-xs font-bold text-text-main focus:outline-none focus:ring-4 focus:ring-gold-muted/5 transition-all placeholder:text-text-soft/20"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
@@ -378,7 +441,7 @@ export default function PresenceSidebar({ onOpenChat, isOpen: propIsOpen, onTogg
                                         <span className="text-[9px] font-bold text-text-soft/40 uppercase tracking-widest">{user.role}</span>
                                         <span className="text-[10px] text-text-soft/10">•</span>
                                         <span className="text-[8px] font-medium text-text-soft/40 truncate italic">
-                                            {user.isOnline ? 'Active now' : user.lastSeenAt ? formatDistanceToNow(new Date(user.lastSeenAt), { addSuffix: true, locale: vi }) : 'Offline'}
+                                            {user.isOnline ? 'Trực tuyến' : user.lastSeenAt ? formatDistanceToNow(new Date(user.lastSeenAt), { addSuffix: true, locale: vi }) : 'Ngoại tuyến'}
                                         </span>
                                     </div>
                                 </div>
@@ -405,7 +468,7 @@ export default function PresenceSidebar({ onOpenChat, isOpen: propIsOpen, onTogg
                     {!loading && users.length === 0 && (
                         <div className="p-10 text-center opacity-20">
                             <Users size={40} className="mx-auto mb-2 text-gold-muted" />
-                            <p className="text-[10px] font-black uppercase tracking-widest">No members found</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest">Không tìm thấy thành viên</p>
                         </div>
                     )}
                 </div>
@@ -413,7 +476,7 @@ export default function PresenceSidebar({ onOpenChat, isOpen: propIsOpen, onTogg
                 {/* Footer */}
                 <div className="p-4 bg-beige-soft/10 border-t border-gold-light/5 text-center">
                     <p className="text-[9px] font-bold text-text-soft/20 uppercase tracking-[0.2em]">
-                        SECURE COMMUNICATION
+                        GIAO TIẾP NỘI BỘ
                     </p>
                 </div>
             </aside>

@@ -338,22 +338,26 @@ export default function ChatWindow({ targetUser, onClose, typing, onTyping }: Ch
     }
 
     return (
-        <div className={`w-[340px] ${isMinimized ? 'h-[48px]' : 'h-[450px]'} bg-white rounded-t-2xl shadow-2xl border border-gold-light/20 flex flex-col overflow-hidden transition-all duration-300 ease-in-out`}>
+        <div className={`w-[340px] ${isMinimized ? 'h-[48px]' : 'h-[50vh]'} bg-white rounded-t-2xl shadow-2xl border border-gold-light/20 flex flex-col overflow-hidden transition-all duration-300 ease-in-out`}>
             <div
-                className="p-3 bg-text-main text-white flex items-center justify-between cursor-pointer"
+                className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${
+                    isMinimized 
+                        ? 'bg-white text-text-main hover:bg-beige-soft h-[48px]' 
+                        : 'bg-white border-b border-gold-light/20 text-text-main hover:bg-beige-soft/50'
+                }`}
                 onClick={() => setIsMinimized(!isMinimized)}
             >
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <div className={`relative w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center overflow-hidden border border-white/10 ${getRoleGlowClass(targetUser.role)}`}>
+                        <div className={`relative w-8 h-8 rounded-lg bg-beige-soft flex items-center justify-center overflow-hidden border border-gold-light/10 ${getRoleGlowClass(targetUser.role)}`}>
                             {targetUser.avatarUrl ? (
                                 <img src={targetUser.avatarUrl} className="w-full h-full object-cover" />
                             ) : (
-                                <UserIcon size={16} className="text-white/40" />
+                                <UserIcon size={16} className="text-gold-muted/40" />
                             )}
                         </div>
                         {targetUser.isOnline && (
-                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-text-main" />
+                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
                         )}
                         {isMinimized && unreadCount > 0 && (
                             <div className="absolute -top-2 -right-2 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full border border-white shadow-lg animate-wiggle">
@@ -362,24 +366,24 @@ export default function ChatWindow({ targetUser, onClose, typing, onTyping }: Ch
                         )}
                     </div>
                     <div>
-                        <div className="text-[12px] font-black tracking-tight leading-none">{targetUser.displayName}</div>
+                        <div className="text-[12px] font-black tracking-tight leading-none text-text-main">{targetUser.displayName}</div>
                         {!isMinimized && (
-                            <div className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-1">
-                                {targetUser.isOnline ? 'Online' : 'Offline'}
+                            <div className="text-[9px] font-bold text-text-soft/40 uppercase tracking-widest mt-1">
+                                {targetUser.isOnline ? 'Trực tuyến' : 'Ngoại tuyến'}
                             </div>
                         )}
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
                     {!isMinimized && (
-                        <button onClick={(e) => { e.stopPropagation(); handleBuzz() }} className="p-1.5 hover:bg-white/10 rounded-lg text-amber-400">
-                            <Zap size={14} className="fill-amber-400" />
+                        <button onClick={(e) => { e.stopPropagation(); handleBuzz() }} className="p-1.5 hover:bg-beige-soft rounded-lg text-amber-500 transition-colors">
+                            <Zap size={14} className="fill-amber-500" />
                         </button>
                     )}
-                    <button onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized) }} className="p-1.5 hover:bg-white/10 rounded-lg">
+                    <button onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized) }} className="p-1.5 hover:bg-beige-soft rounded-lg text-text-soft/60 transition-colors">
                         {isMinimized ? <ArrowUp size={14} /> : <Minus size={14} />}
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); onClose() }} className="p-1.5 hover:bg-white/10 rounded-lg">
+                    <button onClick={(e) => { e.stopPropagation(); onClose() }} className="p-1.5 hover:bg-rose-50 text-text-soft/60 hover:text-rose-500 rounded-lg transition-colors">
                         <X size={14} />
                     </button>
                 </div>
@@ -423,11 +427,11 @@ export default function ChatWindow({ targetUser, onClose, typing, onTyping }: Ch
                                         >
                                             <div className="w-6 h-6 shrink-0 mb-5 relative">
                                                 {showAvatar && (
-                                                    <div className="w-6 h-6 rounded-md bg-white border border-gold-light/10 overflow-hidden">
+                                                    <div className="w-6 h-6 rounded-md bg-beige-soft border border-gold-light/10 overflow-hidden flex items-center justify-center">
                                                         {(isMe ? currentUser?.avatarUrl : targetUser.avatarUrl) ? (
                                                             <img src={isMe ? currentUser?.avatarUrl : targetUser.avatarUrl} className="w-full h-full object-cover" />
                                                         ) : (
-                                                            <UserIcon size={12} className="text-gold-muted/30 m-auto mt-1.5 block" />
+                                                            <UserIcon size={12} className="text-gold-muted/40" />
                                                         )}
                                                     </div>
                                                 )}
@@ -436,7 +440,7 @@ export default function ChatWindow({ targetUser, onClose, typing, onTyping }: Ch
                                                 <div
                                                     onClick={() => isMe && setActiveMessageId(activeMessageId === m.id ? null : m.id)}
                                                     className={`px-3 py-2 rounded-2xl text-[11px] font-medium leading-relaxed shadow-sm transition-all active:scale-[0.98] select-none ${isMe
-                                                        ? 'bg-text-main text-white rounded-br-none cursor-pointer hover:bg-gold-muted'
+                                                        ? 'bg-gold-muted text-white rounded-br-none cursor-pointer hover:bg-gold-muted/90'
                                                         : 'bg-white text-text-main border border-gold-light/10 rounded-bl-none'
                                                         }`}
                                                 >
@@ -478,7 +482,7 @@ export default function ChatWindow({ targetUser, onClose, typing, onTyping }: Ch
                                                 <span className="w-1 h-1 bg-gold-muted/30 rounded-full animate-bounce [animation-delay:0.2s]" />
                                                 <span className="w-1 h-1 bg-gold-muted/30 rounded-full animate-bounce [animation-delay:0.4s]" />
                                             </span>
-                                            {targetUser.displayName.split(' ')[0]} typing...
+                                            {targetUser.displayName.split(' ')[0]} đang soạn tin...
                                         </div>
                                     </div>
                                 )}
@@ -489,14 +493,14 @@ export default function ChatWindow({ targetUser, onClose, typing, onTyping }: Ch
                     <div className="p-3 bg-white border-t border-gold-light/10 flex items-end gap-2">
                         <textarea
                             rows={1}
-                            className="flex-1 bg-beige-soft/20 rounded-xl border border-gold-light/10 text-[11px] px-3 py-2 resize-none"
-                            placeholder="Type message..."
+                            className="flex-1 bg-beige-soft/30 rounded-xl border border-gold-light/20 text-[11px] px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-gold-muted/20 transition-all text-text-main placeholder:text-text-soft/40"
+                            placeholder="Nhập tin nhắn..."
                             value={input}
                             onChange={handleInputChange}
                             onKeyDown={handleKeyDown}
                         />
-                        <button onClick={handleSend} disabled={!input.trim()} className="w-8 h-8 bg-text-main text-white rounded-lg flex items-center justify-center">
-                            <Send size={14} />
+                        <button onClick={handleSend} disabled={!input.trim()} className="w-8 h-8 bg-gold-muted text-white rounded-lg flex items-center justify-center hover:bg-gold-muted/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <Send size={14} className="ml-0.5" />
                         </button>
                     </div>
                 </div>

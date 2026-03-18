@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import PageHeader from '@/components/layout/PageHeader'
 
 const SECTION_LABELS: Record<string, string> = {
-    revenue: 'Dòng tiền vào & Doanh thu',
+    revenue: 'Dòng tiền & Doanh thu',
     fixed_cost: 'Chi phí vận hành cố định',
     variable_cost: 'Chi phí kinh doanh biến đổi',
     fund: 'Các quỹ dự phòng & Vốn',
@@ -208,7 +208,7 @@ export default function CashflowPage() {
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></div>
-                                <span className="text-[10px] font-black text-text-soft uppercase tracking-[0.2em] opacity-40">Cảnh báo tài chính thời gian thực ({alerts.length})</span>
+                                <span className="text-[10px] font-black text-text-soft uppercase tracking-[0.2em] opacity-40">Cảnh báo tài chính ({alerts.length})</span>
                             </div>
                             <button
                                 onClick={() => setHideAlerts(true)}
@@ -323,22 +323,22 @@ export default function CashflowPage() {
             ) : (
                 <div className="space-y-24">
                     {sections.map(section => (
-                        <div key={section} className="animate-fade-in">
+                        <div key={section} className="animate-fade-in w-full min-w-0">
                             <div className="flex items-center gap-6 mb-10">
                                 <div className="h-[1px] flex-1 bg-gold-light/30"></div>
                                 <h3 className="text-xs font-black text-gold-muted uppercase tracking-[0.5em] px-4 whitespace-nowrap opacity-60 italic">{SECTION_LABELS[section]}</h3>
                                 <div className="h-[1px] flex-1 bg-gold-light/30"></div>
                             </div>
 
-                            <div className="overflow-x-auto luxury-scrollbar border border-gold-light/20 rounded-[32px] md:rounded-[40px] bg-white shadow-luxury">
-                                <table className="w-full min-w-[800px] md:min-w-full text-left luxury-table border-collapse">
+                            <div className="overflow-x-auto luxury-scrollbar w-full max-w-full min-w-0">
+                                <table className="w-full min-w-[1000px] text-left border-separate border-spacing-y-4">
                                     <thead>
-                                        <tr className="bg-beige-soft/40 border-b border-gold-light/20">
-                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] italic opacity-60">Phân loại mục</th>
-                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Ngân sách dự kiến</th>
-                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Thực tế thực hiện</th>
-                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">% Hiệu suất</th>
-                                            <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-right italic opacity-60">Còn lại/Chênh lệch</th>
+                                        <tr className="bg-beige-soft/40">
+                                            <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic">Danh mục</th>
+                                            <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Ngân sách</th>
+                                            <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Thực tế</th>
+                                            <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Tỷ lệ</th>
+                                            <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-right">Chênh lệch</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -354,10 +354,9 @@ export default function CashflowPage() {
                                                 <tr
                                                     key={r.categoryId}
                                                     ref={el => { rowRefs.current[r.categoryId] = el }}
-                                                    className={`border-b border-gold-light/10 transition-all duration-500 hover:bg-beige-soft/30 group ${isHighlighted ? 'bg-gold-light/20 ring-2 ring-gold-muted/20 relative z-10' : ''
-                                                        }`}
+                                                    className={`transition-all duration-500 hover:scale-[1.01] group bg-white shadow-sm h-24 rounded-[28px] overflow-hidden ${isHighlighted ? 'bg-rose-50/30' : ''}`}
                                                 >
-                                                    <td className="px-10 py-7">
+                                                    <td className={`px-10 py-6 border-y-2 border-l-2 border-dashed rounded-l-[28px] transition-colors group-hover:bg-[#9F1D35]/5 ${isHighlighted ? 'border-rose-600/50' : 'border-[#9F1D35]/50'}`}>
                                                         <div className="flex items-center gap-5">
                                                             <button
                                                                 onClick={() => toggleStar(r.categoryId)}
@@ -382,13 +381,13 @@ export default function CashflowPage() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-10 py-7 text-center text-[13px] font-medium text-text-soft italic opacity-60">
+                                                    <td className={`px-10 py-6 border-y-2 border-dashed transition-colors group-hover:bg-[#9F1D35]/5 text-center text-[15px] font-serif font-black italic text-blue-600 ${isHighlighted ? 'border-rose-600/50' : 'border-[#9F1D35]/50'}`}>
                                                         {fmtVND(r.planned)}
                                                     </td>
-                                                    <td className="px-10 py-7 text-center text-[15px] font-serif font-black italic text-text-main">
+                                                    <td className={`px-10 py-6 border-y-2 border-dashed transition-colors group-hover:bg-[#9F1D35]/5 text-center text-[15px] font-serif font-black italic text-text-main ${isHighlighted ? 'border-rose-600/50' : 'border-[#9F1D35]/50'}`}>
                                                         {fmtVND(r.actual)}
                                                     </td>
-                                                    <td className="px-10 py-7">
+                                                    <td className={`px-10 py-6 border-y-2 border-dashed transition-colors group-hover:bg-[#9F1D35]/5 ${isHighlighted ? 'border-rose-600/50' : 'border-[#9F1D35]/50'}`}>
                                                         <div className="flex items-center gap-5 justify-center">
                                                             <div className="h-1.5 w-24 bg-beige-soft rounded-full overflow-hidden flex-shrink-0 relative">
                                                                 <div
@@ -401,8 +400,7 @@ export default function CashflowPage() {
                                                                 }`}>{r.pct.toFixed(0)}%</span>
                                                         </div>
                                                     </td>
-                                                    <td className={`px-10 py-7 text-right text-[15px] font-serif font-black italic force-nowrap ${r.isNegativeStatus ? 'text-rose-600' : 'text-emerald-600'
-                                                        }`}>
+                                                    <td className={`px-10 py-6 border-y-2 border-r-2 border-dashed rounded-r-[28px] transition-colors group-hover:bg-[#9F1D35]/5 text-right text-[15px] font-serif font-black italic force-nowrap ${isHighlighted ? 'border-rose-600/50' : 'border-[#9F1D35]/50'} ${r.isNegativeStatus ? 'text-[#9F1D35]' : 'text-emerald-600'}`}>
                                                         <div className="flex flex-col items-end gap-1">
                                                             <span>{r.isNegativeStatus ? '-' : '+'}{fmtVND(Math.abs(r.remaining))}</span>
                                                             {isExceeded && r.actual > 0 && r.planned > 0 && (
@@ -417,17 +415,17 @@ export default function CashflowPage() {
                                         })}
                                     </tbody>
                                     {/* Section Sums */}
-                                    <tfoot className="bg-beige-soft/30 border-t border-gold-light/20">
-                                        <tr>
-                                            <td className="px-10 py-6 text-[11px] font-black text-gold-muted uppercase tracking-[0.3em] italic opacity-60">Tổng cộng {SECTION_LABELS[section]}</td>
-                                            <td className="px-10 py-6 text-[14px] font-serif font-bold text-text-main text-center opacity-40 italic">
+                                    <tfoot className="bg-transparent">
+                                        <tr className="bg-[#9F1D35] text-white shadow-xl h-24 rounded-[28px] overflow-hidden">
+                                            <td className="px-10 py-6 border-y-2 border-l-2 border-dashed rounded-l-[28px] border-[#9F1D35] text-[11px] font-black uppercase tracking-[0.4em] italic opacity-80">Tổng cộng {SECTION_LABELS[section]}</td>
+                                            <td className="px-10 py-6 border-y-2 border-dashed border-[#9F1D35] text-[22px] font-serif font-black text-center italic text-blue-200">
                                                 {fmtVND(rowsBySection(section).reduce((s, r) => s + r.planned, 0))}
                                             </td>
-                                            <td className="px-10 py-6 text-[18px] font-serif font-black text-text-main text-center italic">
+                                            <td className="px-10 py-6 border-y-2 border-dashed border-[#9F1D35] text-[22px] font-serif font-black text-center italic text-white/90">
                                                 {fmtVND(rowsBySection(section).reduce((s, r) => s + r.actual, 0))}
                                             </td>
-                                            <td className="px-10 py-6"></td>
-                                            <td className="px-10 py-6 text-right font-serif font-black text-gold-muted text-[18px] italic">
+                                            <td className="px-10 py-6 border-y-2 border-dashed border-[#9F1D35]"></td>
+                                            <td className="px-10 py-6 border-y-2 border-r-2 border-dashed rounded-r-[22px] border-[#9F1D35] text-right font-serif font-black text-[22px] italic">
                                                 {fmtVND(rowsBySection(section).reduce((s, r) => s + r.remaining, 0))}
                                             </td>
                                         </tr>
@@ -443,18 +441,18 @@ export default function CashflowPage() {
                             <div className="w-12 h-12 rounded-2xl bg-gold-light/30 flex items-center justify-center text-gold-muted shadow-sm">
                                 <Database size={24} strokeWidth={1.5} />
                             </div>
-                            <h3 className="text-xl font-serif font-bold italic text-text-main leading-tight">Sức khỏe thanh khoản <span className="italic font-normal text-gold-muted opacity-80">theo Tài khoản</span></h3>
+                            <h3 className="text-xl font-serif font-bold italic text-text-main leading-tight">Tổng quan tài chính <span className="italic font-normal text-gold-muted opacity-80">theo Tài khoản</span></h3>
                         </div>
 
-                        <div className="overflow-x-auto luxury-scrollbar border border-gold-light/20 rounded-[32px] md:rounded-[40px] bg-white shadow-luxury">
-                            <table className="w-full min-w-[800px] md:min-w-full text-left luxury-table border-collapse">
+                        <div className="overflow-x-auto luxury-scrollbar">
+                            <table className="w-full min-w-[1000px] text-left border-separate border-spacing-y-4">
                                 <thead>
-                                    <tr className="bg-beige-soft/40 border-b border-gold-light/20">
-                                        <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Tài khoản tài sản</th>
-                                        <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Loại hình</th>
-                                        <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Tổng dòng tiền vào (+)</th>
-                                        <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-center italic opacity-60">Tổng dòng tiền ra (-)</th>
-                                        <th className="px-10 py-6 text-[9px] font-black text-text-soft uppercase tracking-[0.2em] text-right italic opacity-60">Biến động ròng</th>
+                                    <tr className="bg-beige-soft/40">
+                                        <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Tài khoản tài sản</th>
+                                        <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Loại hình</th>
+                                        <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Tổng dòng thu (+)</th>
+                                        <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Tổng dòng chi (-)</th>
+                                        <th className="px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-right">Biến động ròng</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -475,22 +473,22 @@ export default function CashflowPage() {
                                         if (income === 0 && expense === 0) return null
                                         const net = income - expense
                                         return (
-                                            <tr key={acc.id} className="border-b border-gold-light/10 hover:bg-beige-soft/30 transition-all duration-300">
-                                                <td className="px-10 py-7 text-center">
-                                                    <span className="text-[14px] font-bold text-text-main tracking-tight uppercase">{acc.name}</span>
+                                            <tr key={acc.id} className="transition-all duration-500 hover:scale-[1.01] group bg-white shadow-sm h-24 rounded-[28px] overflow-hidden">
+                                                <td className="px-10 py-6 border-y-2 border-l-2 border-dashed rounded-l-[28px] border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center">
+                                                    <span className="text-[14px] font-black text-text-main tracking-tight uppercase">{acc.name}</span>
                                                 </td>
-                                                <td className="px-10 py-7 text-center">
-                                                    <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-beige-soft text-gold-muted text-[9px] font-black uppercase tracking-widest border border-gold-light/20 italic">
+                                                <td className="px-10 py-6 border-y-2 border-dashed border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center">
+                                                    <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-beige-soft text-gold-muted text-[10px] font-black uppercase tracking-widest border border-gold-light/20 italic">
                                                         {acc.type === 'bank' ? 'Thanh khoản: Ngân hàng' : acc.type === 'cash' ? 'Thanh khoản: Tiền mặt' : 'Thanh khoản: POS'}
                                                     </span>
                                                 </td>
-                                                <td className="px-10 py-7 text-center text-[15px] font-serif font-black text-emerald-600 tabular-nums italic">
+                                                <td className="px-10 py-6 border-y-2 border-dashed border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center text-[18px] font-serif font-black text-blue-600 tabular-nums italic">
                                                     {income > 0 ? `+${fmtVND(income)}` : '—'}
                                                 </td>
-                                                <td className="px-10 py-7 text-center text-[15px] font-serif font-black text-rose-600 tabular-nums italic">
+                                                <td className="px-10 py-6 border-y-2 border-dashed border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center text-[18px] font-serif font-black text-[#9F1D35] tabular-nums italic">
                                                     {expense > 0 ? `-${fmtVND(expense)}` : '—'}
                                                 </td>
-                                                <td className={`px-10 py-7 text-right text-[18px] font-serif font-black italic tabular-nums ${net >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                <td className={`px-10 py-6 border-y-2 border-r-2 border-dashed rounded-r-[28px] border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-right text-[22px] font-serif font-black italic tabular-nums ${net >= 0 ? 'text-emerald-600' : 'text-[#9F1D35]'}`}>
                                                     {net > 0 ? '+' : ''}{fmtVND(net)}
                                                 </td>
                                             </tr>

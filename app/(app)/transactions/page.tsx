@@ -53,7 +53,7 @@ export default function TransactionsPage() {
                 // RBAC: Branch staff only see transactions in their own branch
                 if (!canViewAll) {
                     if (tx.branchId !== currentUser?.branchId) return false
-                    
+
                     // Hide transactions created by HQ/Admin department staff from branch staff
                     const creator = state.users.find(u => u.id === tx.createdBy)
                     if (creator && (creator.departmentType === 'hq' || creator.departmentType === 'admin' || creator.role === 'admin')) {
@@ -257,7 +257,7 @@ export default function TransactionsPage() {
                 icon={Database}
                 title="Sổ cái"
                 subtitle="Giao dịch"
-                description="Quản lý dòng tiền & Biến động số dư hệ thống"
+                description="Nhật ký dòng tiền"
                 actions={
                     <div className="flex items-center gap-4">
                         <button
@@ -287,7 +287,7 @@ export default function TransactionsPage() {
                     <div className="flex flex-wrap items-center gap-5 relative z-10">
                         <div className="flex items-center gap-4 bg-gold-light/20 px-6 py-4 rounded-2xl border border-gold-light/30 shadow-inner">
                             <Filter size={18} className="text-gold-muted" strokeWidth={2} />
-                            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Thông số lọc</span>
+                            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gold-muted italic">Bộ Lọc</span>
                         </div>
 
                         <div className="h-10 w-px bg-gold-light/20 mx-2 hidden lg:block" />
@@ -365,22 +365,22 @@ export default function TransactionsPage() {
                 </div>
 
                 {/* Luxury Table Area */}
-                <div className="bg-white rounded-[48px] border border-gold-light/20 shadow-luxury overflow-hidden relative">
+                <div className="bg-white rounded-[48px] border border-gold-light/20 shadow-luxury overflow-hidden relative w-full max-w-full min-w-0">
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gold-light/5 rounded-full -mr-[250px] -mt-[250px] blur-[100px] pointer-events-none" />
 
-                    <div className="overflow-x-auto relative z-10 px-8 pb-8 min-h-[600px]">
-                        <table className="w-full text-left border-separate border-spacing-y-4 table-fixed min-w-[1500px]">
+                    <div className="overflow-x-auto luxury-scrollbar relative z-10 px-8 pb-8 min-h-[600px] w-full min-w-0">
+                        <table className="w-full text-left border-separate border-spacing-y-4 table-fixed min-w-[1200px]">
                             <thead>
                                 <tr className="bg-beige-soft/40">
-                                    <th className="w-[140px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Thời gian</th>
-                                    <th className="w-[160px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Cơ sở</th>
-                                    <th className="w-[180px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Tài khoản</th>
-                                    <th className="w-[130px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Người tạo</th>
-                                    <th className="w-[180px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Danh mục</th>
-                                    <th className="w-[120px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Tính chất</th>
-                                    <th className="w-[200px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-right whitespace-nowrap">Diễn biến số dư</th>
-                                    <th className="w-[300px] px-10 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Chú thích</th>
-                                    <th className="w-[120px] px-10 py-8 border-b border-gold-light/10"></th>
+                                    <th className="w-[100px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Ngày</th>
+                                    <th className="w-[140px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Cơ sở</th>
+                                    <th className="w-[150px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Tài khoản</th>
+                                    <th className="w-[110px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Thủ quỹ</th>
+                                    <th className="w-[160px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Danh mục</th>
+                                    <th className="w-[110px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Loại hình</th>
+                                    <th className="w-[180px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-right whitespace-nowrap">Số dư (VND)</th>
+                                    <th className="w-[250px] px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic whitespace-nowrap">Diễn giải</th>
+                                    <th className="w-[100px] px-8 py-8 border-b border-gold-light/10"></th>
                                 </tr>
                             </thead>
                             <tbody className="relative">
@@ -404,54 +404,50 @@ export default function TransactionsPage() {
                                         const creator = state.users.find(u => u.id === tx.createdBy)
                                         return (
                                             <tr key={tx.id} onClick={() => setSelectedTxId(tx.id)} className="group hover:bg-rose-50/20 transition-all cursor-pointer">
-                                                <td className="px-10 py-10 border-y-2 border-l-2 border-dashed border-rose-600/50 first:rounded-l-[28px] whitespace-nowrap">
-                                                    <div className="flex items-center gap-4 text-[15px] font-black text-text-main tabular-nums italic tracking-tighter">
+                                                <td className="px-8 py-10 border-y-2 border-l-2 border-dashed border-rose-600/50 first:rounded-l-[28px] whitespace-nowrap">
+                                                    <div className="flex items-center gap-4 text-[14px] font-black text-text-main tabular-nums italic tracking-tighter">
                                                         {isLocked && <LockKeyhole size={14} className="text-rose-600 animate-pulse" />}
-                                                        {new Date(tx.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                        {new Date(tx.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap">
-                                                    <div className="flex items-center gap-3">
+                                                <td className="px-8 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2">
                                                         <div className="w-1.5 h-1.5 rounded-full bg-gold-muted/40" />
-                                                        <span className="text-[13px] font-black text-text-main uppercase tracking-tight">{branch?.name}</span>
-                                                        {paidByBranch && (
-                                                            <span className="px-2.5 py-0.5 bg-text-main text-white text-[8px] font-black uppercase tracking-widest rounded-lg">VP Chi hộ</span>
-                                                        )}
+                                                        <span className="text-[12px] font-black text-text-main uppercase tracking-tight">{branch?.name}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap">
+                                                <td className="px-8 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap">
                                                     <div className="flex items-center gap-2 px-3 py-1.5 bg-beige-soft/50 rounded-xl border border-gold-light/10 w-fit">
                                                         <CreditCard size={14} strokeWidth={2} className="text-gold-muted" />
-                                                        <span className="text-[11px] font-black text-text-soft/60 italic tabular-nums">{account?.name}</span>
+                                                        <span className="text-[11px] font-black text-text-soft/60 italic tabular-nums">{account?.name?.split(' ').pop()}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap text-[13px] font-black text-text-main italic">
-                                                    {creator?.displayName || 'Hệ thống'}
+                                                <td className="px-8 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap text-[12px] font-black text-text-main italic">
+                                                    {creator?.displayName?.split(' ').pop() || 'Hệ thống'}
                                                 </td>
-                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap text-[14px] font-serif font-black text-text-main italic">
-                                                    {tx.type === 'transfer' ? 'Chuyển khoản nội bộ' : (cat?.name ?? 'Loại khác')}
+                                                <td className="px-8 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap text-[13px] font-serif font-black text-text-main italic">
+                                                    {tx.type === 'transfer' ? 'Chuyển quỹ' : (cat?.name ?? 'Loại khác')}
                                                 </td>
-                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap">
-                                                    <div className={`w-fit px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] border shadow-sm ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                <td className="px-8 py-10 border-y-2 border-dashed border-rose-600/50 whitespace-nowrap">
+                                                    <div className={`w-fit px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] border shadow-sm ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                                                         tx.type === 'transfer' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                                                             'bg-rose-50 text-rose-600 border-rose-100'
                                                         }`}>
-                                                        {tx.type === 'income' ? 'Thu nhập' : tx.type === 'transfer' ? 'Chuyển quỹ' : 'Chi phí'}
+                                                        {tx.type === 'income' ? 'Thu' : tx.type === 'transfer' ? 'Chuyển' : 'Chi'}
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50 text-right whitespace-nowrap">
-                                                    <div className={`text-[22px] font-serif font-black italic tabular-nums tracking-tighter ${tx.type === 'income' ? 'text-emerald-600' :
+                                                <td className="px-8 py-10 border-y-2 border-dashed border-rose-600/50 text-right whitespace-nowrap">
+                                                    <div className={`text-[18px] font-serif font-black italic tabular-nums tracking-tighter ${tx.type === 'income' ? 'text-emerald-600' :
                                                         tx.type === 'transfer' ? 'text-amber-600' : 'text-rose-600'}`}>
                                                         {tx.type === 'income' ? '+' : '-'}{Math.abs(tx.amount).toLocaleString('vi-VN')}
-                                                        <span className="text-[12px] ml-1 uppercase opacity-40">đ</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-10 border-y-2 border-dashed border-rose-600/50">
-                                                    <div className="text-[11px] font-bold text-rose-600 italic max-w-[350px]">
+                                                <td className="px-8 py-10 border-y-2 border-dashed border-rose-600/50">
+                                                    <div className="text-[11px] font-bold text-rose-600 italic line-clamp-2 leading-relaxed">
                                                         {tx.note || '---'}
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-10 border-y-2 border-r-2 border-dashed border-rose-600/50 last:rounded-r-[28px] text-right" onClick={e => e.stopPropagation()}>
+                                                <td className="px-8 py-10 border-y-2 border-r-2 border-dashed border-rose-600/50 last:rounded-r-[28px] text-right" onClick={e => e.stopPropagation()}>
                                                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
                                                         <button
                                                             className="w-10 h-10 rounded-[14px] bg-white text-text-soft/40 hover:text-emerald-600 shadow-sm border border-gold-light/20 flex items-center justify-center transition-all hover:scale-110 hover:shadow-md"

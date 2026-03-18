@@ -179,16 +179,16 @@ export default function DashboardPage() {
                             <h3 className="text-xl font-serif font-bold text-text-main italic">Hiệu năng theo Chi nhánh</h3>
                         </div>
 
-                        <div className="overflow-x-auto luxury-scrollbar border border-gold-light/20 rounded-[28px] md:rounded-[32px] bg-white shadow-luxury">
-                            <table className="w-full min-w-[1000px] md:min-w-full text-left luxury-table border-collapse">
+                        <div className="overflow-x-auto luxury-scrollbar w-full max-w-full min-w-0">
+                            <table className="w-full min-w-[1000px] text-left border-separate border-spacing-y-4">
                                 <thead>
-                                    <tr className="bg-beige-soft/50 border-b border-gold-light/20">
-                                        <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Chi nhánh</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">KPI Mục tiêu</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Thực đạt</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">% Tỉ lệ</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Tổng chi phí</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Trạng thái</th>
+                                    <tr className="bg-beige-soft/40">
+                                        <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Chi nhánh</th>
+                                        <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">KPI Mục tiêu</th>
+                                        <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Thực đạt</th>
+                                        <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">% Tỉ lệ</th>
+                                        <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Tổng chi phí</th>
+                                        <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Trạng thái</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -200,17 +200,17 @@ export default function DashboardPage() {
                                         const pct = kpi > 0 ? income / kpi * 100 : 0
                                         const branchAlerts = allAlerts.filter(a => a.branchId === branch.id && a.month === month && a.year === year)
                                         return (
-                                            <tr key={branch.id} className="border-b border-gold-light/10 hover:bg-beige-soft/30 transition-colors">
-                                                <td className="px-8 py-6 max-w-[200px] text-tight-wrap">
-                                                    <span className="text-[13px] font-bold text-text-main tracking-wide">{branch.name}</span>
+                                            <tr key={branch.id} className="transition-all duration-500 hover:scale-[1.01] group bg-white shadow-sm h-20 rounded-[28px] overflow-hidden">
+                                                <td className="px-8 py-6 border-y-2 border-l-2 border-dashed rounded-l-[28px] border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors max-w-[200px] text-tight-wrap">
+                                                    <span className="text-[14px] font-black text-text-main tracking-wide uppercase">{branch.name}</span>
                                                 </td>
-                                                <td className="px-8 py-6 text-center text-[13px] font-serif italic text-text-soft force-nowrap">
+                                                <td className="px-8 py-6 border-y-2 border-dashed border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center text-[15px] font-serif font-black italic text-blue-600 force-nowrap">
                                                     {fmtVND(kpi)}
                                                 </td>
-                                                <td className="px-8 py-6 text-center text-[13px] font-bold font-serif text-emerald-600 italic force-nowrap">
+                                                <td className="px-8 py-6 border-y-2 border-dashed border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center text-[15px] font-black font-serif text-emerald-600 italic force-nowrap">
                                                     {fmtVND(income)}
                                                 </td>
-                                                <td className="px-8 py-6">
+                                                <td className="px-8 py-6 border-y-2 border-dashed border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors">
                                                     <div className="flex items-center gap-4 justify-center">
                                                         <div className="h-1.5 w-24 bg-beige-soft rounded-full overflow-hidden flex-shrink-0">
                                                             <div
@@ -218,19 +218,19 @@ export default function DashboardPage() {
                                                                 style={{ width: `${Math.min(pct, 100)}%` }}
                                                             />
                                                         </div>
-                                                        <span className="text-[11px] font-black text-text-main w-8">{pct.toFixed(0)}%</span>
+                                                        <span className="text-[12px] font-black text-text-main w-8 tabular-nums">{pct.toFixed(0)}%</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-8 py-6 text-center text-[13px] font-serif italic text-rose-600 force-nowrap">
+                                                <td className="px-8 py-6 border-y-2 border-dashed border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center text-[15px] font-serif italic text-[#9F1D35] force-nowrap">
                                                     {fmtVND(expense)}
                                                 </td>
-                                                <td className="px-8 py-6 text-center">
+                                                <td className="px-8 py-6 border-y-2 border-r-2 border-dashed rounded-r-[28px] border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center">
                                                     {branchAlerts.length > 0 ? (
-                                                        <Link href={`/cashflow?branchId=${branch.id}&month=${month}&year=${year}`} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 text-rose-600 text-[9px] font-black uppercase tracking-wider border border-rose-100/50">
+                                                        <Link href={`/cashflow?branchId=${branch.id}&month=${month}&year=${year}`} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-wider border border-rose-100/50 shadow-sm">
                                                             <AlertTriangle size={12} strokeWidth={1.5} /> {branchAlerts.length} Cảnh báo
                                                         </Link>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider border border-emerald-100/50">
+                                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-wider border border-emerald-100/50 shadow-sm">
                                                             <CheckCircle size={12} strokeWidth={1.5} /> Ổn định
                                                         </span>
                                                     )}
@@ -258,16 +258,16 @@ export default function DashboardPage() {
                         </Link>
                     </div>
 
-                    <div className="overflow-x-auto luxury-scrollbar border border-gold-light/20 rounded-[28px] md:rounded-[32px] bg-white shadow-luxury">
-                        <table className="w-full min-w-[1000px] md:min-w-full text-left luxury-table border-collapse">
+                    <div className="overflow-x-auto luxury-scrollbar w-full max-w-full min-w-0">
+                        <table className="w-full min-w-[1000px] text-left border-separate border-spacing-y-4">
                             <thead>
-                                <tr className="bg-beige-soft/50 border-b border-gold-light/20">
-                                    <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Ngày</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Đơn vị</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Phân loại</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Loại dòng tiền</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-center">Phương thức</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-text-soft uppercase tracking-widest text-right">Số tiền (VND)</th>
+                                <tr className="bg-beige-soft/40">
+                                    <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Ngày</th>
+                                    <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Đơn vị</th>
+                                    <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Phân loại</th>
+                                    <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Loại dòng tiền</th>
+                                    <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-center">Phương thức</th>
+                                    <th className="px-8 py-8 text-[11px] font-black text-gold-muted/60 uppercase tracking-[0.4em] border-b border-gold-light/10 italic text-right">Số tiền (VND)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -285,29 +285,29 @@ export default function DashboardPage() {
                                         const account = state.accounts.find(a => a.id === tx.paymentAccountId)
                                         const paidByBranch = tx.paidByBranchId ? state.branches.find(b => b.id === tx.paidByBranchId) : null
                                         return (
-                                            <tr key={tx.id} className="border-b border-gold-light/10 hover:bg-beige-soft/30 transition-colors">
-                                                <td className="px-8 py-6 text-center text-[12px] font-medium text-text-soft">
+                                            <tr key={tx.id} className="transition-all duration-500 hover:scale-[1.01] group bg-white shadow-sm h-20 rounded-[28px] overflow-hidden">
+                                                <td className="px-8 py-6 border-y-2 border-l-2 border-dashed rounded-l-[28px] border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center text-[12px] font-black text-text-soft tabular-nums">
                                                     {new Date(tx.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
                                                 </td>
-                                                <td className="px-8 py-6 text-center">
-                                                    <span className="text-[13px] font-bold text-text-main tracking-tight">{branch?.name}</span>
-                                                    {paidByBranch && <div className="text-[9px] font-bold text-gold-muted/60 uppercase tracking-[0.05em] mt-0.5">Chi hộ</div>}
+                                                <td className="px-8 py-6 border-y-2 border-dashed border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center">
+                                                    <span className="text-[14px] font-black text-text-main tracking-tight uppercase">{branch?.name}</span>
+                                                    {paidByBranch && <div className="text-[9px] font-black text-rose-500 uppercase tracking-[0.1em] mt-0.5 italic">Chi hộ</div>}
                                                 </td>
-                                                <td className="px-8 py-6 text-center text-[13px] font-medium text-text-main opacity-80 italic">
+                                                <td className="px-8 py-6 border-y-2 border-dashed border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center text-[14px] font-bold text-text-main opacity-80 italic">
                                                     {cat?.name ?? tx.categoryId}
                                                 </td>
-                                                <td className="px-8 py-6 text-center">
-                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${tx.type === 'income'
-                                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                        : 'bg-rose-50 text-rose-600 border-rose-100'
+                                                <td className="px-8 py-6 border-y-2 border-dashed border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center">
+                                                    <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${tx.type === 'income'
+                                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100/50'
+                                                        : 'bg-rose-50/50 text-[#9F1D35] border-rose-100/50'
                                                         }`}>
                                                         {tx.type === 'income' ? '↑ Thu nhập' : '↓ Chi phí'}
                                                     </span>
                                                 </td>
-                                                <td className="px-8 py-6 text-center text-[11px] font-bold text-gold-muted opacity-80">
-                                                    {account?.name}
+                                                <td className="px-8 py-6 border-y-2 border-dashed border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-center text-[12px] font-black text-gold-muted/60 uppercase tracking-widest italic">
+                                                    {account?.name || 'Tiền mặt'}
                                                 </td>
-                                                <td className={`px-8 py-6 text-right text-[14px] font-serif font-black italic force-nowrap ${tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                <td className={`px-8 py-6 border-y-2 border-r-2 border-dashed rounded-r-[28px] border-[#9F1D35]/50 group-hover:bg-[#9F1D35]/5 transition-colors text-right text-[18px] font-serif font-black italic tabular-nums ${tx.type === 'income' ? 'text-emerald-600' : 'text-[#9F1D35]'}`}>
                                                     {tx.type === 'income' ? '+' : '-'}{fmtVND(tx.amount)}
                                                 </td>
                                             </tr>
