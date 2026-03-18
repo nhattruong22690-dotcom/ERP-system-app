@@ -1,5 +1,5 @@
 appId: "com.taichinh.app"
-productName: "Taichinh"
+productName: "XinhGroup"
 directories:
   output: "dist"
   buildResources: "public"
@@ -17,4 +17,4 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   perMachine: false
-  shortcutName: "Taichinh App"
+  shortcutName: "XinhGroupApp"
