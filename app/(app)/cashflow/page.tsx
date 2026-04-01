@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
 import { buildCashFlowRows, fmtVND, buildAlerts, computeCashFlowSnapshot } from '@/lib/utils/calculations'
+import { useToast } from '@/components/layout/ToastProvider'
 import { AlertTriangle, CheckCircle, Star, ArrowRightCircle, Landmark, LayoutDashboard, Database, TrendingUp, TrendingDown, Wallet, Activity, BellOff, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 // Trigger HMR
@@ -17,6 +18,7 @@ const MONTHS = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T1
 
 export default function CashflowPage() {
     const { currentUser, state, saveState } = useApp()
+    const { showToast } = useToast()
     const searchParams = useSearchParams()
     const now = new Date()
 
@@ -75,37 +77,52 @@ export default function CashflowPage() {
     const handleSyncSnapshot = async () => {
         if (useDateFilter) return
         setIsCalculatingSystem(true)
-        const branchIdToUse = selectedBranch || 'ALL'
+        showToast('Đang xử lý', 'Bắt đầu đồng bộ dữ liệu toàn hệ thống & chi nhánh...', 'info' as any)
+        
         try {
-            const data = computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month, branchIdToUse, visibleBranchIds)
             const { supabase } = await import('@/lib/supabase/supabase')
-            const req = {
-                year,
-                month,
-                branch_id: branchIdToUse,
-                snapshot_data: data,
-                updated_at: new Date().toISOString()
-            }
+            const targets = ['ALL', ...visibleBranchIds]
+            const results: any[] = []
 
-            const existing = state.cashflowSnapshots?.find(s => s.branchId === branchIdToUse && s.year === year && s.month === month)
-            
-            if (existing) {
-                await supabase.from('cashflow_snapshots').update(req).eq('id', existing.id)
-            } else {
-                await supabase.from('cashflow_snapshots').insert(req)
+            for (const branchIdToUse of targets) {
+                const data = computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month, branchIdToUse, visibleBranchIds)
+                const updatedAt = new Date().toISOString()
+                const req = {
+                    year,
+                    month,
+                    branch_id: branchIdToUse,
+                    snapshot_data: data,
+                    updated_at: updatedAt
+                }
+
+                const existing = state.cashflowSnapshots?.find(s => s.branchId === branchIdToUse && s.year === year && s.month === month)
+                
+                if (existing) {
+                    await supabase.from('cashflow_snapshots').update(req).eq('id', existing.id)
+                } else {
+                    await supabase.from('cashflow_snapshots').insert(req)
+                }
+
+                results.push({
+                    ...req,
+                    id: existing?.id || Date.now().toString() + Math.random(),
+                    branchId: branchIdToUse,
+                    data: data,
+                    updatedAt
+                })
             }
 
             saveState(s => {
-                const updatedSnapshots = existing
-                    ? s.cashflowSnapshots?.map(sn => sn.id === existing.id ? { ...sn, ...req, data: req.snapshot_data, updatedAt: req.updated_at } : sn) 
-                    : [...(s.cashflowSnapshots || []), { id: Date.now().toString(), ...req, data: req.snapshot_data, branchId: branchIdToUse, createdAt: new Date().toISOString(), updatedAt: req.updated_at }]
-
-                return { ...s, cashflowSnapshots: updatedSnapshots as any[] }
+                const otherSnapshots = (s.cashflowSnapshots || []).filter(sn => 
+                    !(sn.year === year && sn.month === month && targets.includes(sn.branchId))
+                )
+                return { ...s, cashflowSnapshots: [...otherSnapshots, ...results] }
             })
-            alert('Đồng bộ dữ liệu dòng tiền thành công!')
+            
+            showToast('Thành công', 'Đã đồng bộ toàn bộ dữ liệu dòng tiền tháng này!', 'success' as any)
         } catch (e) {
             console.error(e)
-            alert('Lỗi đồng bộ. Vui lòng thử lại.')
+            showToast('Lỗi', 'Không thể hoàn tất đồng bộ. Vui lòng thử lại.', 'error' as any)
         } finally {
             setIsCalculatingSystem(false)
         }
