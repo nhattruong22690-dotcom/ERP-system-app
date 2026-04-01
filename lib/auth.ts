@@ -49,6 +49,7 @@ const EMPTY_STATE: AppState = {
     payrollRosters: [],
     serviceOrders: [],
     serviceCategories: [],
+    cashflowSnapshots: [],
 }
 
 const AppContext = createContext<AppContextValue | null>(null)

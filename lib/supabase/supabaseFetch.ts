@@ -61,7 +61,8 @@ export async function fetchAllData(): Promise<AppState | null> {
             supabase.from('crm_service_orders').select('*'),
             supabase.from('crm_loyalty_settings').select('*'),
             supabase.from('system_config').select('*'),
-            supabase.from('crm_service_categories').select('*')
+            supabase.from('crm_service_categories').select('*'),
+            supabase.from('cashflow_snapshots').select('*')
         ])
 
         const [
@@ -95,7 +96,8 @@ export async function fetchAllData(): Promise<AppState | null> {
             resServiceOrdersRaw,
             resLoyaltySettingsRaw,
             resSystemConfigRaw,
-            resServiceCategoriesRaw
+            resServiceCategoriesRaw,
+            resCashflowSnapshotsRaw
         ] = batch2;
 
         const rawQueries = [
@@ -123,7 +125,8 @@ export async function fetchAllData(): Promise<AppState | null> {
             { id: 'system_config', res: resSystemConfigRaw },
             { id: 'customer_counts', res: resCustomersAllCount },
             { id: 'vip_counts', res: resTotalVips },
-            { id: 'service_categories', res: resServiceCategoriesRaw }
+            { id: 'service_categories', res: resServiceCategoriesRaw },
+            { id: 'cashflow_snapshots', res: resCashflowSnapshotsRaw }
         ];
 
         rawQueries.forEach(q => {
@@ -154,6 +157,7 @@ export async function fetchAllData(): Promise<AppState | null> {
         const resPayrollRosters = resPayrollRostersRaw.data || [];
         const resServiceOrders = resServiceOrdersRaw.data || []
         const resServiceCategories = resServiceCategoriesRaw.data || []
+        const resCashflowSnapshots = resCashflowSnapshotsRaw.data || []
 
         // Manual Join: Fetch customers for the service orders & appointments since FK relationship is missing
         const orderCustomerIds = resServiceOrders.map((o: any) => o.customer_id)
@@ -454,6 +458,15 @@ export async function fetchAllData(): Promise<AppState | null> {
                 description: sc.description,
                 isActive: sc.is_active !== false,
                 createdAt: sc.created_at
+            })),
+            cashflowSnapshots: resCashflowSnapshots.map((cs: any) => ({
+                id: cs.id,
+                year: cs.year,
+                month: cs.month,
+                branchId: cs.branch_id,
+                data: cs.snapshot_data,
+                createdAt: cs.created_at,
+                updatedAt: cs.updated_at
             })),
             dismissedAlerts: [],
             starredAlerts: [],

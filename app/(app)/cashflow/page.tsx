@@ -1,9 +1,10 @@
 'use client'
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
-import { buildCashFlowRows, fmtVND, buildAlerts } from '@/lib/utils/calculations'
+import { buildCashFlowRows, fmtVND, buildAlerts, computeSystemCashFlowData } from '@/lib/utils/calculations'
 import { AlertTriangle, CheckCircle, Star, ArrowRightCircle, Landmark, LayoutDashboard, Database, TrendingUp, TrendingDown, Wallet, Activity, BellOff, ChevronDown, ChevronUp } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
+// Trigger HMR
 import PageHeader from '@/components/layout/PageHeader'
 
 const SECTION_LABELS: Record<string, string> = {
@@ -50,6 +51,69 @@ export default function CashflowPage() {
     const [hideAlerts, setHideAlerts] = useState(false)
     const [isAlertsExpanded, setIsAlertsExpanded] = useState(false)
 
+    // Snapshot
+    const [isCalculatingSystem, setIsCalculatingSystem] = useState(false)
+    const [snapshotData, setSnapshotData] = useState<{ rows: any[], kpiRevenue: number, updatedAt: string } | null>(null)
+
+    const currentSnapshot = useMemo(() => {
+        if (selectedBranch !== "") return null
+        return state.cashflowSnapshots?.find(s => s.branchId === 'ALL' && s.year === year && s.month === month)
+    }, [selectedBranch, year, month, state.cashflowSnapshots])
+
+    useEffect(() => {
+        if (selectedBranch === "") {
+            if (currentSnapshot) {
+                setSnapshotData({
+                    rows: currentSnapshot.data?.rows || [],
+                    kpiRevenue: currentSnapshot.data?.kpiRevenue || 0,
+                    updatedAt: currentSnapshot.updatedAt
+                })
+            } else {
+                setSnapshotData(null)
+            }
+        } else {
+            setSnapshotData(null)
+        }
+    }, [selectedBranch, currentSnapshot])
+
+    const handleSyncSystem = async () => {
+        if (selectedBranch !== "" || useDateFilter) return
+        setIsCalculatingSystem(true)
+        try {
+            const data = computeSystemCashFlowData(state.plans, state.categories, state.transactions, year, month)
+            const { supabase } = await import('@/lib/supabase/supabase')
+            const req = {
+                year,
+                month,
+                branch_id: 'ALL',
+                snapshot_data: data,
+                updated_at: new Date().toISOString()
+            }
+
+            const existing = state.cashflowSnapshots?.find(s => s.branchId === 'ALL' && s.year === year && s.month === month)
+            
+            if (existing) {
+                await supabase.from('cashflow_snapshots').update(req).eq('id', existing.id)
+            } else {
+                await supabase.from('cashflow_snapshots').insert(req)
+            }
+
+            saveState(s => {
+                const updatedSnapshots = existing
+                    ? s.cashflowSnapshots?.map(sn => sn.id === existing.id ? { ...sn, ...req, data: req.snapshot_data, updatedAt: req.updated_at } : sn) 
+                    : [...(s.cashflowSnapshots || []), { id: Date.now().toString(), ...req, data: req.snapshot_data, branchId: 'ALL', createdAt: new Date().toISOString(), updatedAt: req.updated_at }]
+
+                return { ...s, cashflowSnapshots: updatedSnapshots as any[] }
+            })
+            alert('Đồng bộ dữ liệu dòng tiền hệ thống thành công!')
+        } catch (e) {
+            console.error(e)
+            alert('Lỗi đồng bộ. Vui lòng thử lại.')
+        } finally {
+            setIsCalculatingSystem(false)
+        }
+    }
+
     useEffect(() => {
         const catId = searchParams.get('highlight')
         if (!catId) return
@@ -67,16 +131,29 @@ export default function CashflowPage() {
         ? state.branches.filter(b => b.type !== 'hq' && !b.isHeadquarter)
         : state.branches.filter(b => b.id === currentUser?.branchId)
 
-    const plan = useMemo(() =>
-        state.plans.find(p => p.branchId === selectedBranch && p.year === year && p.month === month)
-        , [state.plans, selectedBranch, year, month])
+    const plan = useMemo(() => {
+        if (selectedBranch === "") {
+            const dynamicKpi = computeSystemCashFlowData(state.plans, state.categories, state.transactions, year, month).kpiRevenue
+            return { id: 'system', isSystem: true, kpiRevenue: dynamicKpi, branchId: 'ALL', year, month } as any
+        }
+        return state.plans.find(p => p.branchId === selectedBranch && p.year === year && p.month === month)
+    }, [state.plans, selectedBranch, year, month])
 
     const rows = useMemo(() => {
-        if (!plan) return []
         const activeFromDate = useDateFilter && fromDate ? fromDate : undefined
         const activeToDate = useDateFilter && toDate ? toDate : undefined
+        
+        if (selectedBranch === "") {
+            if (useDateFilter && activeFromDate && activeToDate) {
+                return computeSystemCashFlowData(state.plans, state.categories, state.transactions, year, month, activeFromDate, activeToDate).rows
+            }
+            if (snapshotData?.rows) return snapshotData.rows
+            return computeSystemCashFlowData(state.plans, state.categories, state.transactions, year, month).rows
+        }
+
+        if (!plan || plan.id === 'system') return []
         return buildCashFlowRows(plan, state.categories, state.transactions, activeFromDate, activeToDate)
-    }, [plan, state.categories, state.transactions, useDateFilter, fromDate, toDate])
+    }, [plan, state.categories, state.transactions, useDateFilter, fromDate, toDate, selectedBranch, snapshotData, year, month])
 
     const alerts = useMemo(() => {
         const activeFromDate = useDateFilter && fromDate ? fromDate : undefined
@@ -160,6 +237,16 @@ export default function CashflowPage() {
                                 >
                                     {useDateFilter ? 'Xem theo Tháng' : 'Lọc từ ngày'}
                                 </button>
+                                {selectedBranch === "" && !useDateFilter && (
+                                    <button
+                                        onClick={handleSyncSystem}
+                                        disabled={isCalculatingSystem}
+                                        className={`ml-2 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-md transition-all ${isCalculatingSystem ? 'bg-gold-light/20 text-gold-muted/50 cursor-not-allowed' : 'bg-[#9F1D35]/10 text-[#9F1D35] hover:bg-[#9F1D35]/20'}`}
+                                        title={snapshotData?.updatedAt ? `Cập nhật lần cuối: ${new Date(snapshotData.updatedAt).toLocaleString('vi-VN')}` : 'Đồng bộ Dữ liệu Hệ thống'}
+                                    >
+                                        {isCalculatingSystem ? 'Đang xử lý...' : 'Đồng bộ'}
+                                    </button>
+                                )}
                             </div>
 
                             {!useDateFilter ? (
@@ -270,12 +357,12 @@ export default function CashflowPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-20">
                     {[
                         { label: 'KPI Mục tiêu', value: plan.kpiRevenue || 0, actual: plan.kpiRevenue || 0, icon: LayoutDashboard, color: 'text-text-main', bg: 'bg-white', iconColor: 'text-gold-muted' },
-                        { label: 'Doanh thu thực đạt', value: plan.kpiRevenue || 0, actual: totalRevenueActual, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-white', iconColor: 'text-emerald-600' },
-                        { label: 'Lợi nhuận dự kiến', value: plannedProfit, actual: actualProfit, icon: Activity, color: actualProfit >= 0 ? 'text-text-main' : 'text-rose-600', bg: 'bg-white', iconColor: 'text-gold-muted' },
-                        { label: 'Lợi nhuận ròng', value: plannedProfitAfterTax, actual: actualProfitAfterTax, icon: Wallet, color: actualProfitAfterTax >= 0 ? 'text-text-main' : 'text-rose-600', bg: 'bg-text-main text-white', iconColor: 'text-white' },
+                        { label: 'Doanh thu', value: plan.kpiRevenue || 0, actual: totalRevenueActual, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-white', iconColor: 'text-emerald-600' },
+                        { label: 'Lợi nhuận gộp', value: plannedProfit, actual: actualProfit, icon: Activity, color: actualProfit >= 0 ? 'text-text-main' : 'text-rose-600', bg: 'bg-white', iconColor: 'text-gold-muted' },
+                        { label: 'Sau thuế (Tạm tính)', value: plannedProfitAfterTax, actual: actualProfitAfterTax, icon: Wallet, color: actualProfitAfterTax >= 0 ? 'text-text-main' : 'text-rose-600', bg: 'bg-text-main text-white', iconColor: 'text-white' },
                     ].map((c, i) => {
                         const pct = c.value > 0 ? (c.actual / c.value) * 100 : c.actual > 0 ? 100 : 0
-                        const status = c.label === 'Doanh thu thực đạt'
+                        const status = c.label === 'Doanh thu'
                             ? (pct >= 100 ? 'ok' : pct >= 80 ? 'warning' : 'exceeded')
                             : (pct > 100 ? 'exceeded' : pct >= 80 ? 'warning' : 'ok')
                         const isDark = c.bg.includes('main')
@@ -529,7 +616,7 @@ export default function CashflowPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {state.accounts.filter(a => !a.branchId || a.branchId === selectedBranch).map(acc => {
+                                    {state.accounts.filter(a => selectedBranch === "" || !a.branchId || a.branchId === selectedBranch).map(acc => {
                                         const txs = state.transactions.filter(tx => {
                                             if (tx.paymentAccountId !== acc.id) return false
 
@@ -572,7 +659,7 @@ export default function CashflowPage() {
 
                             {/* Mobile account health cards */}
                             <div className="md:hidden space-y-4">
-                                {state.accounts.filter(a => !a.branchId || a.branchId === selectedBranch).map(acc => {
+                                {state.accounts.filter(a => selectedBranch === "" || !a.branchId || a.branchId === selectedBranch).map(acc => {
                                     const txs = state.transactions.filter(tx => {
                                         if (tx.paymentAccountId !== acc.id) return false
                                         if (useDateFilter && fromDate && toDate) {

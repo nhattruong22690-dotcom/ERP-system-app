@@ -32,7 +32,7 @@ export function getActualForCategory(
 ): number {
     return transactions
         .filter(tx => {
-            if (tx.branchId !== branchId) return false
+            if (branchId !== 'ALL' && tx.branchId !== branchId) return false
             if (tx.categoryId !== categoryId) return false
 
             const txDate = tx.date.split('T')[0]
@@ -93,6 +93,55 @@ export function buildCashFlowRows(
             } as CashFlowRow
         })
         .filter(Boolean) as CashFlowRow[]
+}
+
+// Build system wide cash flow data for caching/snapshot
+export function computeSystemCashFlowData(
+    plans: MonthlyPlan[],
+    categories: Category[],
+    transactions: Transaction[],
+    year: number,
+    month: number,
+    fromDate?: string,
+    toDate?: string
+): { rows: CashFlowRow[], kpiRevenue: number } {
+    const validPlans = plans.filter(p => p.year === year && p.month === month)
+    const totalKPI = validPlans.reduce((sum, p) => sum + (p.kpiRevenue || 0), 0)
+
+    const systemCategoryPlans: Record<string, CategoryPlan> = {}
+    
+    for (const p of validPlans) {
+        for (const cp of p.categoryPlans) {
+            if (cp.disabled) continue
+            if (!systemCategoryPlans[cp.categoryId]) {
+                systemCategoryPlans[cp.categoryId] = {
+                    categoryId: cp.categoryId,
+                    rate: cp.rate,
+                    fixedAmount: 0,
+                    plannedAmount: 0,
+                    alertThreshold: cp.alertThreshold,
+                    disabled: false
+                }
+            }
+            systemCategoryPlans[cp.categoryId].plannedAmount += cp.plannedAmount
+        }
+    }
+
+    const unifiedPlan: MonthlyPlan = {
+        id: 'system',
+        branchId: 'ALL',
+        year,
+        month,
+        kpiRevenue: totalKPI,
+        taxRate: 0,
+        categoryPlans: Object.values(systemCategoryPlans),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    }
+
+    const rows = buildCashFlowRows(unifiedPlan, categories, transactions, fromDate, toDate)
+
+    return { rows, kpiRevenue: totalKPI }
 }
 
 // Build alert items for all branches

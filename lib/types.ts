@@ -637,6 +637,19 @@ export interface SystemConfig {
 }
 
 // ============================================================
+// CASHFLOW SNAPSHOTS
+// ============================================================
+export interface CashflowSnapshot {
+  id: string
+  year: number
+  month: number
+  branchId: string // "ALL" hoặc một branch_id
+  data: any // JSON Data { rows: CashFlowRow[] }
+  createdAt: string
+  updatedAt: string
+}
+
+// ============================================================
 // APP STATE
 // ============================================================
 export interface AppState {
@@ -666,6 +679,7 @@ export interface AppState {
   serviceOrders: ServiceOrder[]
   systemConfig?: SystemConfig
   loyaltySettings?: LoyaltySettings
+  cashflowSnapshots?: CashflowSnapshot[]
   currentUserId?: string
   dismissedAlerts: string[]
   starredAlerts: string[]
