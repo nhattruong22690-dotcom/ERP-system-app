@@ -1,8 +1,8 @@
 'use client'
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp, canViewAllBranches } from '@/lib/auth'
-import { buildCashFlowRows, fmtVND, buildAlerts, computeSystemCashFlowData } from '@/lib/utils/calculations'
-import { AlertTriangle, CheckCircle, Star, ArrowRightCircle, Landmark, LayoutDashboard, Database, TrendingUp, TrendingDown, Wallet, Activity, BellOff, ChevronDown, ChevronUp } from 'lucide-react'
+import { buildCashFlowRows, fmtVND, buildAlerts, computeCashFlowSnapshot } from '@/lib/utils/calculations'
+import { AlertTriangle, CheckCircle, Star, ArrowRightCircle, Landmark, LayoutDashboard, Database, TrendingUp, TrendingDown, Wallet, Activity, BellOff, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 // Trigger HMR
 import PageHeader from '@/components/layout/PageHeader'
@@ -56,41 +56,38 @@ export default function CashflowPage() {
     const [snapshotData, setSnapshotData] = useState<{ rows: any[], kpiRevenue: number, updatedAt: string } | null>(null)
 
     const currentSnapshot = useMemo(() => {
-        if (selectedBranch !== "") return null
-        return state.cashflowSnapshots?.find(s => s.branchId === 'ALL' && s.year === year && s.month === month)
+        const branchIdToUse = selectedBranch || 'ALL'
+        return state.cashflowSnapshots?.find(s => s.branchId === branchIdToUse && s.year === year && s.month === month)
     }, [selectedBranch, year, month, state.cashflowSnapshots])
 
     useEffect(() => {
-        if (selectedBranch === "") {
-            if (currentSnapshot) {
-                setSnapshotData({
-                    rows: currentSnapshot.data?.rows || [],
-                    kpiRevenue: currentSnapshot.data?.kpiRevenue || 0,
-                    updatedAt: currentSnapshot.updatedAt
-                })
-            } else {
-                setSnapshotData(null)
-            }
+        if (currentSnapshot) {
+            setSnapshotData({
+                rows: currentSnapshot.data?.rows || [],
+                kpiRevenue: currentSnapshot.data?.kpiRevenue || 0,
+                updatedAt: currentSnapshot.updatedAt
+            })
         } else {
             setSnapshotData(null)
         }
-    }, [selectedBranch, currentSnapshot])
+    }, [currentSnapshot])
 
-    const handleSyncSystem = async () => {
-        if (selectedBranch !== "" || useDateFilter) return
+    const handleSyncSnapshot = async () => {
+        if (useDateFilter) return
         setIsCalculatingSystem(true)
+        const branchIdToUse = selectedBranch || 'ALL'
         try {
-            const data = computeSystemCashFlowData(state.plans, state.categories, state.transactions, year, month)
+            const data = computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month, branchIdToUse)
             const { supabase } = await import('@/lib/supabase/supabase')
             const req = {
                 year,
                 month,
-                branch_id: 'ALL',
+                branch_id: branchIdToUse,
                 snapshot_data: data,
                 updated_at: new Date().toISOString()
             }
 
-            const existing = state.cashflowSnapshots?.find(s => s.branchId === 'ALL' && s.year === year && s.month === month)
+            const existing = state.cashflowSnapshots?.find(s => s.branchId === branchIdToUse && s.year === year && s.month === month)
             
             if (existing) {
                 await supabase.from('cashflow_snapshots').update(req).eq('id', existing.id)
@@ -101,11 +98,11 @@ export default function CashflowPage() {
             saveState(s => {
                 const updatedSnapshots = existing
                     ? s.cashflowSnapshots?.map(sn => sn.id === existing.id ? { ...sn, ...req, data: req.snapshot_data, updatedAt: req.updated_at } : sn) 
-                    : [...(s.cashflowSnapshots || []), { id: Date.now().toString(), ...req, data: req.snapshot_data, branchId: 'ALL', createdAt: new Date().toISOString(), updatedAt: req.updated_at }]
+                    : [...(s.cashflowSnapshots || []), { id: Date.now().toString(), ...req, data: req.snapshot_data, branchId: branchIdToUse, createdAt: new Date().toISOString(), updatedAt: req.updated_at }]
 
                 return { ...s, cashflowSnapshots: updatedSnapshots as any[] }
             })
-            alert('Đồng bộ dữ liệu dòng tiền hệ thống thành công!')
+            alert('Đồng bộ dữ liệu dòng tiền thành công!')
         } catch (e) {
             console.error(e)
             alert('Lỗi đồng bộ. Vui lòng thử lại.')
@@ -133,7 +130,7 @@ export default function CashflowPage() {
 
     const plan = useMemo(() => {
         if (selectedBranch === "") {
-            const dynamicKpi = computeSystemCashFlowData(state.plans, state.categories, state.transactions, year, month).kpiRevenue
+            const dynamicKpi = computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month).kpiRevenue
             return { id: 'system', isSystem: true, kpiRevenue: dynamicKpi, branchId: 'ALL', year, month } as any
         }
         return state.plans.find(p => p.branchId === selectedBranch && p.year === year && p.month === month)
@@ -145,11 +142,13 @@ export default function CashflowPage() {
         
         if (selectedBranch === "") {
             if (useDateFilter && activeFromDate && activeToDate) {
-                return computeSystemCashFlowData(state.plans, state.categories, state.transactions, year, month, activeFromDate, activeToDate).rows
+                return computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month, 'ALL', activeFromDate, activeToDate).rows
             }
             if (snapshotData?.rows) return snapshotData.rows
-            return computeSystemCashFlowData(state.plans, state.categories, state.transactions, year, month).rows
+            return computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month).rows
         }
+
+        if (snapshotData?.rows && !useDateFilter) return snapshotData.rows
 
         if (!plan || plan.id === 'system') return []
         return buildCashFlowRows(plan, state.categories, state.transactions, activeFromDate, activeToDate)
@@ -237,14 +236,14 @@ export default function CashflowPage() {
                                 >
                                     {useDateFilter ? 'Xem theo Tháng' : 'Lọc từ ngày'}
                                 </button>
-                                {selectedBranch === "" && !useDateFilter && (
+                                {!useDateFilter && (
                                     <button
-                                        onClick={handleSyncSystem}
+                                        onClick={handleSyncSnapshot}
                                         disabled={isCalculatingSystem}
-                                        className={`ml-2 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-md transition-all ${isCalculatingSystem ? 'bg-gold-light/20 text-gold-muted/50 cursor-not-allowed' : 'bg-[#9F1D35]/10 text-[#9F1D35] hover:bg-[#9F1D35]/20'}`}
-                                        title={snapshotData?.updatedAt ? `Cập nhật lần cuối: ${new Date(snapshotData.updatedAt).toLocaleString('vi-VN')}` : 'Đồng bộ Dữ liệu Hệ thống'}
+                                        className={`ml-3 w-8 h-8 flex items-center justify-center rounded-full transition-all shadow-sm ${isCalculatingSystem ? 'bg-gold-light/20 text-gold-muted/50 cursor-not-allowed' : 'bg-white text-gold-muted hover:text-rose-600 border border-gold-light/20 hover:border-rose-200'}`}
+                                        title={snapshotData?.updatedAt ? `Cập nhật lần cuối: ${new Date(snapshotData.updatedAt).toLocaleString('vi-VN')}` : 'Tính toán lại dữ liệu Snapshot'}
                                     >
-                                        {isCalculatingSystem ? 'Đang xử lý...' : 'Đồng bộ'}
+                                        <RefreshCw size={14} className={isCalculatingSystem ? 'animate-spin' : ''} />
                                     </button>
                                 )}
                             </div>

@@ -95,17 +95,23 @@ export function buildCashFlowRows(
         .filter(Boolean) as CashFlowRow[]
 }
 
-// Build system wide cash flow data for caching/snapshot
-export function computeSystemCashFlowData(
+// Build cash flow data for caching/snapshot (System-wide or Branch-specific)
+export function computeCashFlowSnapshot(
     plans: MonthlyPlan[],
     categories: Category[],
     transactions: Transaction[],
     year: number,
     month: number,
+    targetBranchId?: string,
     fromDate?: string,
     toDate?: string
 ): { rows: CashFlowRow[], kpiRevenue: number } {
-    const validPlans = plans.filter(p => p.year === year && p.month === month)
+    const branchIdToUse = targetBranchId || 'ALL'
+    const validPlans = plans.filter(p => 
+        p.year === year && 
+        p.month === month && 
+        (branchIdToUse === 'ALL' || p.branchId === branchIdToUse)
+    )
     const totalKPI = validPlans.reduce((sum, p) => sum + (p.kpiRevenue || 0), 0)
 
     const systemCategoryPlans: Record<string, CategoryPlan> = {}
@@ -128,8 +134,8 @@ export function computeSystemCashFlowData(
     }
 
     const unifiedPlan: MonthlyPlan = {
-        id: 'system',
-        branchId: 'ALL',
+        id: 'snapshot',
+        branchId: branchIdToUse,
         year,
         month,
         kpiRevenue: totalKPI,
