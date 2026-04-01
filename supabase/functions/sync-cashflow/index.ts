@@ -1,9 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// --- HELPER FUNCTIONS (Extracted from calculations.ts) ---
+// --- TYPES ---
+interface Category { id: string; name: string; section: 'revenue' | 'expense' | 'other' }
+interface CategoryPlan { categoryId: string; plannedAmount: number; rate?: number; alertThreshold: number; disabled: boolean }
+interface MonthlyPlan { id: string; branchId: string; year: number; month: number; kpiRevenue: number; categoryPlans: CategoryPlan[] }
+interface Transaction { id: string; branchId: string; categoryId: string; amount: number; date: string }
 
-function getActualForCategory(transactions, branchId, categoryId, year, month) {
+// --- HELPER FUNCTIONS ---
+
+function getActualForCategory(transactions: Transaction[], branchId: string, categoryId: string, year: number, month: number) {
     return transactions
         .filter(tx => {
             if (branchId !== 'ALL' && tx.branchId !== branchId) return false
@@ -14,7 +20,7 @@ function getActualForCategory(transactions, branchId, categoryId, year, month) {
         .reduce((sum, tx) => sum + tx.amount, 0)
 }
 
-function buildCashFlowRows(plan, categories, transactions) {
+function buildCashFlowRows(plan: MonthlyPlan, categories: Category[], transactions: Transaction[]) {
     return plan.categoryPlans
         .filter(cp => !cp.disabled)
         .map(cp => {
@@ -27,7 +33,7 @@ function buildCashFlowRows(plan, categories, transactions) {
             const remaining = isRevenue ? actual - planned : planned - actual
             const isNegativeStatus = isRevenue ? (actual < planned) : (actual > planned)
 
-            let status = 'ok'
+            let status: 'ok' | 'warning' | 'exceeded' = 'ok'
             if (isRevenue) {
                 if (pct < (cp.alertThreshold * 100)) status = planned > 0 ? 'warning' : 'ok'
                 if (actual < planned * 0.5) status = 'exceeded'
@@ -54,7 +60,15 @@ function buildCashFlowRows(plan, categories, transactions) {
         .filter(Boolean)
 }
 
-function computeCashFlowSnapshot(plans, categories, transactions, year, month, targetBranchId, allowedBranchIds) {
+function computeCashFlowSnapshot(
+    plans: MonthlyPlan[], 
+    categories: Category[], 
+    transactions: Transaction[], 
+    year: number, 
+    month: number, 
+    targetBranchId: string, 
+    allowedBranchIds: string[]
+) {
     const branchIdToUse = targetBranchId || 'ALL'
     const validPlans = plans.filter(p => 
         p.year === year && 
@@ -64,7 +78,7 @@ function computeCashFlowSnapshot(plans, categories, transactions, year, month, t
             : p.branchId === branchIdToUse)
     )
     const totalKPI = validPlans.reduce((sum, p) => sum + (p.kpiRevenue || 0), 0)
-    const systemCategoryPlans = {}
+    const systemCategoryPlans: Record<string, any> = {}
     
     for (const p of validPlans) {
         for (const cp of p.categoryPlans) {
@@ -83,7 +97,7 @@ function computeCashFlowSnapshot(plans, categories, transactions, year, month, t
         }
     }
 
-    const unifiedPlan = {
+    const unifiedPlan: MonthlyPlan = {
         id: 'snapshot',
         branchId: branchIdToUse,
         year,
@@ -98,7 +112,7 @@ function computeCashFlowSnapshot(plans, categories, transactions, year, month, t
 
 // --- MAIN FUNCTION ---
 
-serve(async (req) => {
+serve(async (req: Request) => {
   try {
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

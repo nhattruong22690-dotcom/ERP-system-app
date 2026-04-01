@@ -4,11 +4,16 @@
 -- 1. Kích hoạt extension pg_cron (nếu chưa có)
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
--- 2. Kích hoạt extension net để gọi HTTP (nếu chưa có)
-CREATE EXTENSION IF NOT EXISTS net;
+-- 2. Kích hoạt extension pg_net để gọi HTTP (nếu chưa có)
+CREATE EXTENSION IF NOT EXISTS pg_net;
 
--- 3. Xóa job cũ nếu đã tồn tại để tránh trùng lặp
-SELECT cron.unschedule('sync-cashflow-daily');
+-- 3. Xóa job cũ nếu đã tồn tại để tránh lỗi
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'sync-cashflow-daily') THEN
+        PERFORM cron.unschedule('sync-cashflow-daily');
+    END IF;
+END $$;
 
 -- 4. Tạo lịch chạy hằng ngày
 -- LƯU Ý: Anh/chị cần thay thế <PROJECT_ID> và <SERVICE_ROLE_KEY> bên dưới
