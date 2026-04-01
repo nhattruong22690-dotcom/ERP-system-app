@@ -77,7 +77,7 @@ export default function CashflowPage() {
         setIsCalculatingSystem(true)
         const branchIdToUse = selectedBranch || 'ALL'
         try {
-            const data = computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month, branchIdToUse)
+            const data = computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month, branchIdToUse, visibleBranchIds)
             const { supabase } = await import('@/lib/supabase/supabase')
             const req = {
                 year,
@@ -125,12 +125,13 @@ export default function CashflowPage() {
     }, [searchParams])
 
     const visibleBranches = canViewAllBranches(currentUser)
-        ? state.branches.filter(b => b.type !== 'hq' && !b.isHeadquarter)
+        ? state.branches.filter(b => b.type === 'spa')
         : state.branches.filter(b => b.id === currentUser?.branchId)
+    const visibleBranchIds = visibleBranches.map(b => b.id)
 
     const plan = useMemo(() => {
         if (selectedBranch === "") {
-            const dynamicKpi = computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month).kpiRevenue
+            const dynamicKpi = computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month, 'ALL', visibleBranchIds).kpiRevenue
             return { id: 'system', isSystem: true, kpiRevenue: dynamicKpi, branchId: 'ALL', year, month } as any
         }
         return state.plans.find(p => p.branchId === selectedBranch && p.year === year && p.month === month)
@@ -142,10 +143,10 @@ export default function CashflowPage() {
         
         if (selectedBranch === "") {
             if (useDateFilter && activeFromDate && activeToDate) {
-                return computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month, 'ALL', activeFromDate, activeToDate).rows
+                return computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month, 'ALL', visibleBranchIds, activeFromDate, activeToDate).rows
             }
             if (snapshotData?.rows) return snapshotData.rows
-            return computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month).rows
+            return computeCashFlowSnapshot(state.plans, state.categories, state.transactions, year, month, 'ALL', visibleBranchIds).rows
         }
 
         if (snapshotData?.rows && !useDateFilter) return snapshotData.rows

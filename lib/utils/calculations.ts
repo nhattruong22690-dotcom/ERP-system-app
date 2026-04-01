@@ -103,6 +103,7 @@ export function computeCashFlowSnapshot(
     year: number,
     month: number,
     targetBranchId?: string,
+    allowedBranchIds?: string[],
     fromDate?: string,
     toDate?: string
 ): { rows: CashFlowRow[], kpiRevenue: number } {
@@ -110,7 +111,9 @@ export function computeCashFlowSnapshot(
     const validPlans = plans.filter(p => 
         p.year === year && 
         p.month === month && 
-        (branchIdToUse === 'ALL' || p.branchId === branchIdToUse)
+        (branchIdToUse === 'ALL' 
+            ? (!allowedBranchIds || allowedBranchIds.includes(p.branchId))
+            : p.branchId === branchIdToUse)
     )
     const totalKPI = validPlans.reduce((sum, p) => sum + (p.kpiRevenue || 0), 0)
 
