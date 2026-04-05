@@ -7,7 +7,8 @@ import { Transaction, ActivityLog, AppState } from '@/lib/types'
 import { useModal } from '@/components/layout/ModalProvider'
 import { useToast } from '@/components/layout/ToastProvider'
 import UserAvatar from '@/components/ui/UserAvatar'
-import { Plus, Search, Filter, Calendar, CreditCard, User, Edit2, Trash2, X, Download, AlertCircle, AlertTriangle, CheckCircle2, MoreHorizontal, ArrowRightCircle, Building, LayoutGrid, Eye, Database, TrendingUp, TrendingDown, Activity, LockKeyhole, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Filter, Calendar, CreditCard, User, Edit2, Trash2, X, Download, AlertCircle, AlertTriangle, CheckCircle2, MoreHorizontal, ArrowRightCircle, Building, LayoutGrid, Eye, Database, TrendingUp, TrendingDown, Activity, LockKeyhole, ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { MoneyInput } from '../planning/page'
 
 import PageHeader from '@/components/layout/PageHeader'
@@ -274,6 +275,31 @@ export default function TransactionsPage() {
     const totalIncome = filteredTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
     const totalExpense = filteredTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
 
+    const handleExportExcel = () => {
+        const data = filteredTx.map(tx => {
+            const cat = state.categories.find(c => c.id === tx.categoryId)
+            const branch = state.branches.find(b => b.id === tx.branchId)
+            const account = state.accounts.find(a => a.id === tx.paymentAccountId)
+            const creator = state.users.find(u => u.id === tx.createdBy)
+
+            return {
+                'Ngày': new Date(tx.date).toLocaleDateString('vi-VN'),
+                'Cơ sở': branch?.name || '',
+                'Tài khoản': account?.name || '',
+                'Người thực hiện': creator?.displayName || 'Hệ thống',
+                'Danh mục': tx.type === 'transfer' ? 'Chuyển quỹ' : (cat?.name || 'Vãng lai'),
+                'Loại': tx.type === 'income' ? 'Thu' : (tx.type === 'transfer' ? 'Chuyển' : 'Chi'),
+                'Giá trị': tx.amount,
+                'Diễn giải': tx.note || ''
+            }
+        })
+
+        const ws = XLSX.utils.json_to_sheet(data)
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'Giao dich')
+        XLSX.writeFile(wb, `So_Cai_XinhGroup_${new Date().toISOString().split('T')[0]}.xlsx`)
+    }
+
     return (
         <div className="page-container px-4 md:px-[10%]">
             <PageHeader
@@ -288,6 +314,13 @@ export default function TransactionsPage() {
                             onClick={() => setShowBulk(true)}
                         >
                             <LayoutGrid size={18} strokeWidth={1.5} className="group-hover:rotate-90 transition-transform duration-500" /> Nhập nhanh
+                        </button>
+                        <button
+                            className="flex items-center justify-center bg-emerald-50 text-emerald-600 w-14 h-14 rounded-2x-[20px] rounded-[20px] border border-emerald-100 shadow-sm hover:bg-emerald-600 hover:text-white transition-all active:scale-90 group"
+                            onClick={handleExportExcel}
+                            title="Xuất Excel bộ lọc hiện tại"
+                        >
+                            <FileSpreadsheet size={20} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
                         </button>
                         {hasPermission(currentUser, 'transaction_create') && (
                             <button
