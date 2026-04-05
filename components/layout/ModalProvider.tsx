@@ -59,6 +59,18 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         }
     }, [modal])
 
+    // Handle Scroll Lock
+    React.useEffect(() => {
+        if (modal) {
+            document.body.classList.add('lock-scroll')
+        } else {
+            document.body.classList.remove('lock-scroll')
+        }
+        return () => {
+            document.body.classList.remove('lock-scroll')
+        }
+    }, [modal])
+
     // Handle Escape key
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -119,8 +131,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
                                 )}
                                 <button
                                     className={`flex-1 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95 shadow-lg focus:outline-offset-2 ${modal.type === 'confirm'
-                                            ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-200'
-                                            : 'bg-neutral-900 text-white hover:bg-neutral-700 shadow-gray-200'
+                                        ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-200'
+                                        : 'bg-neutral-900 text-white hover:bg-neutral-700 shadow-gray-200'
                                         }`}
                                     onClick={() => handleClose(true)}
                                     autoFocus
