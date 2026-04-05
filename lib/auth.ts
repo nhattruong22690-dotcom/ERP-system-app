@@ -232,6 +232,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (data.permissions !== undefined) updatePayload.permissions = data.permissions
             if (data.branchId !== undefined) updatePayload.branch_id = data.branchId
             if (data.title !== undefined) updatePayload.title = data.title
+            if (data.viewAllBranches !== undefined) (updatePayload as any).view_all_branches = data.viewAllBranches
+            if (data.viewBranchTransactionsFromHQ !== undefined) (updatePayload as any).view_branch_tx_from_hq = data.viewBranchTransactionsFromHQ
             if (data.isActive !== undefined) updatePayload.is_active = data.isActive
 
             const { error } = await supabase
@@ -321,7 +323,7 @@ export function isPageAllowed(user: User | undefined, href: string) {
     if (baseHref === '/crm/membership-settings') {
         return canManageMembership(user)
     }
-    
+
     // Trang cài đặt hệ thống chỉ dành cho Admin (Admins đã trả về true ở trên)
     if (baseHref === '/settings/system') return false
 
@@ -402,4 +404,21 @@ export function canEditTransaction(user: User | undefined, tx: Transaction) {
 
 export function canLockTransaction(user?: User) {
     return hasPermission(user, 'transaction_lock')
+}
+
+export function isTransactionRelatedToBranch(tx: Transaction, branchId: string, accounts: any[]) {
+    if (tx.branchId === branchId) return true;
+    if (tx.paidByBranchId === branchId) return true;
+
+    // Check source account
+    const sourceAcc = accounts.find(a => a.id === tx.paymentAccountId);
+    if (sourceAcc?.branchId === branchId) return true;
+
+    // Check destination account (for transfers)
+    if (tx.toPaymentAccountId) {
+        const targetAcc = accounts.find(a => a.id === tx.toPaymentAccountId);
+        if (targetAcc?.branchId === branchId) return true;
+    }
+
+    return false;
 }

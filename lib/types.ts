@@ -21,6 +21,7 @@ export interface User {
   permissions?: string[]
   branchId?: string   // null/undefined = toàn chuỗi
   viewAllBranches?: boolean // true = xem toàn bộ chi nhánh
+  viewBranchTransactionsFromHQ?: boolean // true = xem giao dịch CN từ VP
   title?: string      // Text tự do (Sắp bỏ dần)
   jobTitleId?: string // Link đến Bảng Chức vụ Động
   departmentType?: DepartmentType
@@ -138,6 +139,7 @@ export interface JobTitle {
   color?: string      // Tailwind color class or Hex
   hasAttendance?: boolean // Yêu cầu chấm công
   allowedPages?: string[]
+  viewBranchTransactionsFromHQ?: boolean
   permissions?: string[]
   createdAt: string
 }

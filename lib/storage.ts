@@ -147,7 +147,8 @@ export async function syncUser(user: User, currentUserId: string | undefined) {
         work_status: user.workStatus,
         has_attendance: user.hasAttendance,
         salary_config: user.salaryConfig,
-        view_all_branches: user.viewAllBranches || false
+        view_all_branches: user.viewAllBranches || false,
+        view_branch_tx_from_hq: user.viewBranchTransactionsFromHQ || false
     })
     if (error) {
         console.error('Supabase Error (User):', { message: error.message, code: error.code, details: error.details, hint: error.hint })
@@ -582,7 +583,7 @@ export async function syncTransaction(tx: Transaction, currentUserId: string | u
             details += ` (${account.name})`
         }
         if (tx.note) details += ` - ${tx.note}`
-        
+
         // 1b. Check for Transaction Alerts
         if (isNew) {
             triggerTransactionAlerts(tx)
@@ -802,6 +803,7 @@ export async function syncJobTitle(jt: any) {
         has_attendance: jt.hasAttendance,
         allowed_pages: jt.allowedPages,
         permissions: jt.permissions,
+        view_branch_tx_from_hq: jt.viewBranchTransactionsFromHQ || false,
         created_at: jt.createdAt
     })
     if (error) {
@@ -1469,7 +1471,7 @@ export async function syncRecalculateCustomerStats(customerId: string) {
 
         // 3. Get dependencies for calculation
         const state = getState()
-        
+
         // 4. Recalculate
         const updatedCustomer = recalculateCustomerStats(customer, {
             ...state,

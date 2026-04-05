@@ -1,6 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { useApp, canViewAllBranches } from '@/lib/auth'
+import { useApp, canViewAllBranches, isTransactionRelatedToBranch } from '@/lib/auth'
 import { buildAlerts, buildCashFlowRows, fmtVND } from '@/lib/utils/calculations'
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Activity, Target, CreditCard, Wallet, Landmark, LayoutDashboard } from 'lucide-react'
 import { calculateAccountBalances } from '@/lib/utils/calculations'
@@ -38,12 +38,37 @@ export default function DashboardPage() {
     )
 
     const totalKPI = filteredPlans.reduce((s, p) => s + p.kpiRevenue, 0)
-    const totalActualRevenue = state.transactions
-        .filter(tx => tx.type === 'income' && new Date(tx.date).getFullYear() === year && new Date(tx.date).getMonth() + 1 === month && (!effectiveBranch || tx.branchId === effectiveBranch))
-        .reduce((s, tx) => s + tx.amount, 0)
-    const totalActualExpense = state.transactions
-        .filter(tx => tx.type === 'expense' && new Date(tx.date).getFullYear() === year && new Date(tx.date).getMonth() + 1 === month && (!effectiveBranch || tx.branchId === effectiveBranch))
-        .reduce((s, tx) => s + tx.amount, 0)
+
+    const totalActualRevenue = useMemo(() => state.transactions
+        .filter(tx => {
+            if (tx.type !== 'income') return false
+            const d = new Date(tx.date)
+            if (d.getFullYear() !== year || d.getMonth() + 1 !== month) return false
+            if (effectiveBranch && !isTransactionRelatedToBranch(tx, effectiveBranch, state.accounts)) return false
+
+            if (!canViewAllBranches(currentUser) && !currentUser?.viewBranchTransactionsFromHQ) {
+                const creator = state.users.find(u => u.id === tx.createdBy)
+                if (creator && (creator.departmentType === 'hq' || creator.departmentType === 'admin' || creator.role === 'admin')) return false
+            }
+            return true
+        })
+        .reduce((s, tx) => s + tx.amount, 0), [state.transactions, state.accounts, state.users, year, month, effectiveBranch, currentUser])
+
+    const totalActualExpense = useMemo(() => state.transactions
+        .filter(tx => {
+            if (tx.type !== 'expense') return false
+            const d = new Date(tx.date)
+            if (d.getFullYear() !== year || d.getMonth() + 1 !== month) return false
+            if (effectiveBranch && !isTransactionRelatedToBranch(tx, effectiveBranch, state.accounts)) return false
+
+            if (!canViewAllBranches(currentUser) && !currentUser?.viewBranchTransactionsFromHQ) {
+                const creator = state.users.find(u => u.id === tx.createdBy)
+                if (creator && (creator.departmentType === 'hq' || creator.departmentType === 'admin' || creator.role === 'admin')) return false
+            }
+            return true
+        })
+        .reduce((s, tx) => s + tx.amount, 0), [state.transactions, state.accounts, state.users, year, month, effectiveBranch, currentUser])
+
     const revenuePct = totalKPI > 0 ? (totalActualRevenue / totalKPI * 100) : 0
 
     const accountBalances = useMemo(() => calculateAccountBalances(state), [state])
@@ -272,7 +297,14 @@ export default function DashboardPage() {
                             </thead>
                             <tbody>
                                 {state.transactions
-                                    .filter(tx => !effectiveBranch || tx.branchId === effectiveBranch)
+                                    .filter(tx => {
+                                        if (effectiveBranch && !isTransactionRelatedToBranch(tx, effectiveBranch, state.accounts)) return false
+                                        if (!canViewAllBranches(currentUser) && !currentUser?.viewBranchTransactionsFromHQ) {
+                                            const creator = state.users.find(u => u.id === tx.createdBy)
+                                            if (creator && (creator.departmentType === 'hq' || creator.departmentType === 'admin' || creator.role === 'admin')) return false
+                                        }
+                                        return true
+                                    })
                                     .sort((a, b) => {
                                         const dateComp = b.date.localeCompare(a.date)
                                         if (dateComp !== 0) return dateComp

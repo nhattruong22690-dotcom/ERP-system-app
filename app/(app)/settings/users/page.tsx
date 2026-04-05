@@ -6,7 +6,7 @@ import { useModal } from '@/components/layout/ModalProvider'
 import { useToast } from '@/components/layout/ToastProvider'
 import JobTitlesModal from '@/components/features/settings/JobTitlesModal'
 import UserAvatar from '@/components/ui/UserAvatar'
-import { Plus, Edit2, X, Shield, Eye, EyeOff, Search, Power, Settings, BadgeCheck, Phone, CheckCircle2, UserCircle, Building, Store, Award, Check, ChevronDown, Landmark, MapPin, Tag, Smartphone, Globe, Star, Heart, Zap, Coffee, MessageSquare, Scissors, DollarSign, Clock, Sparkles, Trash2, History, ArrowRight, PlusCircle, Lock, KeyRound, ShieldCheck } from 'lucide-react'
+import { Plus, Edit2, X, Shield, Eye, EyeOff, Search, Power, Settings, BadgeCheck, Phone, CheckCircle2, UserCircle, Building, Store, Award, Check, ChevronDown, Landmark, MapPin, Tag, Smartphone, Globe, Star, Heart, Zap, Coffee, MessageSquare, Scissors, DollarSign, Clock, Sparkles, Trash2, History, ArrowRight, PlusCircle, Lock, KeyRound, ShieldCheck, Database } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { generateId } from '@/lib/utils/id'
@@ -87,7 +87,8 @@ export default function UsersPage() {
                 role: jt.defaultRole,
                 hasAttendance: jt.hasAttendance,
                 allowedPages: jt.allowedPages || [],
-                permissions: jt.permissions || []
+                permissions: jt.permissions || [],
+                viewBranchTransactionsFromHQ: jt.viewBranchTransactionsFromHQ || false
             }))
         } else {
             setForm(f => ({ ...f, jobTitleId: undefined, title: '' }))
@@ -147,6 +148,7 @@ export default function UsersPage() {
             hasAttendance: form.hasAttendance,
             salaryConfig: form.salaryConfig,
             viewAllBranches: form.viewAllBranches || false,
+            viewBranchTransactionsFromHQ: form.viewBranchTransactionsFromHQ || false,
             isActive: isResigning ? false : (form.isActive !== false),
             createdAt: editing?.createdAt ?? new Date().toISOString(),
         }
@@ -787,6 +789,22 @@ export default function UsersPage() {
                                                 </div>
                                                 <div className={`w-11 h-6 rounded-full relative transition-all duration-300 ${form.viewAllBranches ? 'bg-indigo-600' : 'bg-gray-200'}`}>
                                                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${form.viewAllBranches ? 'left-6' : 'left-1'}`} />
+                                                </div>
+                                            </div>
+
+                                            {/* View Branch Transactions From HQ toggle */}
+                                            <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer ${form.viewBranchTransactionsFromHQ ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-gray-50/50 border-gold-light/10'}`} onClick={() => setForm(f => ({ ...f, viewBranchTransactionsFromHQ: !f.viewBranchTransactionsFromHQ }))}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${form.viewBranchTransactionsFromHQ ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-gray-100 text-text-soft/30'}`}>
+                                                        <Database size={18} strokeWidth={2} />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-[11px] font-black text-text-main uppercase tracking-widest leading-none">Xem giao dịch chi nhánh (từ VP)</div>
+                                                        <div className="text-[9px] font-bold text-text-soft/40 mt-1">Xem mọi giao dịch thuộc CN, kể cả do VP tạo</div>
+                                                    </div>
+                                                </div>
+                                                <div className={`w-11 h-6 rounded-full relative transition-all duration-300 ${form.viewBranchTransactionsFromHQ ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+                                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${form.viewBranchTransactionsFromHQ ? 'left-6' : 'left-1'}`} />
                                                 </div>
                                             </div>
 

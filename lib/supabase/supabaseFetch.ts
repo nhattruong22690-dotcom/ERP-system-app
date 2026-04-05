@@ -218,6 +218,7 @@ export async function fetchAllData(): Promise<AppState | null> {
                     hasAttendance: u.has_attendance,
                     salaryConfig: u.salary_config,
                     viewAllBranches: u.view_all_branches || false,
+                    viewBranchTransactionsFromHQ: u.view_branch_tx_from_hq || false,
                     isActive: u.is_active !== false,
                     createdAt: u.created_at
                 }
@@ -261,13 +262,13 @@ export async function fetchAllData(): Promise<AppState | null> {
                     customerPhone: c?.phone || 'N/A',
                     customerAvatar: c?.avatar,
                     customerRank: c?.rank,
-                    customerRedFlags: (c?.medical_notes || c?.professional_notes) 
-                        ? [{ 
-                            id: 'note-' + a.id, 
-                            type: 'medical', 
+                    customerRedFlags: (c?.medical_notes || c?.professional_notes)
+                        ? [{
+                            id: 'note-' + a.id,
+                            type: 'medical',
                             content: (c?.medical_notes || '') + ' ' + (c?.professional_notes || ''),
                             createdAt: new Date().toISOString()
-                          } as RedFlag] : [],
+                        } as RedFlag] : [],
                     saleTeleId: a.sale_tele_id,
                     saleTeleName: a.sale_tele_name,
                     salePageId: a.sale_page_id,
@@ -282,10 +283,10 @@ export async function fetchAllData(): Promise<AppState | null> {
                 }
             }),
             services: resServices.map((s: any) => ({
-                id: s.id, name: s.name, category: s.category, 
+                id: s.id, name: s.name, category: s.category,
                 categoryId: s.category_id,
                 price: Number(s.price || 0),
-                duration: s.duration || 0, 
+                duration: s.duration || 0,
                 type: s.type || 'single',
                 isActive: s.is_active !== false,
                 image: s.image, createdAt: s.created_at
@@ -361,6 +362,7 @@ export async function fetchAllData(): Promise<AppState | null> {
                 icon: jt.icon, color: jt.color,
                 hasAttendance: jt.has_attendance,
                 allowedPages: jt.allowed_pages || [],
+                viewBranchTransactionsFromHQ: jt.view_branch_tx_from_hq || false,
                 permissions: jt.permissions || [],
                 createdAt: jt.created_at
             })),

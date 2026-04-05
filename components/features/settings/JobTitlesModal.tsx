@@ -57,6 +57,7 @@ export default function JobTitlesModal({ onClose }: { onClose: () => void }) {
         departmentType: 'spa',
         defaultRole: 'staff',
         allowedPages: [],
+        viewBranchTransactionsFromHQ: false,
         permissions: []
     })
     const [expandPerms, setExpandPerms] = useState(false)
@@ -125,6 +126,7 @@ export default function JobTitlesModal({ onClose }: { onClose: () => void }) {
             color: form.color,
             hasAttendance: form.hasAttendance || false,
             allowedPages: form.allowedPages || [],
+            viewBranchTransactionsFromHQ: form.viewBranchTransactionsFromHQ || false,
             permissions: form.permissions || [],
             createdAt: editing?.createdAt ?? new Date().toISOString()
         }
@@ -401,6 +403,21 @@ export default function JobTitlesModal({ onClose }: { onClose: () => void }) {
                                         </div>
                                         <div className={`w-10 h-5 rounded-full relative transition-colors ${form.hasAttendance ? 'bg-emerald-500' : 'bg-gray-200'}`}>
                                             <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${form.hasAttendance ? 'left-6' : 'left-1'}`} />
+                                        </div>
+                                    </div>
+
+                                    <div className={`flex items-center justify-between p-5 bg-white border rounded-[28px] group transition-all cursor-pointer shadow-sm ${form.viewBranchTransactionsFromHQ ? 'border-indigo-200 bg-indigo-50/30' : 'border-gold-light/20 hover:border-gold-muted'}`} onClick={() => setForm({ ...form, viewBranchTransactionsFromHQ: !form.viewBranchTransactionsFromHQ })}>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${form.viewBranchTransactionsFromHQ ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-beige-soft/50 text-text-soft/30'}`}>
+                                                <LucideIcons.Database size={20} />
+                                            </div>
+                                            <div>
+                                                <div className="text-[13px] font-black text-text-main uppercase tracking-tight leading-none italic mb-1">Xem giao dịch chi nhánh (từ VP)</div>
+                                                <div className="text-[9px] font-bold text-text-soft/40 uppercase tracking-widest italic">Cho phép xem các giao dịch liên quan chi nhánh do HQ tạo</div>
+                                            </div>
+                                        </div>
+                                        <div className={`w-10 h-5 rounded-full relative transition-colors ${form.viewBranchTransactionsFromHQ ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+                                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${form.viewBranchTransactionsFromHQ ? 'left-6' : 'left-1'}`} />
                                         </div>
                                     </div>
 

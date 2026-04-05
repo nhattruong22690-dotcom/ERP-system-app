@@ -1,6 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { useApp, canEditTransaction, canViewAllBranches, canLockTransaction, hasPermission } from '@/lib/auth'
+import { useApp, canEditTransaction, canViewAllBranches, canLockTransaction, hasPermission, isTransactionRelatedToBranch } from '@/lib/auth'
 import { fmtVND } from '@/lib/utils/calculations'
 import { saveTransaction, deleteTransaction } from '@/lib/storage'
 import { Transaction, ActivityLog, AppState } from '@/lib/types'
@@ -52,18 +52,28 @@ export default function TransactionsPage() {
         const canViewAll = canViewAllBranches(currentUser)
         return state.transactions
             .filter(tx => {
-                // RBAC: Branch staff only see transactions in their own branch
-                if (!canViewAll) {
-                    if (tx.branchId !== currentUser?.branchId) return false
+                // Determine if transaction is related to the current branch restricted context
+                const userBranchId = currentUser?.branchId;
 
-                    // Hide transactions created by HQ/Admin department staff from branch staff
-                    const creator = state.users.find(u => u.id === tx.createdBy)
-                    if (creator && (creator.departmentType === 'hq' || creator.departmentType === 'admin' || creator.role === 'admin')) {
-                        return false
+                // RBAC: Branch staff only see transactions related to their own branch
+                if (!canViewAll) {
+                    if (!userBranchId || !isTransactionRelatedToBranch(tx, userBranchId, state.accounts)) return false
+
+                    // Hide transactions created by Office/Admin staff from branch staff 
+                    // unless they have special permission to view these related transactions
+                    if (!currentUser?.viewBranchTransactionsFromHQ) {
+                        const creator = state.users.find(u => u.id === tx.createdBy)
+                        if (creator && (creator.departmentType === 'hq' || creator.departmentType === 'admin' || creator.role === 'admin')) {
+                            return false
+                        }
                     }
                 }
 
-                if (filterBranch && tx.branchId !== filterBranch) return false
+                // Filters applied on top
+                if (filterBranch) {
+                    if (!isTransactionRelatedToBranch(tx, filterBranch, state.accounts)) return false
+                }
+
                 if (filterType && tx.type !== filterType) return false
                 if (filterCat && tx.categoryId !== filterCat) return false
                 if (filterAccount && tx.paymentAccountId !== filterAccount) return false
@@ -80,7 +90,7 @@ export default function TransactionsPage() {
                 if (dateComp !== 0) return dateComp
                 return (b.createdAt || '').localeCompare(a.createdAt || '')
             })
-    }, [state.transactions, state.users, filterBranch, filterType, filterMonth, filterYear, filterCat, filterAccount, filterDate, currentUser])
+    }, [state.transactions, state.users, state.accounts, filterBranch, filterType, filterMonth, filterYear, filterCat, filterAccount, filterDate, currentUser])
 
     // Reset to page 1 when any filter changes
     useMemo(() => {
