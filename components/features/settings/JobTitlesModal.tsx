@@ -166,7 +166,7 @@ export default function JobTitlesModal({ onClose }: { onClose: () => void }) {
 
     return (
         <div className="fixed inset-0 z-[2400] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-            <div className="bg-white w-full max-w-6xl h-[85vh] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white w-full max-w-6xl h-[80vh] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
 
                 {/* Left Side: Branding Sidebar */}
                 <div className="w-full md:w-[180px] bg-text-main relative overflow-hidden flex flex-col p-8 text-white shrink-0 items-center justify-center border-b md:border-b-0 md:border-r border-white/5">

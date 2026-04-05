@@ -807,3 +807,8 @@ body {
 .animate-bell-glow {
   animation: bell-glow 2s ease-in-out infinite;
 }
+
+/* Scroll Lock for Modals */
+body.lock-scroll .main-content {
+  overflow: hidden !important;
+}

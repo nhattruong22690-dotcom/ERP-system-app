@@ -37,6 +37,17 @@ export default function UsersPage() {
 
     // Auto-open user by ID if provided in URL
     useEffect(() => {
+        if (showForm || showJobModal || showSalaryModal) {
+            document.body.classList.add('lock-scroll')
+        } else {
+            document.body.classList.remove('lock-scroll')
+        }
+        return () => {
+            document.body.classList.remove('lock-scroll')
+        }
+    }, [showForm, showJobModal, showSalaryModal])
+
+    useEffect(() => {
         const userId = searchParams.get('id')
         if (userId && state.users.length > 0) {
             const user = state.users.find(u => u.id === userId)
@@ -484,7 +495,7 @@ export default function UsersPage() {
 
             {showForm && (
                 <div className="fixed inset-0 z-[2200] flex items-center justify-center p-0 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={async e => { if (e.target === e.currentTarget && await showConfirm('Bạn có chắc chắn muốn đóng? Dữ liệu đang nhập sẽ bị mất.')) setShowForm(false) }}>
-                    <div className="bg-white w-full md:max-w-5xl h-full md:h-[90vh] md:max-h-[900px] md:min-h-[600px] rounded-none md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border-none md:border md:border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white w-full md:w-[80vw] h-full md:h-[80vh] rounded-none md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border-none md:border md:border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
 
                         {/* Left Side: Branding & Profile Sidebar */}
                         <div className="w-full md:w-[240px] bg-text-main relative overflow-hidden flex flex-row md:flex-col p-6 md:p-8 text-white shrink-0 items-center justify-between border-b md:border-b-0 md:border-r border-white/5 h-auto md:h-full">
@@ -990,7 +1001,7 @@ function SalaryConfigModal({ user, initialConfig, onSave, onClose }: { user: Use
 
     return (
         <div className="fixed inset-0 z-[2300] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-            <div className="bg-white w-full max-w-2xl h-[85vh] max-h-[850px] min-h-[500px] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white w-full max-w-2xl h-[80vh] rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-modal-up border border-gold-light/20 my-auto cursor-default relative" onClick={(e) => e.stopPropagation()}>
 
                 {/* Left Side: Compact Branding Sidebar */}
                 <div className="w-full md:w-[120px] bg-text-main relative overflow-hidden flex flex-col p-6 text-white shrink-0 items-center justify-center h-full">
