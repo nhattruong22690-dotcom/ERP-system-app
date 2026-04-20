@@ -27,6 +27,7 @@ export default function LandingAdminModal({ isOpen, onClose, onSelectCustomer, i
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isScannerStarted, setIsScannerStarted] = useState(false);
+  const isStoppingBus = useRef(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
@@ -36,27 +37,35 @@ export default function LandingAdminModal({ isOpen, onClose, onSelectCustomer, i
   }, [isOpen, initialTab, scanOnly]);
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
     if (isOpen && activeTab === 'scan') {
-      // Initialize instance once
-      if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode("reader");
-      }
-      
-      // Auto-start if tab is active
-      startScanner();
+      // Small delay to ensure the "reader" div is mounted in the DOM
+      timeoutId = setTimeout(() => {
+        startScanner();
+      }, 300);
     } else {
       stopScanner();
     }
 
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       stopScanner();
     };
   }, [isOpen, activeTab]);
 
   const startScanner = async () => {
-    if (!scannerRef.current || isScannerStarted) return;
+    if (isScannerStarted || isStoppingBus.current) return;
     
     try {
+      // Ensure element exists
+      const element = document.getElementById("reader");
+      if (!element) return;
+
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode("reader");
+      }
+      
       await scannerRef.current.start(
         { facingMode: "environment" },
         {
@@ -74,18 +83,22 @@ export default function LandingAdminModal({ isOpen, onClose, onSelectCustomer, i
       setIsScannerStarted(true);
     } catch (err) {
       console.error("Failed to start scanner:", err);
-      // If error, it might be permission denied
       setIsScannerStarted(false);
+      // If error is NotReadableError, it might be a transient hardware lock
     }
   };
 
   const stopScanner = async () => {
-    if (scannerRef.current && isScannerStarted) {
+    if (scannerRef.current && isScannerStarted && !isStoppingBus.current) {
+      isStoppingBus.current = true;
       try {
         await scannerRef.current.stop();
+        // After stopping, it's good practice to clear the instance if the element might be unmounted
         setIsScannerStarted(false);
       } catch (err) {
         console.error("Failed to stop scanner:", err);
+      } finally {
+        isStoppingBus.current = false;
       }
     }
   };
@@ -414,7 +427,7 @@ export default function LandingAdminModal({ isOpen, onClose, onSelectCustomer, i
                       onClick={startScanner}
                       className="px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
                     >
-                      Bắt đầu quét
+                      Bắt đầu quét / Thử lại
                     </button>
                   </div>
                 )}
