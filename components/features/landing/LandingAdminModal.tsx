@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, QrCode, UserPlus, Camera, Loader2, Edit2, Trash2 } from 'lucide-react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { supabase } from '@/lib/supabase/supabase';
 
 interface LandingAdminModalProps {
@@ -26,7 +26,8 @@ export default function LandingAdminModal({ isOpen, onClose, onSelectCustomer, i
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const [isScannerStarted, setIsScannerStarted] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -36,28 +37,58 @@ export default function LandingAdminModal({ isOpen, onClose, onSelectCustomer, i
 
   useEffect(() => {
     if (isOpen && activeTab === 'scan') {
-      const scanner = new Html5QrcodeScanner(
-        "reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-      );
-
-      scanner.render((decodedText) => {
-        handleScanSuccess(decodedText);
-        scanner.clear();
-      }, (error) => {
-        // quiet error
-      });
-
-      scannerRef.current = scanner;
+      // Initialize instance once
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode("reader");
+      }
+      
+      // Auto-start if tab is active
+      startScanner();
+    } else {
+      stopScanner();
     }
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(e => console.log(e));
-      }
+      stopScanner();
     };
   }, [isOpen, activeTab]);
+
+  const startScanner = async () => {
+    if (!scannerRef.current || isScannerStarted) return;
+    
+    try {
+      await scannerRef.current.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          rememberLastUsedCamera: true
+        },
+        (decodedText) => {
+          handleScanSuccess(decodedText);
+        },
+        (errorMessage) => {
+          // ignore common errors
+        }
+      );
+      setIsScannerStarted(true);
+    } catch (err) {
+      console.error("Failed to start scanner:", err);
+      // If error, it might be permission denied
+      setIsScannerStarted(false);
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current && isScannerStarted) {
+      try {
+        await scannerRef.current.stop();
+        setIsScannerStarted(false);
+      } catch (err) {
+        console.error("Failed to stop scanner:", err);
+      }
+    }
+  };
 
   const handleScanSuccess = async (id: string) => {
     setLoading(true);
@@ -367,8 +398,41 @@ export default function LandingAdminModal({ isOpen, onClose, onSelectCustomer, i
 
           {activeTab === 'scan' && (
             <div className="space-y-4">
-              <div id="reader" className="w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50"></div>
-              <p className="text-center text-xs text-gray-400">Đưa mã QR của khách hàng vào khung hình</p>
+              <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center">
+                <div id="reader" className="w-full h-full"></div>
+                
+                {!isScannerStarted && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-gray-50/90 gap-4">
+                    <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center animate-pulse">
+                      <Camera size={32} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">Sẵn sàng quét mã</p>
+                      <p className="text-xs text-gray-500 mt-1">Vui lòng cho phép truy cập camera để tiếp tục</p>
+                    </div>
+                    <button 
+                      onClick={startScanner}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                    >
+                      Bắt đầu quét
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {isScannerStarted && (
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-center text-xs text-blue-600 font-medium animate-pulse">
+                    Đang tìm mã QR trong khung hình...
+                  </p>
+                  <button 
+                    onClick={stopScanner}
+                    className="px-4 py-2 text-gray-400 hover:text-red-500 text-[10px] font-bold uppercase tracking-widest border border-gray-100 hover:border-red-100 rounded-lg transition-all"
+                  >
+                    Dừng quét
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
