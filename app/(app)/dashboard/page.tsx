@@ -85,37 +85,42 @@ export default function DashboardPage() {
                 subtitle="Tổng quan"
                 description="Business Intelligence & Hiệu suất tài chính"
                 actions={
-                    <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md p-1.5 rounded-[20px] border border-gold-light/30 shadow-luxury transition-all hover:bg-white hover:border-gold-muted/30">
-                        {canViewAllBranches(currentUser) && (
-                            <div className="flex items-center gap-2 pl-4">
-                                <span className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-50">Chi nhánh:</span>
-                                <select
-                                    className="bg-transparent border-none text-[12px] font-bold text-text-main py-2 px-3 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors"
-                                    value={selectedBranch}
-                                    onChange={e => setSelectedBranch(e.target.value)}
-                                >
-                                    <option value="">Toàn hệ thống</option>
-                                    {visibleBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                </select>
-                            </div>
-                        )}
-                        <div className="flex items-center gap-2 px-4 border-l border-gold-light/20">
-                            <span className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-50">Kỳ báo cáo:</span>
-                            <div className="flex items-center gap-1">
-                                <select
-                                    className="bg-transparent border-none text-[12px] font-bold text-text-main py-2 pl-2 pr-1 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors"
-                                    value={month}
-                                    onChange={e => setMonth(+e.target.value)}
-                                >
-                                    {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-                                </select>
-                                <select
-                                    className="bg-transparent border-none text-[12px] font-bold text-text-main py-2 pl-1 pr-2 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors"
-                                    value={year}
-                                    onChange={e => setYear(+e.target.value)}
-                                >
-                                    {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
+                    <div className="flex items-center gap-3">
+                        <Link href="/landing" target="_blank" className="flex items-center gap-2 px-6 py-3 bg-gold-muted text-white rounded-[20px] hover:bg-gold-muted/90 transition-all font-bold uppercase tracking-widest text-[11px] shadow-luxury hover:scale-[1.02] active:scale-95">
+                            VIP Cards Landing
+                        </Link>
+                        <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md p-1.5 rounded-[20px] border border-gold-light/30 shadow-luxury transition-all hover:bg-white hover:border-gold-muted/30">
+                            {canViewAllBranches(currentUser) && (
+                                <div className="flex items-center gap-2 pl-4">
+                                    <span className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-50">Chi nhánh:</span>
+                                    <select
+                                        className="bg-transparent border-none text-[12px] font-bold text-text-main py-2 px-3 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors"
+                                        value={selectedBranch}
+                                        onChange={e => setSelectedBranch(e.target.value)}
+                                    >
+                                        <option value="">Toàn hệ thống</option>
+                                        {visibleBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                    </select>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-2 px-4 border-l border-gold-light/20">
+                                <span className="text-[9px] font-black text-text-soft uppercase tracking-widest opacity-50">Kỳ báo cáo:</span>
+                                <div className="flex items-center gap-1">
+                                    <select
+                                        className="bg-transparent border-none text-[12px] font-bold text-text-main py-2 pl-2 pr-1 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors"
+                                        value={month}
+                                        onChange={e => setMonth(+e.target.value)}
+                                    >
+                                        {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                                    </select>
+                                    <select
+                                        className="bg-transparent border-none text-[12px] font-bold text-text-main py-2 pl-1 pr-2 focus:ring-0 cursor-pointer hover:text-gold-muted transition-colors"
+                                        value={year}
+                                        onChange={e => setYear(+e.target.value)}
+                                    >
+                                        {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
