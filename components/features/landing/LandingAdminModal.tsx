@@ -70,8 +70,7 @@ export default function LandingAdminModal({ isOpen, onClose, onSelectCustomer, i
         { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: { width: 250, height: 250 },
-          rememberLastUsedCamera: true
+          qrbox: { width: 250, height: 250 }
         },
         (decodedText) => {
           handleScanSuccess(decodedText);
